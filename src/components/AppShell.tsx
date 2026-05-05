@@ -11,13 +11,15 @@ type AppShellProps = {
   onNavigate: (page: Exclude<AppPage, "onboarding">) => void;
   coin?: number;
   showCoin?: boolean;
+  toastMessage?: string | null;
 };
 
-export function AppShell({ activePage, children, onNavigate, coin, showCoin }: AppShellProps) {
+export function AppShell({ activePage, children, onNavigate, coin, showCoin, toastMessage }: AppShellProps) {
   return (
     <Shell>
       <TopBar coin={coin} showCoin={showCoin} />
       <Content>{children}</Content>
+      {toastMessage && <Toast role="status">{toastMessage}</Toast>}
       <BottomNav activePage={activePage} onNavigate={onNavigate} />
     </Shell>
   );
@@ -34,4 +36,20 @@ const Shell = styled.div`
 const Content = styled.main`
   min-height: calc(100vh - 148px);
   padding: 0 ${({ theme }) => theme.spacing.lg} 104px;
+`;
+
+const Toast = styled.div`
+  position: fixed;
+  right: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  z-index: 50;
+  width: min(360px, calc(100vw - 40px));
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  color: ${({ theme }) => theme.colors.surface};
+  background: rgba(28, 28, 30, 0.88);
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  transform: translateX(50%);
 `;

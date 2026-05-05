@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { AppShell } from "./components/AppShell";
+import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
 import { createEntryReward } from "./domain/rewards";
-import { createShopItemViewModels } from "./domain/shop";
+import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
 import { defaultAppState, loadAppState, saveAppState } from "./lib/persistence";
 import { shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
@@ -17,6 +18,7 @@ import type { AppPage, Category, LedgerEntryDraft, PersistedAppState } from "./t
 function App() {
   const [appState, setAppState] = useState<PersistedAppState>(() => loadAppState());
   const [page, setPage] = useState<AppPage>(() => (loadAppState().hasCompletedOnboarding ? "home" : "onboarding"));
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const activePage = page === "onboarding" ? "home" : page;
   const stats = calculateAppStats(appState.entries, appState.monthlyBudget);
   const shopItemViews = createShopItemViewModels({
@@ -32,6 +34,34 @@ function App() {
     saveAppState(appState);
   }, [appState]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+
+    const timer = window.setTimeout(() => setToastMessage(null), 2400);
+    return () => window.clearTimeout(timer);
+  }, [toastMessage]);
+
+  useEffect(() => {
+    let removeBack: (() => void) | undefined;
+    let removeHome: (() => void) | undefined;
+
+    import("@apps-in-toss/web-framework")
+      .then(({ graniteEvent }) => {
+        removeBack = graniteEvent.addEventListener("backEvent", {
+          onEvent: () => setPage((prev) => (prev === "home" ? "home" : "home")),
+        });
+        removeHome = graniteEvent.addEventListener("homeEvent", {
+          onEvent: () => setPage("home"),
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      removeBack?.();
+      removeHome?.();
+    };
+  }, []);
+
   const addLedgerEntry = (draft: LedgerEntryDraft) => {
     const nextEntry = createLedgerEntry(draft);
     const reward = createEntryReward(draft, stats.streakDays);
@@ -41,6 +71,7 @@ function App() {
       entries: [nextEntry, ...prev.entries],
       rewardEvents: [reward, ...prev.rewardEvents].slice(0, 20),
     }));
+    setToastMessage(`${reward.label} +${reward.coins}코인`);
     setPage("home");
   };
 
@@ -49,6 +80,7 @@ function App() {
       ...prev,
       entries: prev.entries.map((entry) => (entry.id === entryId ? { id: entryId, ...draft } : entry)),
     }));
+    setToastMessage("기록을 수정했어요");
   };
 
   const deleteLedgerEntry = (entryId: string) => {
@@ -56,10 +88,12 @@ function App() {
       ...prev,
       entries: prev.entries.filter((entry) => entry.id !== entryId),
     }));
+    setToastMessage("기록을 삭제했어요");
   };
 
   const addCategory = (category: Category) => {
     setAppState((prev) => ({ ...prev, categories: [...prev.categories, category] }));
+    setToastMessage("카테고리를 추가했어요");
   };
 
   const updateCategory = (categoryId: string, nextCategory: Pick<Category, "icon" | "label">) => {
@@ -69,14 +103,17 @@ function App() {
         category.id === categoryId ? { ...category, ...nextCategory } : category,
       ),
     }));
+    setToastMessage("카테고리를 수정했어요");
   };
 
   const deleteCategory = (categoryId: string) => {
     setAppState((prev) => ({
       ...prev,
+      categoryBudgets: Object.fromEntries(Object.entries(prev.categoryBudgets).filter(([id]) => id !== categoryId)),
       categories: prev.categories.filter((category) => category.id !== categoryId),
       entries: prev.entries.map((entry) => (entry.categoryId === categoryId ? { ...entry, categoryId: "etc" } : entry)),
     }));
+    setToastMessage("카테고리를 삭제했어요");
   };
 
   const buyOrEquipItem = (itemId: string) => {
@@ -85,6 +122,7 @@ function App() {
 
     if (item.state === "owned" || item.state === "equipped") {
       setAppState((prev) => ({ ...prev, equippedItemId: item.id }));
+      setToastMessage(`${item.name} 착용 완료`);
       return;
     }
 
@@ -95,21 +133,57 @@ function App() {
       equippedItemId: item.id,
       ownedItemIds: [...prev.ownedItemIds, item.id],
     }));
+    setToastMessage(`${item.name} 구매 완료`);
   };
 
   const openPremiumBox = () => {
-    const rewardItem = shopItemViews.find((item) => item.state === "available" && item.price <= appState.coins);
-    if (!rewardItem) return;
+    const result = resolvePremiumBox(shopItemViews, appState.coins);
+    if (result.outcome !== "item" || !result.itemId) {
+      setToastMessage(result.label);
+      return;
+    }
+    const itemId = result.itemId;
+
     setAppState((prev) => ({
       ...prev,
-      coins: prev.coins - rewardItem.price,
-      equippedItemId: rewardItem.id,
-      ownedItemIds: [...prev.ownedItemIds, rewardItem.id],
+      coins: prev.coins - result.coinsSpent,
+      equippedItemId: itemId,
+      ownedItemIds: prev.ownedItemIds.includes(itemId) ? prev.ownedItemIds : [...prev.ownedItemIds, itemId],
     }));
+    setToastMessage(result.label);
   };
 
   const updateBudget = (budget: number) => {
     setAppState((prev) => ({ ...prev, monthlyBudget: budget }));
+    setToastMessage("예산을 저장했어요");
+  };
+
+  const updateCategoryBudget = (categoryId: string, budget: number) => {
+    setAppState((prev) => ({
+      ...prev,
+      categoryBudgets: { ...prev.categoryBudgets, [categoryId]: budget },
+    }));
+  };
+
+  const shareOutfit = () => {
+    const post = createOutfitPost({ equippedItem, pet: appState.pet });
+    setAppState((prev) => ({
+      ...prev,
+      communityPosts: [post, ...prev.communityPosts].slice(0, 30),
+    }));
+    setToastMessage("코디 자랑을 저장했어요");
+  };
+
+  const likePost = (postId: string) => {
+    setAppState((prev) => ({ ...prev, communityPosts: likeCommunityPost(prev.communityPosts, postId) }));
+  };
+
+  const addComment = (postId: string, message: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      communityPosts: addCommunityComment({ message, postId, posts: prev.communityPosts }),
+    }));
+    setToastMessage("댓글을 남겼어요");
   };
 
   const resetLocalData = () => {
@@ -129,7 +203,13 @@ function App() {
   }
 
   return (
-    <AppShell activePage={activePage} coin={appState.coins} onNavigate={setPage} showCoin={activePage === "shop"}>
+    <AppShell
+      activePage={activePage}
+      coin={appState.coins}
+      onNavigate={setPage}
+      showCoin={activePage === "shop"}
+      toastMessage={toastMessage}
+    >
       {activePage === "home" && (
         <HomePage
           categories={appState.categories}
@@ -142,6 +222,7 @@ function App() {
           wardrobeItems={shopItemViews.filter((item) => item.state === "owned" || item.state === "equipped")}
           onEquipItem={buyOrEquipItem}
           onOpenShop={() => setPage("shop")}
+          onShareOutfit={shareOutfit}
           onRecord={() => setPage("ledger")}
         />
       )}
@@ -149,12 +230,14 @@ function App() {
         <LedgerPage
           budget={appState.monthlyBudget}
           categories={appState.categories}
+          categoryBudgets={appState.categoryBudgets}
           entries={appState.entries}
           onAddEntry={addLedgerEntry}
           onAddCategory={addCategory}
           onDeleteCategory={deleteCategory}
           onDeleteEntry={deleteLedgerEntry}
           onUpdateCategory={updateCategory}
+          onUpdateCategoryBudget={updateCategoryBudget}
           onUpdateEntry={updateLedgerEntry}
         />
       )}
@@ -172,6 +255,10 @@ function App() {
           level={stats.level}
           onItemAction={buyOrEquipItem}
           onOpenPremiumBox={openPremiumBox}
+          onPostComment={addComment}
+          onPostLike={likePost}
+          onShareOutfit={shareOutfit}
+          posts={appState.communityPosts}
         />
       )}
       {activePage === "settings" && (

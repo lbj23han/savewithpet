@@ -80,6 +80,13 @@ export type ShopItemViewModel = ShopItem & {
   canBuy: boolean;
 };
 
+export type PremiumBoxResult = {
+  itemId: string | null;
+  label: string;
+  coinsSpent: number;
+  outcome: "item" | "coins" | "sold_out" | "not_enough_coins";
+};
+
 export type AppStats = {
   totalExpense: number;
   totalSaving: number;
@@ -97,8 +104,29 @@ export type RewardEvent = {
   createdAt: string;
 };
 
+export type CommunityComment = {
+  id: string;
+  authorName: string;
+  message: string;
+  createdAt: string;
+};
+
+export type CommunityPost = {
+  id: string;
+  authorName: string;
+  caption: string;
+  equippedItemId: string | null;
+  petEmoji: string;
+  petName: string;
+  likes: number;
+  comments: CommunityComment[];
+  createdAt: string;
+};
+
 export type PersistedAppState = {
   categories: Category[];
+  categoryBudgets: Record<string, number>;
+  communityPosts: CommunityPost[];
   coins: number;
   entries: LedgerEntry[];
   equippedItemId: string | null;

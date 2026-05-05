@@ -1,8 +1,10 @@
-import { LockKeyhole } from "lucide-react";
+import { Heart, LockKeyhole, MessageCircle, Send } from "lucide-react";
+import { useState } from "react";
 import styled from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
-import type { ShopItemState, ShopItemViewModel } from "../types/app";
+import { PREMIUM_BOX_PRICE } from "../domain/shop";
+import type { CommunityPost, ShopItemState, ShopItemViewModel } from "../types/app";
 
 type ShopPageProps = {
   coins: number;
@@ -10,9 +12,25 @@ type ShopPageProps = {
   level: number;
   onItemAction: (itemId: string) => void;
   onOpenPremiumBox: () => void;
+  onPostComment: (postId: string, message: string) => void;
+  onPostLike: (postId: string) => void;
+  onShareOutfit: () => void;
+  posts: CommunityPost[];
 };
 
-export function ShopPage({ coins, items, level, onItemAction, onOpenPremiumBox }: ShopPageProps) {
+export function ShopPage({
+  coins,
+  items,
+  level,
+  onItemAction,
+  onOpenPremiumBox,
+  onPostComment,
+  onPostLike,
+  onShareOutfit,
+  posts,
+}: ShopPageProps) {
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+
   return (
     <Page>
       <Hero>
@@ -43,10 +61,58 @@ export function ShopPage({ coins, items, level, onItemAction, onOpenPremiumBox }
       <PremiumBox>
         <div>
           <h2>{SHOP_COPY.premiumTitle}</h2>
-          <p>{SHOP_COPY.premiumDescription}</p>
+          <p>900코인으로 미보유 아이템 중 가장 희귀한 아이템을 확정 획득해요.</p>
         </div>
-        <button onClick={onOpenPremiumBox}>{SHOP_COPY.premiumButton}</button>
+        <button disabled={coins < PREMIUM_BOX_PRICE} onClick={onOpenPremiumBox}>{SHOP_COPY.premiumButton}</button>
       </PremiumBox>
+
+      <CommunityPanel>
+        <CommunityHeader>
+          <div>
+            <h2>베스트 코디</h2>
+            <span>가벼운 자랑/댓글 기능 MVP</span>
+          </div>
+          <button onClick={onShareOutfit}>자랑하기</button>
+        </CommunityHeader>
+        <PostList>
+          {posts.slice(0, 3).map((post) => (
+            <PostCard key={post.id}>
+              <PostPet>
+                <span>{post.petEmoji}</span>
+                <strong>{post.petName}</strong>
+              </PostPet>
+              <PostBody>
+                <strong>{post.authorName}</strong>
+                <p>{post.caption}</p>
+                <PostActions>
+                  <button onClick={() => onPostLike(post.id)}>
+                    <Heart size={15} /> {post.likes}
+                  </button>
+                  <span>
+                    <MessageCircle size={15} /> {post.comments.length}
+                  </span>
+                </PostActions>
+                <CommentInputRow>
+                  <input
+                    placeholder="짧게 응원하기"
+                    value={commentDrafts[post.id] ?? ""}
+                    onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                  />
+                  <button
+                    aria-label="댓글 등록"
+                    onClick={() => {
+                      onPostComment(post.id, commentDrafts[post.id] ?? "");
+                      setCommentDrafts((prev) => ({ ...prev, [post.id]: "" }));
+                    }}
+                  >
+                    <Send size={15} />
+                  </button>
+                </CommentInputRow>
+              </PostBody>
+            </PostCard>
+          ))}
+        </PostList>
+      </CommunityPanel>
     </Page>
   );
 }
@@ -205,5 +271,143 @@ const PremiumBox = styled.section`
     border-radius: ${({ theme }) => theme.radius.md};
     font-size: 14px;
     font-weight: 600;
+
+    &:disabled {
+      opacity: 0.45;
+    }
+  }
+`;
+
+const CommunityPanel = styled.section`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.xl};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+`;
+
+const CommunityHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing.md};
+
+  h2,
+  span {
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 ${({ theme }) => theme.spacing.md};
+    color: ${({ theme }) => theme.colors.orangeDark};
+    background: ${({ theme }) => theme.colors.surfaceWarm};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-weight: 700;
+  }
+`;
+
+const PostList = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const PostCard = styled.article`
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: ${({ theme }) => theme.radius.lg};
+`;
+
+const PostPet = styled.div`
+  display: grid;
+  justify-items: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+
+  span {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-items: center;
+    background: ${({ theme }) => theme.colors.surface};
+    border-radius: ${({ theme }) => theme.radius.md};
+    font-size: 30px;
+  }
+
+  strong {
+    font-size: 11px;
+  }
+`;
+
+const PostBody = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.sm};
+  min-width: 0;
+
+  > strong {
+    font-size: 13px;
+  }
+
+  p {
+    margin: 0;
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 13px;
+    line-height: 1.4;
+  }
+`;
+
+const PostActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.md};
+
+  button,
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing.xs};
+    color: ${({ theme }) => theme.colors.muted};
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+  }
+`;
+
+const CommentInputRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 34px;
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  input {
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 ${({ theme }) => theme.spacing.md};
+    color: ${({ theme }) => theme.colors.text};
+    background: ${({ theme }) => theme.colors.surface};
+    border: 1px solid ${({ theme }) => theme.colors.line};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-size: 13px;
+  }
+
+  button {
+    display: grid;
+    place-items: center;
+    color: ${({ theme }) => theme.colors.surface};
+    background: ${({ theme }) => theme.colors.orange};
+    border-radius: 50%;
   }
 `;

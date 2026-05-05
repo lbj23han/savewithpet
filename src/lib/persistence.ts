@@ -1,10 +1,18 @@
-import { initialLedgerEntries, ledgerCategories, petPresets } from "../mocks/appData";
+import {
+  initialCategoryBudgets,
+  initialCommunityPosts,
+  initialLedgerEntries,
+  ledgerCategories,
+  petPresets,
+} from "../mocks/appData";
 import type { PersistedAppState } from "../types/app";
 
 const STORAGE_KEY = "nyangbi-hajimalgae:v1";
 
 export const defaultAppState: PersistedAppState = {
   categories: ledgerCategories,
+  categoryBudgets: initialCategoryBudgets,
+  communityPosts: initialCommunityPosts,
   coins: 2840,
   entries: initialLedgerEntries,
   equippedItemId: "hat",
@@ -28,10 +36,14 @@ export function loadAppState(): PersistedAppState {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultAppState;
 
+    const parsed = JSON.parse(raw) as Partial<PersistedAppState>;
+
     return {
       ...defaultAppState,
-      ...JSON.parse(raw),
-      categories: mergeCategories(JSON.parse(raw).categories),
+      ...parsed,
+      categories: mergeCategories(parsed.categories),
+      categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
+      communityPosts: mergeCommunityPosts(parsed.communityPosts),
     };
   } catch {
     return defaultAppState;
@@ -55,4 +67,17 @@ function mergeCategories(categories: unknown): typeof ledgerCategories {
   });
 
   return Array.from(byId.values());
+}
+
+function mergeCommunityPosts(posts: unknown): PersistedAppState["communityPosts"] {
+  if (!Array.isArray(posts)) return initialCommunityPosts;
+
+  const byId = new Map(initialCommunityPosts.map((post) => [post.id, post]));
+  posts.forEach((post) => {
+    if (post && typeof post === "object" && "id" in post && typeof post.id === "string") {
+      byId.set(post.id, post as PersistedAppState["communityPosts"][number]);
+    }
+  });
+
+  return Array.from(byId.values()).sort((a, b) => b.likes - a.likes);
 }

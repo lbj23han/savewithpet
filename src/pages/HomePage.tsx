@@ -18,6 +18,7 @@ type HomePageProps = {
   onRecord: () => void;
   onEquipItem: (itemId: string) => void;
   onOpenShop: () => void;
+  onShareOutfit: () => void;
   pet: UserPet;
   rewardEvents: RewardEvent[];
   stats: AppStats;
@@ -31,6 +32,7 @@ export function HomePage({
   monthlyBudget,
   onEquipItem,
   onOpenShop,
+  onShareOutfit,
   onRecord,
   pet,
   rewardEvents,
@@ -132,6 +134,7 @@ export function HomePage({
             <Store size={18} />
             상점에서 더 보기
           </ShopLink>
+          <ShareButton onClick={onShareOutfit}>오늘 코디 자랑하기</ShareButton>
         </WardrobeSheet>
       )}
     </Page>
@@ -374,6 +377,15 @@ const ShopLink = styled.button`
   border-radius: ${({ theme }) => theme.radius.md};
   font-size: 15px;
   font-weight: 600;
+`;
+
+const ShareButton = styled.button`
+  min-height: 48px;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-weight: 700;
 `;
 
 const StatusRow = styled.div`

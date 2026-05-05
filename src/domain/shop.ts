@@ -1,4 +1,6 @@
-import type { ShopItem, ShopItemViewModel } from "../types/app";
+import type { PremiumBoxResult, ShopItem, ShopItemViewModel } from "../types/app";
+
+export const PREMIUM_BOX_PRICE = 900;
 
 export function createShopItemViewModels({
   items,
@@ -24,4 +26,39 @@ export function createShopItemViewModels({
       canBuy,
     };
   });
+}
+
+export function openPremiumBox(items: ShopItemViewModel[], coins: number): PremiumBoxResult {
+  if (coins < PREMIUM_BOX_PRICE) {
+    return {
+      itemId: null,
+      label: "코인이 부족해요",
+      coinsSpent: 0,
+      outcome: "not_enough_coins",
+    };
+  }
+
+  const availableItems = items.filter((item) => item.state === "available");
+  if (availableItems.length === 0) {
+    return {
+      itemId: null,
+      label: "모든 아이템을 보유 중이에요",
+      coinsSpent: 0,
+      outcome: "sold_out",
+    };
+  }
+
+  const sorted = [...availableItems].sort((a, b) => {
+    const aScore = (a.requiredLevel ?? 0) * 1000 + a.price;
+    const bScore = (b.requiredLevel ?? 0) * 1000 + b.price;
+    return bScore - aScore;
+  });
+  const reward = sorted[0];
+
+  return {
+    itemId: reward.id,
+    label: `${reward.name} 획득!`,
+    coinsSpent: PREMIUM_BOX_PRICE,
+    outcome: "item",
+  };
 }

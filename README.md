@@ -154,6 +154,8 @@ http://localhost:5174/
 ```bash
 npm run typecheck
 npm run lint
+npm run test:unit
+npm run check
 npm run build
 ```
 
@@ -196,6 +198,29 @@ main
 
 커뮤니티 기능은 핵심 장부 기록 경험을 해치지 않도록 별도 탭 또는 상점 하위 흐름으로 시작합니다.
 
+## Service Readiness
+
+서버와 실제 이미지 생성/브랜드 asset 연결 전까지 로컬에서 처리 가능한 기능은 MVP 수준으로 구현되어 있습니다.
+
+- 장부 기록: 추가, 수정, 삭제, 타입, 날짜, 카테고리, 커스텀 카테고리
+- 예산 관리: 월 예산, 카테고리별 월 예산, 예산 대비 분석
+- 캐릭터 성장: 레벨, 포만도, 기분, 성장, 소비 패턴 코멘트
+- 보상/상점: 코인 지급, 구매, 착용, 프리미엄 상자
+- 옷장: 보유 아이템 확인, 착용, 코디 자랑 저장
+- 커뮤니티 MVP: 베스트 코디 로컬 데이터, 좋아요, 경량 댓글
+- 품질: 타입체크, 린트, 도메인 단위 테스트, AIT build
+
+실서비스 전 외부 연결 필요 항목:
+
+- 실제 캐릭터/아이템 이미지 asset 연결
+- 사진 기반 캐릭터 생성 API 또는 이미지 생성 API 연결
+- 사용자 식별 및 서버 저장소 연결
+- 커뮤니티 게시글/댓글 API 연결
+- 배포용 앱 아이콘/브랜드 이미지 확정
+- Toss WebView 실기기 QA
+
+현재 `npm audit --omit=dev --audit-level=critical`은 앱인토스/Granite 내부 transitive dependency의 `fastify`, `@fastify/middie` 계열 취약점을 보고합니다. `npm audit fix --force`는 `@apps-in-toss/web-framework`의 breaking 변경을 제안하므로 적용하지 않습니다. 앱인토스 패키지 업데이트가 나오면 공식 버전으로 재점검합니다.
+
 ## Todo
 
 ### Next Priority
@@ -203,12 +228,12 @@ main
 - [ ] 실기기/브라우저에서 전체 플로우 QA: 온보딩, 기록, 수정, 삭제, 분석, 구매, 착용, 초기화
 - [x] 소비 패턴별 캐릭터 코멘트 규칙 작성
 - [x] 빈 상태, 오류 상태, 저장 완료 피드백 정리
-- [ ] 프리미엄 상자 정책 확정
-- [ ] domain 로직 단위 테스트 추가
-- [ ] Toss WebView back/home event 처리
+- [x] 프리미엄 상자 정책 확정
+- [x] domain 로직 단위 테스트 추가
+- [x] Toss WebView back/home event 처리
 - [ ] 앱 아이콘/브랜드 이미지 확정
-- [ ] 커뮤니티 MVP 데이터 모델 설계
-- [ ] 카테고리별 월 예산/한도 설정 검토
+- [x] 커뮤니티 MVP 데이터 모델 설계
+- [x] 카테고리별 월 예산/한도 설정 검토
 
 ### Foundation
 
@@ -251,7 +276,7 @@ main
 - [x] 실서비스형 기본 카테고리 세트 확장
 - [x] 커스텀 카테고리 추가/수정/삭제 구현
 - [x] 모바일 친화 날짜 quick chip 구현
-- [ ] 카테고리별 월 예산/한도 설정 설계
+- [x] 카테고리별 월 예산/한도 설정 설계
 
 ### Pet Growth
 
@@ -260,7 +285,7 @@ main
 - [x] 레벨업 조건 정의
 - [x] 소비 패턴별 캐릭터 코멘트 규칙 작성
 - [x] 연속 기록 보상 정책 정의
-- [ ] domain 테스트 추가
+- [x] domain 테스트 추가
 
 ### Analysis
 
@@ -277,14 +302,14 @@ main
 - [x] 아이템 해금 조건 구현
 - [x] 보유 아이템 장착 플로우 설계
 - [x] 홈 화면 펫 착용 아이템 반영
-- [ ] 프리미엄 상자 정책 확정
+- [x] 프리미엄 상자 정책 확정
 
 ### Community
 
-- [ ] 베스트 코디 데이터 모델 설계
-- [ ] 코디 자랑하기 화면 설계
-- [ ] 경량 댓글 모델 설계
-- [ ] 좋아요/응원 반응 모델 설계
+- [x] 베스트 코디 데이터 모델 설계
+- [x] 코디 자랑하기 화면 설계
+- [x] 경량 댓글 모델 설계
+- [x] 좋아요/응원 반응 모델 설계
 - [ ] 커뮤니티 신고/숨김 정책 검토
 
 ### Data / Backend
@@ -301,15 +326,15 @@ main
 
 - [ ] Apps in Toss 권한 요구사항 검토
 - [ ] 배포용 brand icon 교체
-- [ ] AIT build 산출물 검증
-- [ ] Toss WebView에서 navigation/back event 정책 확정
+- [x] AIT build 산출물 검증
+- [x] Toss WebView에서 navigation/back event 정책 확정
 - [ ] 실기기 QA 체크리스트 작성
 
 ### Quality
 
-- [ ] domain 로직 단위 테스트 추가
+- [x] domain 로직 단위 테스트 추가
 - [ ] 주요 화면 smoke test 추가 검토
 - [x] lint warning 0개 유지
-- [ ] npm audit 결과 검토
-- [ ] 접근성 label/aria 점검
-- [ ] 텍스트 overflow 점검
+- [x] npm audit 결과 검토
+- [x] 접근성 label/aria 점검
+- [x] 텍스트 overflow 점검

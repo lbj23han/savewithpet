@@ -1,4 +1,4 @@
-import type { Category, LedgerEntry, PetPreset, PetStatus, ShopItem, SummaryMetric } from "../types/app";
+import type { Category, CommunityPost, LedgerEntry, PetPreset, PetStatus, ShopItem, SummaryMetric } from "../types/app";
 
 export const petPresets: PetPreset[] = [
   { id: "squirrel", name: "부지런한 다람이", trait: "작은 절약을 좋아해요", emoji: "🐿️" },
@@ -70,4 +70,45 @@ export const initialLedgerEntries: LedgerEntry[] = [
   { id: "entry-5", categoryId: "food", amount: 16900, memo: "저녁", date: "2026-05-01", type: "expense" },
   { id: "entry-6", categoryId: "saving", amount: 5000, memo: "절약 보상", date: "2026-05-04", type: "saving" },
   { id: "entry-7", categoryId: "income", amount: 32000, memo: "용돈", date: "2026-05-03", type: "income" },
+];
+
+export const initialCategoryBudgets: Record<string, number> = {
+  food: 350_000,
+  cafe: 120_000,
+  transport: 120_000,
+  shopping: 250_000,
+  mart: 250_000,
+  home: 500_000,
+};
+
+export const initialCommunityPosts: CommunityPost[] = [
+  {
+    id: "community-1",
+    authorName: "알뜰냥",
+    caption: "이번 주 카페비를 줄이고 리본을 장착했어요.",
+    comments: [
+      {
+        id: "comment-1",
+        authorName: "토토리",
+        createdAt: "2026-05-04T09:00:00.000Z",
+        message: "코디도 기록도 깔끔해요!",
+      },
+    ],
+    createdAt: "2026-05-04T08:30:00.000Z",
+    equippedItemId: "ribbon",
+    likes: 24,
+    petEmoji: "🐱",
+    petName: "냥이",
+  },
+  {
+    id: "community-2",
+    authorName: "절약멍",
+    caption: "교통비 절약 성공. 목도리도 잘 어울리죠?",
+    comments: [],
+    createdAt: "2026-05-03T12:10:00.000Z",
+    equippedItemId: "scarf",
+    likes: 18,
+    petEmoji: "🐶",
+    petName: "멍이",
+  },
 ];
