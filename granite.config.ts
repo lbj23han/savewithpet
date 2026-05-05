@@ -4,7 +4,7 @@ export default defineConfig({
   appName: "nyangbi-hajimalgae",
   brand: {
     displayName: "냥비하지말개",
-    primaryColor: "#FF7A45",
+    primaryColor: "#E8728C",
     icon: "https://static.toss.im/icons/png/4x/icon-toss-logo.png",
   },
   web: {

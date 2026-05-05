@@ -16,7 +16,7 @@ export function BottomNav({ activePage, onNavigate }: BottomNavProps) {
           const isActive = activePage === page;
           return (
             <NavButton key={page} $active={isActive} onClick={() => onNavigate(page)}>
-              <Icon size={23} strokeWidth={isActive ? 2.6 : 2.2} />
+              <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
               <span>{label}</span>
             </NavButton>
           );
@@ -41,10 +41,11 @@ const Nav = styled.nav`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   width: min(430px, 100vw);
-  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg} calc(12px + env(safe-area-inset-bottom));
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: 28px 28px 0 0;
-  box-shadow: 0 -8px 24px rgba(70, 54, 38, 0.1);
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg} calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.90);
+  border-top: 0.5px solid ${({ theme }) => theme.colors.line};
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   pointer-events: auto;
 `;
 
@@ -52,13 +53,14 @@ const NavButton = styled.button<{ $active: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.xs};
+  gap: 3px;
   min-width: 0;
-  min-height: 64px;
+  min-height: 56px;
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.xs};
   color: ${({ $active, theme }) => ($active ? theme.colors.orange : theme.colors.muted)};
-  background: ${({ $active }) => ($active ? "#FFF2E7" : "transparent")};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  font-size: 12px;
-  font-weight: 800;
+  background: transparent;
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 10px;
+  font-weight: ${({ $active }) => ($active ? "600" : "400")};
+  letter-spacing: 0.1px;
 `;

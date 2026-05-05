@@ -16,6 +16,15 @@ export type PetPreset = {
   featured?: boolean;
 };
 
+export type UserPet = {
+  id: string;
+  name: string;
+  trait: string;
+  emoji: string;
+  imageUrl?: string;
+  source: "preset" | "photo" | "skip";
+};
+
 export type PetStatus = {
   label: string;
   value: number;
@@ -32,7 +41,27 @@ export type Category = {
   id: string;
   label: string;
   icon: string;
+  isCustom?: boolean;
   selected?: boolean;
+};
+
+export type LedgerEntry = {
+  id: string;
+  categoryId: string;
+  amount: number;
+  memo: string;
+  date: string;
+  type: LedgerEntryType;
+};
+
+export type LedgerEntryType = "expense" | "saving" | "income";
+
+export type LedgerEntryDraft = {
+  amount: number;
+  categoryId: string;
+  date: string;
+  memo: string;
+  type: LedgerEntryType;
 };
 
 export type ShopItem = {
@@ -40,6 +69,42 @@ export type ShopItem = {
   name: string;
   icon: string;
   price: number;
-  state: "owned" | "available" | "locked";
+  requiredLevel?: number;
   unlockLabel?: string;
+};
+
+export type ShopItemState = "owned" | "available" | "locked" | "equipped";
+
+export type ShopItemViewModel = ShopItem & {
+  state: ShopItemState;
+  canBuy: boolean;
+};
+
+export type AppStats = {
+  totalExpense: number;
+  totalSaving: number;
+  streakDays: number;
+  level: number;
+  growth: number;
+  mood: number;
+  fullness: number;
+};
+
+export type RewardEvent = {
+  id: string;
+  label: string;
+  coins: number;
+  createdAt: string;
+};
+
+export type PersistedAppState = {
+  categories: Category[];
+  coins: number;
+  entries: LedgerEntry[];
+  equippedItemId: string | null;
+  hasCompletedOnboarding: boolean;
+  monthlyBudget: number;
+  ownedItemIds: string[];
+  pet: UserPet;
+  rewardEvents: RewardEvent[];
 };

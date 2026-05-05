@@ -9,13 +9,14 @@ type AppShellProps = {
   activePage: Exclude<AppPage, "onboarding">;
   children: ReactNode;
   onNavigate: (page: Exclude<AppPage, "onboarding">) => void;
+  coin?: number;
   showCoin?: boolean;
 };
 
-export function AppShell({ activePage, children, onNavigate, showCoin }: AppShellProps) {
+export function AppShell({ activePage, children, onNavigate, coin, showCoin }: AppShellProps) {
   return (
     <Shell>
-      <TopBar showCoin={showCoin} />
+      <TopBar coin={coin} showCoin={showCoin} />
       <Content>{children}</Content>
       <BottomNav activePage={activePage} onNavigate={onNavigate} />
     </Shell>

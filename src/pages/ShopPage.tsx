@@ -2,14 +2,22 @@ import { LockKeyhole } from "lucide-react";
 import styled from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
-import { shopItems } from "../mocks/appData";
+import type { ShopItemState, ShopItemViewModel } from "../types/app";
 
-export function ShopPage() {
+type ShopPageProps = {
+  coins: number;
+  items: ShopItemViewModel[];
+  level: number;
+  onItemAction: (itemId: string) => void;
+  onOpenPremiumBox: () => void;
+};
+
+export function ShopPage({ coins, items, level, onItemAction, onOpenPremiumBox }: ShopPageProps) {
   return (
     <Page>
       <Hero>
         <h1>{SHOP_COPY.title}</h1>
-        <p>{SHOP_COPY.description}</p>
+        <p>Lv.{level} · 보유 코인 {coins.toLocaleString("ko-KR")}개</p>
       </Hero>
 
       <Tabs>
@@ -21,12 +29,12 @@ export function ShopPage() {
       </Tabs>
 
       <ItemGrid>
-        {shopItems.map((item) => (
-          <ItemCard key={item.id} $locked={item.state === "locked"}>
+        {items.map((item) => (
+          <ItemCard key={item.id} $locked={item.state === "locked"} onClick={() => onItemAction(item.id)}>
             <IconCircle>{item.icon}</IconCircle>
-            {item.state === "locked" && <LockKeyhole size={28} />}
+            {item.state === "locked" && <LockKeyhole size={24} />}
             <h2>{item.name}</h2>
-            <StateBadge $state={item.state}>{item.unlockLabel ?? (item.state === "owned" ? "보유중" : "구매가능")}</StateBadge>
+            <StateBadge $state={item.state}>{getStateLabel(item)}</StateBadge>
             <Price $disabled={item.state === "locked"}>🪙 {item.price.toLocaleString()}</Price>
           </ItemCard>
         ))}
@@ -37,10 +45,18 @@ export function ShopPage() {
           <h2>{SHOP_COPY.premiumTitle}</h2>
           <p>{SHOP_COPY.premiumDescription}</p>
         </div>
-        <button>{SHOP_COPY.premiumButton}</button>
+        <button onClick={onOpenPremiumBox}>{SHOP_COPY.premiumButton}</button>
       </PremiumBox>
     </Page>
   );
+}
+
+function getStateLabel(item: ShopItemViewModel): string {
+  if (item.state === "equipped") return "착용중";
+  if (item.state === "owned") return "보유중";
+  if (item.state === "locked") return item.unlockLabel ?? "잠김";
+  if (!item.canBuy) return "코인 부족";
+  return "구매가능";
 }
 
 const Page = styled.div`
@@ -50,38 +66,43 @@ const Page = styled.div`
 `;
 
 const Hero = styled.section`
-  padding: 28px ${({ theme }) => theme.spacing.xl};
-  color: ${({ theme }) => theme.colors.surface};
-  background: linear-gradient(135deg, ${({ theme }) => theme.colors.orange}, ${({ theme }) => theme.colors.orangeDark});
+  padding: 24px ${({ theme }) => theme.spacing.xl};
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: linear-gradient(135deg, #ffe0ec 0%, #ffcedd 100%);
+  border: 1px solid ${({ theme }) => theme.colors.line};
   border-radius: ${({ theme }) => theme.radius.xl};
-  box-shadow: ${({ theme }) => theme.shadow.card};
 
   h1 {
-    margin: 0 0 ${({ theme }) => theme.spacing.sm};
-    font-size: 32px;
+    margin: 0 0 ${({ theme }) => theme.spacing.xs};
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
   }
 
   p {
     margin: 0;
-    color: rgba(255, 255, 255, 0.84);
-    font-weight: 700;
+    color: rgba(176, 48, 96, 0.65);
+    font-size: 14px;
+    font-weight: 400;
   }
 `;
 
 const Tabs = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: ${({ theme }) => theme.spacing.xs};
-  background: #ebe3d9;
+  padding: 4px;
+  background: ${({ theme }) => theme.colors.surfaceWarm};
   border-radius: ${({ theme }) => theme.radius.lg};
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
-  min-height: 45px;
-  color: ${({ $active, theme }) => ($active ? theme.colors.orangeDark : theme.colors.text)};
+  min-height: 42px;
+  color: ${({ $active, theme }) => ($active ? theme.colors.orangeDark : theme.colors.muted)};
   background: ${({ $active, theme }) => ($active ? theme.colors.surface : "transparent")};
   border-radius: ${({ theme }) => theme.radius.md};
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: ${({ $active }) => ($active ? "600" : "400")};
+  box-shadow: ${({ $active }) => ($active ? "0 1px 3px rgba(0,0,0,0.08)" : "none")};
 `;
 
 const ItemGrid = styled.div`
@@ -90,54 +111,61 @@ const ItemGrid = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 `;
 
-const ItemCard = styled.article<{ $locked: boolean }>`
+const ItemCard = styled.button<{ $locked: boolean }>`
   position: relative;
   display: grid;
   justify-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
-  min-height: 210px;
+  min-height: 200px;
   padding: ${({ theme }) => theme.spacing.xl} ${({ theme }) => theme.spacing.md};
-  background: ${({ $locked, theme }) => ($locked ? "#F1F1F1" : theme.colors.surface)};
+  background: ${({ $locked, theme }) => ($locked ? theme.colors.surfaceWarm : theme.colors.surface)};
   border: 1px solid ${({ theme }) => theme.colors.line};
   border-radius: ${({ theme }) => theme.radius.xl};
   box-shadow: ${({ theme }) => theme.shadow.card};
 
   > svg {
     position: absolute;
-    top: 70px;
-    color: ${({ theme }) => theme.colors.surface};
+    top: 68px;
+    color: ${({ theme }) => theme.colors.muted};
   }
 
   h2 {
     margin: 0;
-    font-size: 17px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
   }
 `;
 
 const IconCircle = styled.div`
   display: grid;
-  width: 74px;
-  height: 74px;
+  width: 68px;
+  height: 68px;
   place-items: center;
   background: ${({ theme }) => theme.colors.surfaceWarm};
   border-radius: 50%;
-  font-size: 34px;
+  font-size: 32px;
 `;
 
-const StateBadge = styled.span<{ $state: "owned" | "available" | "locked" }>`
-  padding: 5px 12px;
+const StateBadge = styled.span<{ $state: ShopItemState }>`
+  padding: 4px 12px;
   color: ${({ $state, theme }) =>
-    $state === "locked" ? theme.colors.muted : $state === "owned" ? theme.colors.orangeDark : theme.colors.green};
+    $state === "locked"
+      ? theme.colors.muted
+      : $state === "owned" || $state === "equipped"
+        ? theme.colors.orangeDark
+        : theme.colors.green};
   background: ${({ $state, theme }) =>
-    $state === "locked" ? "#DEDEDE" : $state === "owned" ? "#FFF1B5" : theme.colors.greenSoft};
+    $state === "locked" ? theme.colors.surfaceWarm : $state === "owned" || $state === "equipped" ? "#FFF1B5" : theme.colors.greenSoft};
   border-radius: ${({ theme }) => theme.radius.pill};
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 12px;
+  font-weight: 600;
 `;
 
 const Price = styled.strong<{ $disabled: boolean }>`
   color: ${({ $disabled, theme }) => ($disabled ? theme.colors.muted : theme.colors.orangeDark)};
-  font-size: 17px;
+  font-size: 15px;
+  font-weight: 600;
 `;
 
 const PremiumBox = styled.section`
@@ -148,6 +176,7 @@ const PremiumBox = styled.section`
   padding: ${({ theme }) => theme.spacing.xl};
   color: ${({ theme }) => theme.colors.purple};
   background: ${({ theme }) => theme.colors.purpleSoft};
+  border: 1px solid ${({ theme }) => theme.colors.line};
   border-radius: ${({ theme }) => theme.radius.xl};
 
   h2,
@@ -155,17 +184,26 @@ const PremiumBox = styled.section`
     margin: 0;
   }
 
+  h2 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
   p {
     margin-top: ${({ theme }) => theme.spacing.xs};
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 400;
+    color: ${({ theme }) => theme.colors.muted};
   }
 
   button {
     flex: 0 0 auto;
-    padding: 12px 16px;
+    padding: 10px 16px;
     color: ${({ theme }) => theme.colors.surface};
     background: ${({ theme }) => theme.colors.purple};
     border-radius: ${({ theme }) => theme.radius.md};
-    font-weight: 900;
+    font-size: 14px;
+    font-weight: 600;
   }
 `;
