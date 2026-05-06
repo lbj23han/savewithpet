@@ -27,6 +27,7 @@ type LedgerPageProps = {
   onDeleteEntry: (entryId: string) => void;
   onUpdateCategory: (categoryId: string, category: Pick<Category, "icon" | "label">) => void;
   onUpdateCategoryBudget: (categoryId: string, budget: number) => void;
+  onUpdateBudget: (budget: number) => void;
   onUpdateEntry: (entryId: string, entry: LedgerEntryDraft) => void;
 };
 
@@ -44,6 +45,11 @@ const quickDates = [
   { label: formatShortDate(getRelativeDate(-4)), value: getRelativeDate(-4) },
 ];
 
+const MONTHLY_BUDGET_MIN = 10_000;
+const MONTHLY_BUDGET_MAX = 5_000_000;
+const MONTHLY_BUDGET_STEP = 10_000;
+type CategoryBudgetMode = "auto" | "manual" | "unset";
+
 export function LedgerPage({
   budget,
   categories,
@@ -55,10 +61,14 @@ export function LedgerPage({
   onDeleteEntry,
   onUpdateCategory,
   onUpdateCategoryBudget,
+  onUpdateBudget,
   onUpdateEntry,
 }: LedgerPageProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState("food");
   const [amount, setAmount] = useState("12500");
+  const [budgetDraft, setBudgetDraft] = useState(String(budget));
+  const [budgetMode, setBudgetMode] = useState<CategoryBudgetMode>("manual");
+  const [categoryBudgetDrafts, setCategoryBudgetDrafts] = useState<Record<string, string>>({});
   const [categoryDraftIcon, setCategoryDraftIcon] = useState("⭐");
   const [categoryDraftLabel, setCategoryDraftLabel] = useState("");
   const [date, setDate] = useState(getTodayDate());
@@ -66,6 +76,7 @@ export function LedgerPage({
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [entryType, setEntryType] = useState<LedgerEntryType>("expense");
   const [isCategoryEditorOpen, setIsCategoryEditorOpen] = useState(false);
+  const [isBudgetEditorOpen, setIsBudgetEditorOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [memo, setMemo] = useState("");
   const totalExpense = entries.filter((entry) => entry.type === "expense").reduce((sum, entry) => sum + entry.amount, 0);
@@ -76,6 +87,8 @@ export function LedgerPage({
     .filter((entry) => entry.type === "expense" && entry.categoryId === selectedCategoryId)
     .reduce((sum, entry) => sum + entry.amount, 0);
   const selectedCategoryBudget = categoryBudgets[selectedCategoryId] ?? 0;
+  const remainingBudget = Math.max(budget - totalExpense - (numericAmount || 0), 0);
+  const budgetableCategories = categories.filter((category) => category.id !== "income" && category.id !== "saving");
 
   const submitEntry = () => {
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) return;
@@ -128,7 +141,7 @@ export function LedgerPage({
   };
 
   const resetForm = () => {
-    setAmount("");
+    setAmount("0");
     setDate(getTodayDate());
     setEditingEntryId(null);
     setEntryType("expense");
@@ -136,12 +149,134 @@ export function LedgerPage({
     setSelectedCategoryId("food");
   };
 
+  const openBudgetEditor = () => {
+    setBudgetDraft(String(budget));
+    setBudgetMode("manual");
+    setCategoryBudgetDrafts(
+      Object.fromEntries(budgetableCategories.map((category) => [category.id, String(categoryBudgets[category.id] ?? "")])),
+    );
+    setIsBudgetEditorOpen(true);
+  };
+
+  const parseBudgetValue = (value: string | undefined) => Number((value ?? "").replace(/[^0-9]/g, "")) || 0;
+
+  const balanceCategoryDrafts = (drafts: Record<string, string>, totalBudget: number) => {
+    const categoryIds = budgetableCategories.map((category) => category.id);
+    const currentTotal = categoryIds.reduce((sum, categoryId) => sum + parseBudgetValue(drafts[categoryId]), 0);
+
+    if (categoryIds.length === 0) return {};
+    if (currentTotal <= 0) {
+      const base = Math.floor(totalBudget / categoryIds.length);
+      let remainder = totalBudget - base * categoryIds.length;
+      return Object.fromEntries(
+        categoryIds.map((categoryId) => {
+          const value = base + (remainder > 0 ? 1 : 0);
+          remainder -= 1;
+          return [categoryId, String(value)];
+        }),
+      );
+    }
+
+    let assigned = 0;
+    const next = Object.fromEntries(
+      categoryIds.map((categoryId, index) => {
+        const isLast = index === categoryIds.length - 1;
+        const value = isLast
+          ? totalBudget - assigned
+          : Math.floor((parseBudgetValue(drafts[categoryId]) / currentTotal) * totalBudget);
+        assigned += value;
+        return [categoryId, String(Math.max(0, value))];
+      }),
+    );
+
+    return next;
+  };
+
+  const updateBudgetDraft = (value: string) => {
+    const sanitized = value.replace(/[^0-9]/g, "");
+    setBudgetDraft(sanitized);
+
+    if (budgetMode === "manual") {
+      setCategoryBudgetDrafts((prev) => balanceCategoryDrafts(prev, Number(sanitized) || MONTHLY_BUDGET_MIN));
+    }
+  };
+
+  const updateCategoryBudgetDraft = (categoryId: string, value: string) => {
+    const totalBudget = budgetDraftNumber;
+    const targetValue = Math.min(totalBudget, parseBudgetValue(value));
+    const otherCategories = budgetableCategories.filter((category) => category.id !== categoryId);
+    const remainingBudget = Math.max(totalBudget - targetValue, 0);
+
+    setCategoryBudgetDrafts((prev) => {
+      const next = { ...prev, [categoryId]: String(targetValue) };
+      const otherTotal = otherCategories.reduce((sum, category) => sum + parseBudgetValue(prev[category.id]), 0);
+
+      if (otherCategories.length === 0) return next;
+
+      if (otherTotal <= 0) {
+        const base = Math.floor(remainingBudget / otherCategories.length);
+        let remainder = remainingBudget - base * otherCategories.length;
+        otherCategories.forEach((category) => {
+          next[category.id] = String(base + (remainder > 0 ? 1 : 0));
+          remainder -= 1;
+        });
+        return next;
+      }
+
+      let assigned = 0;
+      otherCategories.forEach((category, index) => {
+        const isLast = index === otherCategories.length - 1;
+        const nextValue = isLast
+          ? remainingBudget - assigned
+          : Math.floor((parseBudgetValue(prev[category.id]) / otherTotal) * remainingBudget);
+        assigned += nextValue;
+        next[category.id] = String(Math.max(0, nextValue));
+      });
+
+      return next;
+    });
+  };
+
+  const saveMonthlyBudget = () => {
+    const parsed = Number(budgetDraft.replace(/[^0-9]/g, ""));
+    if (parsed >= 10_000 && parsed <= 100_000_000) {
+      onUpdateBudget(parsed);
+      if (budgetMode === "auto") {
+        const distributedBudget = Math.floor(parsed / Math.max(1, budgetableCategories.length) / MONTHLY_BUDGET_STEP) * MONTHLY_BUDGET_STEP;
+        budgetableCategories.forEach((category) => onUpdateCategoryBudget(category.id, distributedBudget));
+      }
+      if (budgetMode === "manual") {
+        const balancedDrafts = balanceCategoryDrafts(categoryBudgetDrafts, parsed);
+        budgetableCategories.forEach((category) => {
+          const categoryBudget = parseBudgetValue(balancedDrafts[category.id]);
+          onUpdateCategoryBudget(category.id, categoryBudget);
+        });
+      }
+      if (budgetMode === "unset") {
+        budgetableCategories.forEach((category) => onUpdateCategoryBudget(category.id, 0));
+      }
+      setIsBudgetEditorOpen(false);
+    }
+  };
+
+  const budgetDraftNumber = Number(budgetDraft.replace(/[^0-9]/g, "")) || MONTHLY_BUDGET_MIN;
+  const sliderBudget = Math.min(MONTHLY_BUDGET_MAX, Math.max(MONTHLY_BUDGET_MIN, budgetDraftNumber));
+  const budgetUsagePercent = Math.min(100, Math.round((totalExpense / Math.max(budgetDraftNumber, 1)) * 100));
+  const autoDistributedBudget =
+    Math.floor(budgetDraftNumber / Math.max(1, budgetableCategories.length) / MONTHLY_BUDGET_STEP) * MONTHLY_BUDGET_STEP;
+
   return (
     <Page>
       <BudgetHero>
-        <BudgetLabel>{currentMonthLabel}</BudgetLabel>
-        <BudgetAmount>₩ {formatWon(totalExpense)}</BudgetAmount>
-        <BudgetHint>예산 {formatWon(budget)}원 중</BudgetHint>
+        <BudgetCopy>
+          <BudgetLabel>{currentMonthLabel} 예산</BudgetLabel>
+          <BudgetAmount>₩ {formatWon(budget)}</BudgetAmount>
+          <BudgetHint>현재 지출 ₩ {formatWon(totalExpense)}</BudgetHint>
+        </BudgetCopy>
+        <BudgetAdjustButton onClick={openBudgetEditor}>
+          <Pencil size={15} />
+          예산 조정
+        </BudgetAdjustButton>
       </BudgetHero>
 
       <CategoryHeader>
@@ -183,18 +318,27 @@ export function LedgerPage({
         <BudgetBar>
           <BudgetFill $value={selectedCategoryBudget > 0 ? Math.min(100, Math.round((selectedCategoryExpense / selectedCategoryBudget) * 100)) : 0} />
         </BudgetBar>
+        <CategoryBudgetMeta>
+          <small>사용 ₩ {formatWon(selectedCategoryExpense)}</small>
+          <button onClick={openBudgetEditor}>전체 예산에서 조정</button>
+        </CategoryBudgetMeta>
       </CategoryBudgetCard>
 
-      <AmountBox>
-        <AmountLabel>지출 금액</AmountLabel>
+      <AmountField>
+        <AmountCopy>
+          <AmountLabel>{getTypeLabel(entryType)} 금액</AmountLabel>
+          <AmountHint>남은 예산 ₩ {formatWon(remainingBudget)}</AmountHint>
+        </AmountCopy>
         <AmountInput
+          aria-label={`${getTypeLabel(entryType)} 금액`}
           inputMode="numeric"
           placeholder="0"
           value={amount}
           onChange={(event) => setAmount(event.target.value.replace(/\D/g, ""))}
         />
-        <AmountHint>남은 예산 ₩ {formatWon(Math.max(budget - totalExpense - (numericAmount || 0), 0))}</AmountHint>
-      </AmountBox>
+      </AmountField>
+
+      <MemoInput placeholder="어디에 쓰셨나요? (선택)" value={memo} onChange={(event) => setMemo(event.target.value)} />
 
       <DateSection>
         <DateHeader>
@@ -210,16 +354,15 @@ export function LedgerPage({
         </DateChips>
         {isDatePickerOpen && <DateInput type="date" value={date} onChange={(event) => setDate(event.target.value)} />}
       </DateSection>
-      <MemoInput placeholder="어디에 쓰셨나요? (선택)" value={memo} onChange={(event) => setMemo(event.target.value)} />
       <PrimaryButton disabled={!numericAmount} onClick={submitEntry}>
         <CheckCircle2 size={20} />
         {editingEntryId ? "수정하기" : "기록하기"}
       </PrimaryButton>
 
       <Advice>
-        <Avatar>🐹</Avatar>
+        <Avatar>🐶</Avatar>
         <div>
-          <strong>토토리가 말해요</strong>
+          <strong>아끼개가 말해요</strong>
           <p>식비 지출이 많아지면 제 털이 조금 덜 보들보들해져요!</p>
         </div>
       </Advice>
@@ -247,6 +390,95 @@ export function LedgerPage({
           </RecentItem>
         ))}
       </RecentPanel>
+
+      {isBudgetEditorOpen && (
+        <BudgetSheet>
+          <SheetHeader>
+            <div>
+              <h2>월 예산 조정</h2>
+              <span>총예산과 카테고리별 예산을 함께 설정하세요</span>
+            </div>
+            <button aria-label="예산 조정 닫기" onClick={() => setIsBudgetEditorOpen(false)}>
+              <X size={20} />
+            </button>
+          </SheetHeader>
+          <BudgetPreview>
+            <span>{currentMonthLabel} 예산</span>
+            <strong>₩ {formatWon(budgetDraftNumber)}</strong>
+            <small>현재 지출 ₩ {formatWon(totalExpense)} · 사용률 {budgetUsagePercent}%</small>
+          </BudgetPreview>
+          <BudgetRange
+            aria-label="월 예산 슬라이더"
+            max={MONTHLY_BUDGET_MAX}
+            min={MONTHLY_BUDGET_MIN}
+            step={MONTHLY_BUDGET_STEP}
+            type="range"
+            value={sliderBudget}
+            onChange={(event) => updateBudgetDraft(event.target.value)}
+          />
+          <BudgetInputRow>
+            <span>직접 입력</span>
+            <input
+              inputMode="numeric"
+              value={budgetDraftNumber.toLocaleString("ko-KR")}
+              onChange={(event) => updateBudgetDraft(event.target.value.replace(/,/g, ""))}
+            />
+            <small>원</small>
+          </BudgetInputRow>
+          <BudgetQuickGrid>
+            {[800_000, 1_000_000, 1_500_000, 2_000_000].map((preset) => (
+              <button key={preset} onClick={() => updateBudgetDraft(String(preset))}>
+                {(preset / 10_000).toLocaleString()}만
+              </button>
+            ))}
+          </BudgetQuickGrid>
+          <BudgetModePanel>
+            <BudgetModeHeader>
+              <strong>카테고리별 예산</strong>
+              <span>
+                {budgetMode === "auto"
+                  ? `${budgetableCategories.length}개 카테고리에 ${formatWon(autoDistributedBudget)}원씩`
+                  : budgetMode === "manual"
+                    ? "총예산 안에서 한 항목을 바꾸면 나머지가 자동 조정"
+                    : "카테고리 한도 없이 기록"}
+              </span>
+            </BudgetModeHeader>
+            <BudgetModeTabs>
+              {[
+                { label: "자동분배", value: "auto" as const },
+                { label: "직접입력", value: "manual" as const },
+                { label: "미설정", value: "unset" as const },
+              ].map((mode) => (
+                <BudgetModeButton key={mode.value} $active={budgetMode === mode.value} onClick={() => setBudgetMode(mode.value)}>
+                  {mode.label}
+                </BudgetModeButton>
+              ))}
+            </BudgetModeTabs>
+            {budgetMode === "manual" && (
+              <CategoryBudgetDraftList>
+                {budgetableCategories.slice(0, 10).map((category) => (
+                  <CategoryBudgetDraftRow key={category.id}>
+                    <span>{category.icon} {category.label}</span>
+                    <input
+                      inputMode="numeric"
+                      placeholder="예산 없음"
+                      value={
+                        categoryBudgetDrafts[category.id]
+                          ? Number(categoryBudgetDrafts[category.id].replace(/[^0-9]/g, "")).toLocaleString("ko-KR")
+                          : ""
+                      }
+                      onChange={(event) =>
+                        updateCategoryBudgetDraft(category.id, event.target.value.replace(/,/g, ""))
+                      }
+                    />
+                  </CategoryBudgetDraftRow>
+                ))}
+              </CategoryBudgetDraftList>
+            )}
+          </BudgetModePanel>
+          <BudgetSaveButton onClick={saveMonthlyBudget}>예산 저장</BudgetSaveButton>
+        </BudgetSheet>
+      )}
 
       {isCategoryEditorOpen && (
         <EditorSheet>
@@ -298,23 +530,6 @@ export function LedgerPage({
               </EditorItem>
             ))}
           </EditorList>
-          <BudgetEditor>
-            <h3>카테고리별 월 예산</h3>
-            {categories.filter((category) => category.id !== "income" && category.id !== "saving").slice(0, 10).map((category) => (
-              <BudgetEditorRow key={category.id}>
-                <span>{category.icon} {category.label}</span>
-                <input
-                  inputMode="numeric"
-                  placeholder="예산 없음"
-                  value={categoryBudgets[category.id] ? categoryBudgets[category.id].toLocaleString("ko-KR") : ""}
-                  onChange={(event) => {
-                    const parsed = Number(event.target.value.replace(/[^0-9]/g, ""));
-                    onUpdateCategoryBudget(category.id, parsed);
-                  }}
-                />
-              </BudgetEditorRow>
-            ))}
-          </BudgetEditor>
         </EditorSheet>
       )}
     </Page>
@@ -334,13 +549,20 @@ const Page = styled.div`
 `;
 
 const BudgetHero = styled.section`
-  display: grid;
-  justify-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing.lg};
   margin: 0 -${({ theme }) => theme.spacing.lg};
-  padding: 36px 20px 60px;
+  padding: 26px 20px 32px;
   background: linear-gradient(160deg, #ffe8f2 0%, #fff5f9 100%);
   border-bottom: 1px solid ${({ theme }) => theme.colors.line};
+`;
+
+const BudgetCopy = styled.div`
+  display: grid;
+  min-width: 0;
+  gap: ${({ theme }) => theme.spacing.xs};
 `;
 
 const BudgetLabel = styled.span`
@@ -351,20 +573,33 @@ const BudgetLabel = styled.span`
 
 const BudgetAmount = styled.strong`
   color: ${({ theme }) => theme.colors.text};
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: -1px;
+  letter-spacing: -0.8px;
 `;
 
 const BudgetHint = styled.p`
   margin: 0;
-  padding: 6px 16px;
-  background: rgba(232, 114, 140, 0.10);
-  border: 1px solid rgba(232, 114, 140, 0.15);
-  border-radius: ${({ theme }) => theme.radius.pill};
-  color: ${({ theme }) => theme.colors.orangeDark};
+  color: ${({ theme }) => theme.colors.muted};
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
+`;
+
+const BudgetAdjustButton = styled.button`
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+  min-height: 42px;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+  font-size: 13px;
+  font-weight: 700;
 `;
 
 const CategoryHeader = styled.div`
@@ -476,6 +711,29 @@ const CategoryBudgetCard = styled.section`
   }
 `;
 
+const CategoryBudgetMeta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing.md};
+
+  small {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  button {
+    min-height: 32px;
+    padding: 0 ${({ theme }) => theme.spacing.md};
+    color: ${({ theme }) => theme.colors.orangeDark};
+    background: ${({ theme }) => theme.colors.surfaceWarm};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-size: 12px;
+    font-weight: 700;
+  }
+`;
+
 const BudgetBar = styled.div`
   height: 8px;
   overflow: hidden;
@@ -490,21 +748,27 @@ const BudgetFill = styled.div<{ $value: number }>`
   border-radius: inherit;
 `;
 
-const AmountBox = styled.section`
+const AmountField = styled.section`
   display: grid;
-  justify-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-  padding: ${({ theme }) => theme.spacing.xl};
+  grid-template-columns: 1fr minmax(130px, 48%);
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.lg};
   background: ${({ theme }) => theme.colors.surface};
   border: 1px solid ${({ theme }) => theme.colors.line};
-  border-radius: ${({ theme }) => theme.radius.xl};
-  box-shadow: ${({ theme }) => theme.shadow.card};
+  border-radius: ${({ theme }) => theme.radius.lg};
+`;
+
+const AmountCopy = styled.div`
+  display: grid;
+  min-width: 0;
+  gap: ${({ theme }) => theme.spacing.xs};
 `;
 
 const AmountLabel = styled.span`
   color: ${({ theme }) => theme.colors.muted};
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 700;
 `;
 
 const AmountHint = styled.small`
@@ -516,20 +780,24 @@ const AmountHint = styled.small`
 const AmountInput = styled.input`
   width: 100%;
   color: ${({ theme }) => theme.colors.text};
-  background: transparent;
-  border: 0;
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
   outline: 0;
-  font-size: 32px;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  min-height: 48px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  text-align: center;
-
-  &::before {
-    content: "₩";
-  }
+  text-align: right;
 
   &::placeholder {
     color: ${({ theme }) => theme.colors.line};
+  }
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.orange};
+    background: ${({ theme }) => theme.colors.surface};
   }
 `;
 
@@ -659,6 +927,168 @@ const SheetHeader = styled.div`
   }
 `;
 
+const BudgetSheet = styled(EditorSheet)`
+  max-height: min(760px, calc(100vh - 112px));
+  overflow-y: auto;
+`;
+
+const BudgetPreview = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.xs};
+  padding: ${({ theme }) => theme.spacing.lg};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: ${({ theme }) => theme.radius.lg};
+
+  span,
+  small {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+  }
+`;
+
+const BudgetRange = styled.input`
+  width: 100%;
+  height: 24px;
+  accent-color: ${({ theme }) => theme.colors.orange};
+`;
+
+const BudgetInputRow = styled.label`
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 58%) 20px;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 13px;
+  font-weight: 600;
+
+  input {
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 ${({ theme }) => theme.spacing.md};
+    color: ${({ theme }) => theme.colors.text};
+    background: ${({ theme }) => theme.colors.surface};
+    border: 1px solid ${({ theme }) => theme.colors.line};
+    border-radius: ${({ theme }) => theme.radius.md};
+    font-size: 18px;
+    font-weight: 700;
+    text-align: right;
+  }
+`;
+
+const BudgetQuickGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  button {
+    min-height: 38px;
+    color: ${({ theme }) => theme.colors.orangeDark};
+    background: ${({ theme }) => theme.colors.surfaceWarm};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-size: 13px;
+    font-weight: 700;
+  }
+`;
+
+const BudgetModePanel = styled.section`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.lg};
+`;
+
+const BudgetModeHeader = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.xs};
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 500;
+  }
+`;
+
+const BudgetModeTabs = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${({ theme }) => theme.spacing.xs};
+  padding: 3px;
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: ${({ theme }) => theme.radius.md};
+`;
+
+const BudgetModeButton = styled.button<{ $active: boolean }>`
+  min-height: 36px;
+  color: ${({ $active, theme }) => ($active ? theme.colors.orangeDark : theme.colors.muted)};
+  background: ${({ $active, theme }) => ($active ? theme.colors.surface : "transparent")};
+  border-radius: ${({ theme }) => theme.radius.sm};
+  font-size: 12px;
+  font-weight: ${({ $active }) => ($active ? "700" : "500")};
+`;
+
+const CategoryBudgetDraftList = styled.div`
+  display: grid;
+  max-height: 220px;
+  gap: ${({ theme }) => theme.spacing.sm};
+  overflow-y: auto;
+  padding-right: ${({ theme }) => theme.spacing.xs};
+`;
+
+const CategoryBudgetDraftRow = styled.label`
+  display: grid;
+  grid-template-columns: 1fr 118px;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  input {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 ${({ theme }) => theme.spacing.sm};
+    color: ${({ theme }) => theme.colors.text};
+    background: ${({ theme }) => theme.colors.surfaceWarm};
+    border: 1px solid ${({ theme }) => theme.colors.line};
+    border-radius: ${({ theme }) => theme.radius.sm};
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+  }
+`;
+
+const BudgetSaveButton = styled.button`
+  min-height: 48px;
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 16px;
+  font-weight: 700;
+`;
+
 const CategoryForm = styled.div`
   display: grid;
   grid-template-columns: 52px 1fr 76px;
@@ -705,48 +1135,6 @@ const EditorList = styled.div`
   gap: ${({ theme }) => theme.spacing.sm};
   overflow-y: auto;
   padding-right: ${({ theme }) => theme.spacing.xs};
-`;
-
-const BudgetEditor = styled.div`
-  display: grid;
-  gap: ${({ theme }) => theme.spacing.sm};
-  overflow-y: auto;
-
-  h3 {
-    margin: 0;
-    font-size: 16px;
-  }
-`;
-
-const BudgetEditorRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 124px;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.surfaceWarm};
-  border-radius: ${({ theme }) => theme.radius.md};
-
-  span {
-    min-width: 0;
-    overflow: hidden;
-    font-size: 13px;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  input {
-    min-width: 0;
-    min-height: 36px;
-    padding: 0 ${({ theme }) => theme.spacing.sm};
-    color: ${({ theme }) => theme.colors.text};
-    background: ${({ theme }) => theme.colors.surface};
-    border: 1px solid ${({ theme }) => theme.colors.line};
-    border-radius: ${({ theme }) => theme.radius.sm};
-    font-size: 13px;
-    text-align: right;
-  }
 `;
 
 const EditorItem = styled.div`

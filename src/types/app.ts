@@ -8,11 +8,15 @@ export type NavItem = {
   Icon: LucideIcon;
 };
 
+export type PetSpecies = "dog" | "cat" | "custom";
+
 export type PetPreset = {
   id: string;
   name: string;
   trait: string;
   emoji: string;
+  imageUrl: string;
+  species: Exclude<PetSpecies, "custom">;
   featured?: boolean;
 };
 
@@ -22,8 +26,11 @@ export type UserPet = {
   trait: string;
   emoji: string;
   imageUrl?: string;
+  species: PetSpecies;
   source: "preset" | "photo" | "skip";
 };
+
+export type PetAnimation = "idle" | "pop" | "shake" | "sparkle";
 
 export type PetStatus = {
   label: string;
@@ -117,6 +124,7 @@ export type CommunityPost = {
   caption: string;
   equippedItemId: string | null;
   petEmoji: string;
+  petImageUrl?: string;
   petName: string;
   likes: number;
   comments: CommunityComment[];

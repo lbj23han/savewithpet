@@ -5,9 +5,23 @@ import {
   ledgerCategories,
   petPresets,
 } from "../mocks/appData";
-import type { PersistedAppState } from "../types/app";
+import type { PersistedAppState, UserPet } from "../types/app";
 
 const STORAGE_KEY = "nyangbi-hajimalgae:v1";
+
+function createDefaultPet(): UserPet {
+  const preset = petPresets[0];
+
+  return {
+    id: preset.id,
+    name: preset.name,
+    trait: preset.trait,
+    emoji: preset.emoji,
+    imageUrl: preset.imageUrl,
+    species: preset.species,
+    source: "preset",
+  };
+}
 
 export const defaultAppState: PersistedAppState = {
   categories: ledgerCategories,
@@ -19,13 +33,7 @@ export const defaultAppState: PersistedAppState = {
   hasCompletedOnboarding: false,
   monthlyBudget: 1_500_000,
   ownedItemIds: ["hat", "bag"],
-  pet: {
-    id: petPresets[1].id,
-    name: petPresets[1].name,
-    trait: petPresets[1].trait,
-    emoji: petPresets[1].emoji,
-    source: "preset",
-  },
+  pet: createDefaultPet(),
   rewardEvents: [],
 };
 
@@ -44,6 +52,7 @@ export function loadAppState(): PersistedAppState {
       categories: mergeCategories(parsed.categories),
       categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
       communityPosts: mergeCommunityPosts(parsed.communityPosts),
+      pet: normalizePet(parsed.pet),
     };
   } catch {
     return defaultAppState;
@@ -80,4 +89,33 @@ function mergeCommunityPosts(posts: unknown): PersistedAppState["communityPosts"
   });
 
   return Array.from(byId.values()).sort((a, b) => b.likes - a.likes);
+}
+
+function normalizePet(pet: unknown): UserPet {
+  if (!pet || typeof pet !== "object") return createDefaultPet();
+  if (!("id" in pet) || typeof pet.id !== "string") return createDefaultPet();
+
+  const preset = petPresets.find((item) => item.id === pet.id);
+  if (preset) {
+    return {
+      id: preset.id,
+      name: preset.name,
+      trait: preset.trait,
+      emoji: preset.emoji,
+      imageUrl: preset.imageUrl,
+      species: preset.species,
+      source: "preset",
+    };
+  }
+
+  if ("source" in pet && pet.source === "photo") {
+    return {
+      ...createDefaultPet(),
+      ...(pet as UserPet),
+      species: "custom",
+      source: "photo",
+    };
+  }
+
+  return createDefaultPet();
 }

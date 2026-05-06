@@ -1,5 +1,13 @@
 import type { PetPreset, UserPet } from "../types/app";
 
+const defaultPet = {
+  emoji: "🐶",
+  imageUrl: "/assets/pets/akkigae.png?v=2",
+  name: "아끼개",
+  species: "dog" as const,
+  trait: "예산을 지키며 차근차근 아끼는 절약 친구예요",
+};
+
 const photoEmojis = ["🐶", "🐱", "🐰", "🐹"];
 
 export function createPetFromPreset(preset: PetPreset): UserPet {
@@ -8,6 +16,8 @@ export function createPetFromPreset(preset: PetPreset): UserPet {
     name: preset.name,
     trait: preset.trait,
     emoji: preset.emoji,
+    imageUrl: preset.imageUrl,
+    species: preset.species,
     source: "preset",
   };
 }
@@ -21,16 +31,15 @@ export function createPetFromPhoto(file: File, imageUrl: string): UserPet {
     trait: "사진을 바탕으로 만든 임시 캐릭터예요",
     emoji,
     imageUrl,
+    species: "custom",
     source: "photo",
   };
 }
 
 export function createSkippedPet(): UserPet {
   return {
-    id: "default-pet",
-    name: "토토리",
-    trait: "기록을 기다리는 기본 친구예요",
-    emoji: "🐹",
+    id: "default-akkigae",
+    ...defaultPet,
     source: "skip",
   };
 }

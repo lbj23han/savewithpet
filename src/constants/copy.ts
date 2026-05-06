@@ -22,7 +22,7 @@ export const LEDGER_COPY = {
   amountLabel: "지출 금액",
   memoPlaceholder: "어디에 쓰셨나요? (선택)",
   submitButton: "기록하기",
-  petAdviceName: "토토리(Lv.3)가 말해요:",
+  petAdviceName: "아끼개(Lv.3)가 말해요:",
   petAdvice: "식비 지출이 많아지면 제 털이 조금 덜 보들보들해져요!",
 };
 
@@ -36,8 +36,8 @@ export const ANALYSIS_COPY = {
 
 export const SHOP_COPY = {
   title: "상점",
-  description: "나만의 장부를 꾸밀 특별한 아이템들!",
-  tabs: ["펫 코스튬", "다이어리", "배경"],
+  description: "나만의 펫을 꾸미고 돌볼 특별한 아이템들!",
+  tabs: ["코스튬", "간식", "배경"],
   premiumTitle: "프리미엄 상자",
   premiumDescription: "전설급 아이템을 획득하세요!",
   premiumButton: "상자 열기",

@@ -78,7 +78,9 @@ export function ShopPage({
           {posts.slice(0, 3).map((post) => (
             <PostCard key={post.id}>
               <PostPet>
-                <span>{post.petEmoji}</span>
+                <span>
+                  {post.petImageUrl ? <PostPetImage src={post.petImageUrl} alt={post.petName} /> : post.petEmoji}
+                </span>
                 <strong>{post.petName}</strong>
               </PostPet>
               <PostBody>
@@ -352,6 +354,14 @@ const PostPet = styled.div`
   strong {
     font-size: 11px;
   }
+`;
+
+const PostPetImage = styled.img`
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 `;
 
 const PostBody = styled.div`

@@ -37,8 +37,8 @@ export function AnalysisPage({ budget, categories, entries }: AnalysisPageProps)
             <strong>{Math.round(analysis.budget / 1000)}k</strong>
           </Metric>
           <Metric>
-            <span>달성률</span>
-            <strong>{analysis.achievementRate}%</strong>
+            <span>{analysis.achievementRate < 0 ? "초과율" : "달성률"}</span>
+            <strong>{analysis.achievementRate < 0 ? `-${Math.abs(analysis.achievementRate)}%` : `${analysis.achievementRate}%`}</strong>
           </Metric>
         </HeroMetrics>
       </Hero>

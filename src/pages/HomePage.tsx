@@ -1,14 +1,15 @@
-import { Calendar, PlusCircle, Shirt, Store, X } from "lucide-react";
-import { useState } from "react";
+import { Calendar, Check, Pencil, PlusCircle, Shirt, Store, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 import { EmptyState } from "../components/EmptyState";
 import { Panel } from "../components/Panel";
+import { PetStage } from "../components/PetStage";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { formatWon } from "../domain/ledger";
+import { formatWon, getTodayDate } from "../domain/ledger";
 import { createPetComment } from "../domain/petComment";
 import { createPetStatuses, createPetStatusViewModels } from "../domain/petProgress";
-import type { AppStats, Category, LedgerEntry, RewardEvent, ShopItemViewModel, UserPet } from "../types/app";
+import type { AppStats, Category, LedgerEntry, PetAnimation, RewardEvent, ShopItemViewModel, UserPet } from "../types/app";
 
 type HomePageProps = {
   categories: Category[];
@@ -19,6 +20,7 @@ type HomePageProps = {
   onEquipItem: (itemId: string) => void;
   onOpenShop: () => void;
   onShareOutfit: () => void;
+  onUpdatePetName: (name: string) => void;
   pet: UserPet;
   rewardEvents: RewardEvent[];
   stats: AppStats;
@@ -33,6 +35,7 @@ export function HomePage({
   onEquipItem,
   onOpenShop,
   onShareOutfit,
+  onUpdatePetName,
   onRecord,
   pet,
   rewardEvents,
@@ -40,8 +43,15 @@ export function HomePage({
   wardrobeItems,
 }: HomePageProps) {
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
+  const [isNameEditing, setIsNameEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState(pet.name);
+  const [petAnimation, setPetAnimation] = useState<PetAnimation>("idle");
   const statusRows = createPetStatusViewModels(createPetStatuses(stats));
   const latestReward = rewardEvents[0];
+  const latestRewardId = latestReward?.id;
+  const todayRewardCoins = rewardEvents
+    .filter((reward) => reward.createdAt.slice(0, 10) === getTodayDate())
+    .reduce((sum, reward) => sum + reward.coins, 0);
   const petComment = createPetComment(stats, entries, categories, monthlyBudget);
   const summaryRows = [
     { label: "지출", value: formatWon(stats.totalExpense), tone: "red" as const },
@@ -49,31 +59,86 @@ export function HomePage({
     { label: "연속기록", value: `${stats.streakDays}일`, tone: "purple" as const },
   ];
 
+  useEffect(() => {
+    if (!latestRewardId) return undefined;
+
+    setPetAnimation("sparkle");
+    const timerId = window.setTimeout(() => setPetAnimation("idle"), 850);
+    return () => window.clearTimeout(timerId);
+  }, [latestRewardId]);
+
+  useEffect(() => {
+    setNameDraft(pet.name);
+  }, [pet.name]);
+
+  const savePetName = () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) return;
+
+    onUpdatePetName(trimmed);
+    setIsNameEditing(false);
+  };
+
+  const handleEquipItem = (itemId: string) => {
+    onEquipItem(itemId);
+    setPetAnimation("pop");
+    window.setTimeout(() => setPetAnimation("idle"), 700);
+  };
+
   return (
     <Page>
       <Hero>
         <NameRow>
-          <PetName>{pet.name}</PetName>
+          {isNameEditing ? (
+            <NameForm
+              onSubmit={(event) => {
+                event.preventDefault();
+                savePetName();
+              }}
+            >
+              <NameInput
+                aria-label="캐릭터 이름"
+                maxLength={12}
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+              />
+              <NameAction aria-label="이름 저장" type="submit">
+                <Check size={16} />
+              </NameAction>
+              <NameAction
+                aria-label="이름 수정 취소"
+                type="button"
+                onClick={() => {
+                  setNameDraft(pet.name);
+                  setIsNameEditing(false);
+                }}
+              >
+                <X size={16} />
+              </NameAction>
+            </NameForm>
+          ) : (
+            <NameDisplay>
+              <PetName>{pet.name}</PetName>
+              <EditNameButton aria-label="캐릭터 이름 수정" onClick={() => setIsNameEditing(true)}>
+                <Pencil size={15} />
+              </EditNameButton>
+            </NameDisplay>
+          )}
           <Level>Lv. {stats.level}</Level>
         </NameRow>
         <Speech>{petComment}</Speech>
         <PetPortrait>
-          <PetFace>
-            {pet.imageUrl ? <PetImage src={pet.imageUrl} alt={pet.name} /> : pet.emoji}
-            {equippedItem && <EquippedItem aria-label={`착용 아이템 ${equippedItem.name}`}>{equippedItem.icon}</EquippedItem>}
-          </PetFace>
-          <WardrobeButton aria-label="옷장 열기" onClick={() => setIsWardrobeOpen(true)}>
+          <PetStage animation={petAnimation} equippedItem={equippedItem} pet={pet} />
+          <WardrobeButton
+            aria-label="옷장 열기"
+            onClick={() => {
+              setIsWardrobeOpen(true);
+            }}
+          >
             <Shirt size={20} />
           </WardrobeButton>
         </PetPortrait>
       </Hero>
-
-      {latestReward && (
-        <RewardNotice>
-          <strong>+{latestReward.coins} 코인</strong>
-          <span>{latestReward.label}</span>
-        </RewardNotice>
-      )}
 
       <StatusPanel>
         {statusRows.map((status) => (
@@ -100,6 +165,10 @@ export function HomePage({
             </Metric>
           ))}
         </Metrics>
+        <TodayReward>
+          <strong>+{todayRewardCoins.toLocaleString("ko-KR")} 코인</strong>
+          <span>오늘 획득한 포인트</span>
+        </TodayReward>
       </Panel>
 
       <PrimaryButton onClick={onRecord}>
@@ -123,7 +192,7 @@ export function HomePage({
               <EmptyState icon="🛍️" message="보유한 아이템이 없어요" sub="상점에서 첫 아이템을 구매해보세요" />
             ) : (
               wardrobeItems.map((item) => (
-                <WardrobeItem key={item.id} $active={item.state === "equipped"} onClick={() => onEquipItem(item.id)}>
+                <WardrobeItem key={item.id} $active={item.state === "equipped"} onClick={() => handleEquipItem(item.id)}>
                   <span>{item.icon}</span>
                   <strong>{item.name}</strong>
                 </WardrobeItem>
@@ -160,10 +229,56 @@ const NameRow = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 `;
 
+const NameDisplay = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+`;
+
 const PetName = styled.strong`
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.4px;
+`;
+
+const EditNameButton = styled.button`
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.muted};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: 50%;
+`;
+
+const NameForm = styled.form`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+`;
+
+const NameInput = styled.input`
+  width: 126px;
+  min-height: 38px;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1.5px solid ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+`;
+
+const NameAction = styled.button`
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: 50%;
 `;
 
 const Level = styled.span`
@@ -205,38 +320,8 @@ const Speech = styled.div`
 const PetPortrait = styled.div`
   position: relative;
   display: grid;
-  width: 200px;
-  height: 200px;
   place-items: center;
   margin-top: ${({ theme }) => theme.spacing.xl};
-  background: radial-gradient(circle, #fff5f9 0%, #fde0ea 72%);
-  border-radius: 50%;
-`;
-
-const PetFace = styled.div`
-  position: relative;
-  display: grid;
-  width: 140px;
-  height: 140px;
-  place-items: center;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: 32px;
-  box-shadow: ${({ theme }) => theme.shadow.card};
-  font-size: 76px;
-`;
-
-const EquippedItem = styled.span`
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 50%;
-  box-shadow: ${({ theme }) => theme.shadow.card};
-  font-size: 26px;
 `;
 
 const WardrobeButton = styled.button`
@@ -254,38 +339,9 @@ const WardrobeButton = styled.button`
   box-shadow: ${({ theme }) => theme.shadow.card};
 `;
 
-const PetImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: inherit;
-`;
-
 const StatusPanel = styled(Panel)`
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
-`;
-
-const RewardNotice = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.spacing.md};
-  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
-  color: ${({ theme }) => theme.colors.orangeDark};
-  background: ${({ theme }) => theme.colors.surfaceWarm};
-  border: 1px solid ${({ theme }) => theme.colors.line};
-  border-radius: ${({ theme }) => theme.radius.lg};
-
-  strong {
-    font-weight: 700;
-  }
-
-  span {
-    color: ${({ theme }) => theme.colors.muted};
-    font-size: 14px;
-    font-weight: 400;
-  }
 `;
 
 const WardrobeSheet = styled.section`
@@ -445,6 +501,29 @@ const SummaryHeader = styled.div`
 const Metrics = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+`;
+
+const TodayReward = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: ${({ theme }) => theme.radius.md};
+
+  strong {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 13px;
+    font-weight: 500;
+  }
 `;
 
 const Metric = styled.div<{ $tone: "red" | "green" | "purple" }>`

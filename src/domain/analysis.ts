@@ -55,7 +55,7 @@ export function createAnalysisViewModel(
   const topCategoryLabel = categories[0]?.label ?? "없음";
   const donutGradient = buildDonutGradient(categories);
 
-  const achievementRate = totalExpense > 0 ? Math.max(0, Math.round((1 - totalExpense / budget) * 100)) : 100;
+  const achievementRate = totalExpense > 0 ? Math.round((1 - totalExpense / budget) * 100) : 100;
 
   return {
     totalExpense,
@@ -71,6 +71,7 @@ export function createAnalysisViewModel(
 
 function buildEncouragement(totalExpense: number, achievementRate: number, categories: CategoryAnalysis[]): string {
   if (totalExpense === 0) return "아직 기록이 없어요. 첫 소비를 기록해볼까요? 😊";
+  if (achievementRate < 0) return `예산을 ${Math.abs(achievementRate)}% 초과했어요. 다음 기록부터 같이 조절해봐요.`;
   if (achievementRate >= 90) return "예산을 훌륭하게 지키고 있어요! 이 기세로 달려봐요 🏆";
   if (achievementRate >= 70) return "목표 달성이 눈앞이에요! 조금만 더 아껴봐요 💪";
   if (achievementRate >= 50) return "절반을 달성했어요. 남은 기간도 화이팅!";
@@ -81,7 +82,7 @@ function buildEncouragement(totalExpense: number, achievementRate: number, categ
   }
 
   if (achievementRate > 0) return "지출이 늘고 있어요. 함께 돌아볼까요? 🌱";
-  return "예산 초과! 다음 달엔 더 잘 할 수 있어요 💖";
+  return "예산이 거의 다 찼어요. 다음 달엔 더 잘 할 수 있어요 💖";
 }
 
 function buildDonutGradient(categories: CategoryAnalysis[]): string {

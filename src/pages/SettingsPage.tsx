@@ -33,7 +33,7 @@ export function SettingsPage({ coins, entries, monthlyBudget, pet, stats, onRese
   return (
     <Page>
       <PetCard>
-        <PetEmoji>{pet.emoji}</PetEmoji>
+        <PetAvatar>{pet.imageUrl ? <PetAvatarImage src={pet.imageUrl} alt={pet.name} /> : pet.emoji}</PetAvatar>
         <PetInfo>
           <PetName>{pet.name}</PetName>
           <PetTrait>{pet.trait}</PetTrait>
@@ -145,7 +145,7 @@ const PetCard = styled.div`
   border-radius: ${({ theme }) => theme.radius.xl};
 `;
 
-const PetEmoji = styled.div`
+const PetAvatar = styled.div`
   display: grid;
   width: 72px;
   height: 72px;
@@ -155,6 +155,14 @@ const PetEmoji = styled.div`
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: ${({ theme }) => theme.shadow.card};
   font-size: 40px;
+`;
+
+const PetAvatarImage = styled.img`
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 `;
 
 const PetInfo = styled.div`

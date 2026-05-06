@@ -15,6 +15,10 @@ export function createPetComment(
 
   const spendingRate = stats.totalExpense / monthlyBudget;
 
+  if (spendingRate > 1) {
+    return `예산을 ${Math.round((spendingRate - 1) * 100)}% 초과했어요. 괜찮아요, 지금부터 같이 조절해봐요.`;
+  }
+
   if (spendingRate >= 0.9) {
     return "이번 달 예산이 거의 다 찼어요. 남은 기간 조금만 더 아껴봐요!";
   }

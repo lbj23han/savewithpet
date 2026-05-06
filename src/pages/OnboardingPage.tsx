@@ -6,7 +6,7 @@ import { ONBOARDING_COPY } from "../constants/copy";
 import { createPetFromPhoto, createPetFromPreset, createSkippedPet } from "../domain/avatarGenerator";
 import { petPresets } from "../mocks/appData";
 import { PrimaryButton } from "../components/PrimaryButton";
-import type { UserPet } from "../types/app";
+import type { PetPreset, UserPet } from "../types/app";
 
 type OnboardingPageProps = {
   onComplete: (pet: UserPet) => void;
@@ -14,7 +14,10 @@ type OnboardingPageProps = {
 
 export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const defaultPreset = petPresets.find((pet) => pet.featured) ?? petPresets[0];
   const [photoPreview, setPhotoPreview] = useState<UserPet | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<PetPreset>(defaultPreset);
+  const [petName, setPetName] = useState(defaultPreset.name);
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -27,6 +30,16 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const selectPreset = (preset: PetPreset) => {
+    setSelectedPreset(preset);
+    setPetName(preset.name);
+  };
+
+  const completeWithPreset = () => {
+    const pet = createPetFromPreset(selectedPreset);
+    onComplete({ ...pet, name: petName.trim().slice(0, 12) || selectedPreset.name });
   };
 
   return (
@@ -48,13 +61,32 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
       <PresetList>
         {petPresets.map((pet) => (
-          <PresetButton key={pet.id} $featured={Boolean(pet.featured)} onClick={() => onComplete(createPetFromPreset(pet))}>
+          <PresetButton
+            key={pet.id}
+            $featured={Boolean(pet.featured)}
+            $selected={selectedPreset.id === pet.id}
+            onClick={() => selectPreset(pet)}
+          >
             {pet.featured && <Badge>BEST</Badge>}
-            <EmojiWrap>{pet.emoji}</EmojiWrap>
+            <ImageWrap>
+              <PresetImage src={pet.imageUrl} alt={pet.name} />
+            </ImageWrap>
             <PetName>{pet.name}</PetName>
+            <PetTrait>{pet.trait}</PetTrait>
           </PresetButton>
         ))}
       </PresetList>
+
+      <NamePanel>
+        <label htmlFor="pet-name">이름을 지어주세요</label>
+        <NameInput
+          id="pet-name"
+          maxLength={12}
+          placeholder={selectedPreset.name}
+          value={petName}
+          onChange={(event) => setPetName(event.target.value)}
+        />
+      </NamePanel>
 
       <Actions>
         <HiddenFileInput ref={fileInputRef} accept="image/*" type="file" onChange={handlePhotoChange} />
@@ -62,9 +94,9 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
           <Camera size={20} />
           {ONBOARDING_COPY.photoButton}
         </GhostButton>
-        <PrimaryButton onClick={() => onComplete(createPetFromPreset(petPresets.find((pet) => pet.featured) ?? petPresets[0]))}>
+        <PrimaryButton onClick={completeWithPreset}>
           <Palette size={20} />
-          {ONBOARDING_COPY.presetButton}
+          이 이름으로 시작하기
         </PrimaryButton>
         <LaterButton onClick={() => onComplete(createSkippedPet())}>{ONBOARDING_COPY.laterButton}</LaterButton>
       </Actions>
@@ -112,9 +144,9 @@ const Description = styled.p`
 
 const PresetList = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
-  gap: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: 72px;
 `;
 
@@ -164,17 +196,49 @@ const GeneratedImage = styled.img`
   border-radius: ${({ theme }) => theme.radius.lg};
 `;
 
-const PresetButton = styled.button<{ $featured: boolean }>`
+const PresetButton = styled.button<{ $featured: boolean; $selected: boolean }>`
   position: relative;
-  display: flex;
+  display: grid;
   min-width: 0;
-  flex-direction: column;
-  align-items: center;
+  justify-items: center;
   gap: ${({ theme }) => theme.spacing.md};
-  padding: ${({ $featured }) => ($featured ? "0 0 12px" : "18px 0 0")};
+  min-height: 210px;
+  padding: ${({ theme }) => theme.spacing.lg};
   color: ${({ $featured, theme }) => ($featured ? theme.colors.orange : theme.colors.text)};
-  background: transparent;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid ${({ $selected, theme }) => ($selected ? theme.colors.orange : theme.colors.line)};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
   font-weight: 600;
+`;
+
+const NamePanel = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin: -48px 0 ${({ theme }) => theme.spacing.xl};
+
+  label {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 15px;
+    font-weight: 700;
+  }
+`;
+
+const NameInput = styled.input`
+  width: 100%;
+  min-height: 52px;
+  padding: 0 ${({ theme }) => theme.spacing.lg};
+  color: ${({ theme }) => theme.colors.text};
+  background: rgba(255, 255, 255, 0.84);
+  border: 1.5px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  font-size: 18px;
+  font-weight: 700;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.orange};
+    outline: none;
+  }
 `;
 
 const Badge = styled.span`
@@ -189,22 +253,35 @@ const Badge = styled.span`
   font-weight: 700;
 `;
 
-const EmojiWrap = styled.span`
+const ImageWrap = styled.span`
   display: grid;
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   place-items: center;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.radius.xl};
-  box-shadow: ${({ theme }) => theme.shadow.card};
-  font-size: 42px;
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: 50%;
+`;
+
+const PresetImage = styled.img`
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 `;
 
 const PetName = styled.span`
-  min-height: 40px;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 700;
   line-height: 1.35;
+`;
+
+const PetTrait = styled.span`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  word-break: keep-all;
 `;
 
 const Actions = styled.div`

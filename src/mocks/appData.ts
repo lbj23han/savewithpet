@@ -1,9 +1,23 @@
 import type { Category, CommunityPost, LedgerEntry, PetPreset, PetStatus, ShopItem, SummaryMetric } from "../types/app";
 
 export const petPresets: PetPreset[] = [
-  { id: "squirrel", name: "부지런한 다람이", trait: "작은 절약을 좋아해요", emoji: "🐿️" },
-  { id: "owl", name: "현명한 올빼미", trait: "예산을 차분히 지켜봐요", emoji: "🦉", featured: true },
-  { id: "cat", name: "꼼꼼한 냥이", trait: "영수증을 놓치지 않아요", emoji: "🐱" },
+  {
+    id: "akkigae",
+    name: "아끼개",
+    trait: "예산을 지키며 차근차근 아끼는 절약 친구예요",
+    emoji: "🐶",
+    imageUrl: "/assets/pets/akkigae.png?v=2",
+    species: "dog",
+    featured: true,
+  },
+  {
+    id: "ttoosseunyang",
+    name: "또쓰냥",
+    trait: "또 쓰려는 순간을 귀엽게 잡아주는 지출 감시자예요",
+    emoji: "🐱",
+    imageUrl: "/assets/pets/ttoosseunyang.png?v=2",
+    species: "cat",
+  },
 ];
 
 export const petStatuses: PetStatus[] = [
@@ -55,7 +69,7 @@ export const goalProgress = [
 
 export const shopItems: ShopItem[] = [
   { id: "hat", name: "신사 모자", icon: "🎩", price: 800 },
-  { id: "scarf", name: "빨간 목도리", icon: "🧣", price: 450 },
+  { id: "scarf", name: "하트 목걸이", icon: "💗", price: 450 },
   { id: "crown", name: "황금 왕관", icon: "👑", price: 2500, requiredLevel: 12, unlockLabel: "Lv.12 해금" },
   { id: "sunglasses", name: "선글라스", icon: "🕶️", price: 600, requiredLevel: 5, unlockLabel: "Lv.5 해금" },
   { id: "ribbon", name: "핑크 리본", icon: "🎀", price: 300 },
@@ -89,7 +103,7 @@ export const initialCommunityPosts: CommunityPost[] = [
     comments: [
       {
         id: "comment-1",
-        authorName: "토토리",
+        authorName: "아끼개",
         createdAt: "2026-05-04T09:00:00.000Z",
         message: "코디도 기록도 깔끔해요!",
       },
@@ -98,17 +112,19 @@ export const initialCommunityPosts: CommunityPost[] = [
     equippedItemId: "ribbon",
     likes: 24,
     petEmoji: "🐱",
-    petName: "냥이",
+    petImageUrl: "/assets/pets/ttoosseunyang.png?v=2",
+    petName: "또쓰냥",
   },
   {
     id: "community-2",
     authorName: "절약멍",
-    caption: "교통비 절약 성공. 목도리도 잘 어울리죠?",
+    caption: "교통비 절약 성공. 목걸이도 잘 어울리죠?",
     comments: [],
     createdAt: "2026-05-03T12:10:00.000Z",
     equippedItemId: "scarf",
     likes: 18,
     petEmoji: "🐶",
-    petName: "멍이",
+    petImageUrl: "/assets/pets/akkigae.png?v=2",
+    petName: "아끼개",
   },
 ];

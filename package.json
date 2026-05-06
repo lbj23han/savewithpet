@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc -b",
     "test:unit": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm run test:unit"
+    "check": "npm run typecheck && npm run lint && npm run test:unit",
+    "cutscene": "node scripts/generate-cutscene.mjs"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^2.4.7",

@@ -16,6 +16,7 @@ export function createOutfitPost({
     equippedItemId: equippedItem?.id ?? null,
     likes: 0,
     petEmoji: pet.emoji,
+    petImageUrl: pet.imageUrl,
     petName: pet.name,
   };
 }

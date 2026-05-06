@@ -120,7 +120,13 @@ function App() {
     const item = shopItemViews.find((candidate) => candidate.id === itemId);
     if (!item || item.state === "locked") return;
 
-    if (item.state === "owned" || item.state === "equipped") {
+    if (item.state === "equipped") {
+      setAppState((prev) => ({ ...prev, equippedItemId: null }));
+      setToastMessage(`${item.name} 착용 해제`);
+      return;
+    }
+
+    if (item.state === "owned") {
       setAppState((prev) => ({ ...prev, equippedItemId: item.id }));
       setToastMessage(`${item.name} 착용 완료`);
       return;
@@ -156,6 +162,14 @@ function App() {
   const updateBudget = (budget: number) => {
     setAppState((prev) => ({ ...prev, monthlyBudget: budget }));
     setToastMessage("예산을 저장했어요");
+  };
+
+  const updatePetName = (name: string) => {
+    const trimmed = name.trim().slice(0, 12);
+    if (!trimmed) return;
+
+    setAppState((prev) => ({ ...prev, pet: { ...prev.pet, name: trimmed } }));
+    setToastMessage("이름을 저장했어요");
   };
 
   const updateCategoryBudget = (categoryId: string, budget: number) => {
@@ -223,6 +237,7 @@ function App() {
           onEquipItem={buyOrEquipItem}
           onOpenShop={() => setPage("shop")}
           onShareOutfit={shareOutfit}
+          onUpdatePetName={updatePetName}
           onRecord={() => setPage("ledger")}
         />
       )}
@@ -238,6 +253,7 @@ function App() {
           onDeleteEntry={deleteLedgerEntry}
           onUpdateCategory={updateCategory}
           onUpdateCategoryBudget={updateCategoryBudget}
+          onUpdateBudget={updateBudget}
           onUpdateEntry={updateLedgerEntry}
         />
       )}
