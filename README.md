@@ -198,109 +198,197 @@ type PetAnchorMap = {
 
 ## AI Character Pipeline
 
-AI는 앱 실행 중 매번 캐릭터를 새로 만드는 용도가 아니라, 캐릭터 asset과 컷신을 생성/보강하는 제작 파이프라인으로 사용합니다.
+AI 이미지 생성은 앱 실행 중 매번 호출하는 기능이 아니라, 캐릭터와 컷신 후보 asset을 만드는 제작 파이프라인입니다. 현재까지의 실험 결론은 명확합니다. 캐릭터가 서비스의 핵심이므로, 검수되지 않은 생성 이미지를 앱에 바로 연결하지 않습니다.
 
-필요한 환경 변수:
+### Current Status
+
+현재 `public/assets/cutscenes` 산출물은 모두 삭제했습니다. 이전 실험에서 만든 컷신은 품질이 들쑥날쑥했고, 얼굴/코/입/손이 깨지는 결과가 반복되어 프로덕션 기준으로 사용할 수 없었습니다.
+
+남겨둔 것은 `scripts/generate-cutscene.mjs` 하나입니다. 이 스크립트는 최종 asset 생성기가 아니라, 프롬프트 품질을 검증하기 위한 로컬 실험 도구입니다.
+
+실패한 방식은 의도적으로 제거했습니다.
+
+- 전체 이미지를 다시 그리는 방식: 캐릭터 정체성이 쉽게 무너짐
+- 눈만 덮어씌우는 방식: 원본 눈 제거와 정렬이 불안정해서 얼굴이 더 망가짐
+- 원본 얼굴 패치 복원/합성 방식: 이음새, 손/팔 중복, 배경 부자연스러움 발생
+- 귀를 세우는 식의 큰 실루엣 변경: 의도 반영이 낮고 머리 윤곽이 깨짐
+- 원형 글로우/무대 원/임의 배경 추가: 앱 UI와 충돌
+
+따라서 다음 에이전트는 삭제된 합성/복원 스크립트를 되살리는 대신, 아래 파이프라인을 기준으로 다시 설계합니다.
+
+### Production Direction
+
+사용자 사진 기반 캐릭터도 프리셋과 같은 흐름으로 처리합니다.
+
+```text
+사용자 사진 또는 프리셋 원본
+-> 대표 캐릭터 base.png 생성
+-> 사용자가 base.png 승인
+-> pet profile 저장: species, traits, anchors, faceBox, bodyBox
+-> interaction set 후보 생성
+-> 자동/수동 품질 검수
+-> 통과한 이미지만 storage와 manifest에 저장
+```
+
+런타임에서는 AI를 호출하지 않습니다. 홈 화면, 탭 반응, 기록 완료 반응, 감정 변화는 검수된 PNG/파츠/CSS 모션/Rive/Spine/Live2D로 처리합니다. AI 호출은 최초 캐릭터 생성, 희귀 코디 이미지, 월간 리포트 대표 이미지처럼 사용자가 기다릴 수 있는 순간에 제한합니다.
+
+장기적으로 안정적인 구조는 한 장짜리 AI 컷신을 계속 뽑는 방식이 아닙니다.
+
+```text
+base.png
++ eyes/*.png
++ mouth/*.png
++ paws/*.png
++ effects/*.png
++ backgrounds/*.png
++ CSS/Rive/Spine/Live2D animation
+```
+
+AI가 맡기 좋은 영역:
+
+- 최초 대표 캐릭터 생성
+- 배경 asset 생성
+- 코스튬/아이템 후보 생성
+- 이펙트 파츠 생성
+- 컷신 후보 이미지 생성
+
+AI에 맡기면 위험한 영역:
+
+- 최종 얼굴 유지
+- 코/입/눈 간격 보존
+- 손/팔/꼬리의 일관성
+- 다마고치식 반복 인터랙션 전체
+- 매일 보여주는 홈 캐릭터 기본 상태
+
+### Script Ownership
+
+`scripts/generate-cutscene.mjs`는 OpenAI 이미지 edit 기반 실험 도구입니다. 직접 프롬프트를 사용자가 쓰는 방식이 아니라, 이벤트와 펫 정보를 넣으면 코드가 구조화된 프롬프트를 생성합니다.
+
+지원 옵션:
+
+```bash
+npm run cutscene -- --pet ttoosseunyang --event wink --print-prompt
+npm run cutscene -- --pet akkigae --event sad_eyes --species dog --print-prompt
+npm run cutscene -- --pet custom-pet --image public/assets/pets/custom.png --species cat --traits "black tuxedo coat, green eyes, white socks" --event one_hand_wave --print-prompt
+```
+
+주요 옵션:
+
+- `--pet`: 기준 캐릭터 id. 기본값은 `ttoosseunyang`
+- `--image`: 기준 PNG 경로. 사용자 사진 기반 캐릭터 실험 시 사용
+- `--event`: `wink`, `sad_eyes`, `one_hand_wave`, `record_complete`, `budget_over`, `level_up`, `feed_treat`, `daily_checkin`, `outfit_share`
+- `--mode`: `variant` 또는 `scene`. 기본은 작은 상호작용이면 `variant`
+- `--species`: `dog`, `cat`, `unknown`
+- `--traits`: 사진에서 추출한 털색, 무늬, 눈색, 귀 모양, 꼬리 모양 등 보존할 특징
+- `--mask`: 편집 가능 영역을 제한하는 마스크
+- `--print-prompt`: 이미지를 생성하지 않고 최종 프롬프트만 출력
+
+생성 결과는 `public/assets/cutscenes`에 저장되지만, 이 폴더의 이미지는 검수 전 후보입니다. 바로 앱에 연결하지 않습니다.
+
+### Prompt Strategy
+
+현재 가장 나았던 프롬프트 방향은 “작은 영역만 편집하고 나머지는 잠그는 계약형 프롬프트”입니다. 프롬프트는 아래 순서로 구성합니다.
+
+```text
+TASK
+NON-NEGOTIABLE CONTRACT
+PRIORITY ORDER
+IDENTITY PROFILE
+ALLOWED EDIT
+LOCKED REGIONS
+FACE PATCH PRESERVATION
+FACIAL SAFETY RULES
+STYLE AND OUTPUT RULES
+QUALITY CHECK BEFORE FINAL IMAGE
+```
+
+핵심 우선순위:
+
+1. 같은 캐릭터와 같은 종으로 보여야 함
+2. 얼굴 패치, 특히 눈 간격, 코, 입, 볼, 얼굴 무늬를 보존해야 함
+3. 실루엣, 몸 비율, 팔/다리/꼬리, 색상, 선 스타일을 보존해야 함
+4. 허용된 작은 영역만 바꿔야 함
+5. 감정 표현은 1-4번을 깨지 않는 선에서만 적용
+
+성공 확률이 상대적으로 높은 이벤트:
+
+- `wink`: 한쪽 눈만 단순한 감은 눈으로 변경
+- `sad_eyes`: 눈꺼풀/눈썹 느낌만 아주 작게 변경
+- `one_hand_wave`: 얼굴은 완전 고정하고 한쪽 앞발만 작게 변경
+- `external_effects_only`: 캐릭터 본체는 잠그고 주변 투명 영역에 작은 효과만 추가
+
+실패 확률이 높은 이벤트는 기본 지원에서 제외합니다. 귀를 세우거나 몸 전체 포즈를 크게 바꾸는 식의 요청은 얼굴과 실루엣이 깨질 가능성이 높습니다. 이런 동작은 AI 생성보다 리깅/파츠 애니메이션으로 처리합니다.
+
+### Species Branching
+
+사진 기반 캐릭터 생성 후에는 아래 정보를 `traits` 또는 서버의 `petProfile`에 저장합니다.
+
+공통 보존값:
+
+- 종, 품종 인상, 털색, 얼굴 무늬, 눈색, 코색, 귀 모양, 꼬리 모양, 체형, 대표 색상
+
+강아지 보존값:
+
+- 귀 부착점, 귀 처짐/섬, 주둥이 길이, 코 크기, 발 모양, 꼬리 실루엣
+
+고양이 보존값:
+
+- 삼각 귀, 수염 위치, 짧은 주둥이, 볼 라인, 꼬리 곡선, 눈 간격
+
+사진 기반 캐릭터는 고유 무늬와 비대칭을 일반화하지 않습니다. 흰 양말, 점박이, 턱색, 콧등 무늬, 한쪽 귀색 같은 요소는 정체성으로 잠급니다.
+
+### Quality Gate
+
+생성 이미지는 아래 조건 중 하나라도 걸리면 폐기합니다.
+
+- 얼굴이 원본과 달라짐
+- 코나 입이 새로 그려진 느낌이 남
+- 눈 간격, 눈 색, 눈 하이라이트가 달라짐
+- 손/팔/다리/꼬리가 중복됨
+- 종이 달라 보임
+- 원형 글로우, 무대 원, 임의 배경, 그림자, UI, 텍스트가 생김
+- 투명 배경이 아니라 체크무늬나 흰 배경이 그려짐
+- 원본보다 더 복잡하거나 다른 화풍으로 바뀜
+
+서버 도입 시 저장 구조 예시:
+
+```text
+users/{userId}/pets/{petId}/base.png
+users/{userId}/pets/{petId}/scenes/idle.png
+users/{userId}/pets/{petId}/scenes/happy.png
+users/{userId}/pets/{petId}/scenes/worried.png
+users/{userId}/pets/{petId}/scenes/proud.png
+```
+
+manifest 예시:
+
+```json
+{
+  "petId": "pet_123",
+  "baseImageUrl": ".../base.png",
+  "scenes": {
+    "record_complete": ".../happy.png",
+    "budget_over": ".../worried.png",
+    "level_up": ".../proud.png"
+  }
+}
+```
+
+### Environment
 
 ```bash
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 OPENAI_IMAGE_SIZE=1024x1024
-OPENAI_IMAGE_QUALITY=medium
+OPENAI_IMAGE_QUALITY=low
+OPENAI_IMAGE_INPUT_FIDELITY=high
 OPENAI_IMAGE_BACKGROUND=transparent
 OPENAI_CUTSCENE_STORAGE=local
 OPENAI_CUTSCENE_OUTPUT_DIR=public/assets/cutscenes
+OPENAI_CUTSCENE_MODE=variant
 ```
 
 로컬에서는 `.env.local`에 키를 넣습니다. `.env.local`은 git에 올리지 않습니다.
-
-`.env.example`에 같은 항목을 둡니다.
-
-구현 계획:
-
-1. 서버 함수 추가: `POST /api/character/cutscene`
-2. 입력값: `petId`, `petName`, `eventType`, `mood`, `equippedItemIds`, `backgroundId`
-3. 생성 이벤트: `record_complete`, `budget_over`, `level_up`, `feed_treat`, `daily_checkin`, `outfit_share`
-4. 서버에서 OpenAI 이미지 생성 호출
-5. 결과 이미지를 storage에 저장하고 `cutsceneUrl` 반환
-6. 앱은 결과 URL을 `CutsceneModal`로 2-3초 노출하고 캐시
-7. 같은 이벤트/상태 조합은 재사용해서 비용을 줄임
-
-기존 `public/assets/pets/*.png`는 기준 캐릭터입니다.
-
-생성 방식은 두 갈래입니다.
-
-1. 표정/상태 variant
-   - 입력 이미지: `아끼개` 또는 `또쓰냥` 기본 PNG
-   - 생성 방식: 이미지 edit
-   - 결과: 같은 캐릭터의 `happy`, `worried`, `sleepy`, `proud`, `hungry` PNG
-   - 앱 사용: 기본 캐릭터 이미지 대신 상태별 PNG를 교체하거나 표정 파츠로 얹음
-
-2. 컷신
-   - 입력 이미지: 기본 캐릭터 PNG + 착용 아이템/배경 정보
-   - 생성 방식: 이미지 edit 또는 image-to-image 스타일 prompt
-   - 결과: 레벨업, 예산초과, 연속출석, 간식 사용 같은 이벤트용 한 장면
-   - 앱 사용: `CutsceneModal`에 2-3초 표시하고 저장/캐시
-
-예시 컷신 요청:
-
-```json
-{
-  "petId": "ttoosseunyang",
-  "eventType": "budget_over",
-  "mood": "worried",
-  "equippedItemIds": ["ribbon"],
-  "backgroundId": "basic_room"
-}
-```
-
-로컬 실험:
-
-```bash
-npm run cutscene -- --pet ttoosseunyang --event budget_over
-npm run cutscene -- --pet akkigae --event level_up --mood proud
-```
-
-이 스크립트는 직접 프롬프트를 입력받지 않습니다.
-
-- `--pet`: 기준 캐릭터 PNG 선택
-- `--event`: 컷신 이벤트 선택
-- `--mood`: 선택 사항. 생략하면 이벤트별 기본 기분 사용
-- 결과 저장: `public/assets/cutscenes`
-
-즉, 사용자는 이벤트만 고르고 프롬프트는 코드 템플릿이 자동 생성합니다.
-
-예시 프롬프트 방향:
-
-```text
-Use the provided pet character image as the identity reference.
-Create a cute mobile game cutscene for event: budget_over.
-Keep the same face shape, body proportion, pink-white palette, and soft rounded style.
-The pet looks gently worried but still adorable.
-No text in the image. Bright clean background. App-friendly composition.
-```
-
-컷신 생성 프롬프트는 “현재 펫의 정체성 유지”가 핵심입니다.
-
-- 같은 얼굴/비율/색감 유지
-- 배경은 앱 톤과 맞는 밝은 모바일 게임풍
-- 텍스트는 이미지 안에 넣지 않음
-- 투명 PNG가 필요한 파츠는 별도 item asset 파이프라인으로 생성
-
-런타임 인터랙션은 AI 호출 없이 처리합니다.
-
-- 탭 반응: CSS 모션 + 랜덤 대사
-- 기록 완료: `sparkle` 모션 + 보상 텍스트
-- 예산 초과: `shake` 모션 + 걱정 표정 파츠
-- 간식 사용: `pop` 모션 + 하트 파티클
-
-AI 호출은 사용자가 기다려도 되는 순간에만 사용합니다.
-
-- 최초 캐릭터 생성
-- 레벨업 컷신
-- 특별 코디 저장
-- 월간 리포트 대표 이미지
-- 이벤트/희귀 배경 획득
 
 ## Customization Economy
 
