@@ -9,7 +9,16 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { formatWon, getTodayDate } from "../domain/ledger";
 import { createPetComment } from "../domain/petComment";
 import { createPetStatuses, createPetStatusViewModels } from "../domain/petProgress";
-import type { AppStats, Category, LedgerEntry, PetAnimation, RewardEvent, ShopItemViewModel, UserPet } from "../types/app";
+import type {
+  AppStats,
+  Category,
+  LedgerEntry,
+  PetAnimation,
+  PetExpression,
+  RewardEvent,
+  ShopItemViewModel,
+  UserPet,
+} from "../types/app";
 
 type HomePageProps = {
   categories: Category[];
@@ -46,6 +55,7 @@ export function HomePage({
   const [isNameEditing, setIsNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(pet.name);
   const [petAnimation, setPetAnimation] = useState<PetAnimation>("idle");
+  const [temporaryExpression, setTemporaryExpression] = useState<PetExpression>("neutral");
   const statusRows = createPetStatusViewModels(createPetStatuses(stats));
   const latestReward = rewardEvents[0];
   const latestRewardId = latestReward?.id;
@@ -53,6 +63,7 @@ export function HomePage({
     .filter((reward) => reward.createdAt.slice(0, 10) === getTodayDate())
     .reduce((sum, reward) => sum + reward.coins, 0);
   const petComment = createPetComment(stats, entries, categories, monthlyBudget);
+  const petExpression = temporaryExpression !== "neutral" ? temporaryExpression : getPetExpression(stats);
   const summaryRows = [
     { label: "지출", value: formatWon(stats.totalExpense), tone: "red" as const },
     { label: "저축", value: formatWon(stats.totalSaving), tone: "green" as const },
@@ -63,7 +74,11 @@ export function HomePage({
     if (!latestRewardId) return undefined;
 
     setPetAnimation("sparkle");
-    const timerId = window.setTimeout(() => setPetAnimation("idle"), 850);
+    setTemporaryExpression("happy");
+    const timerId = window.setTimeout(() => {
+      setPetAnimation("idle");
+      setTemporaryExpression("neutral");
+    }, 850);
     return () => window.clearTimeout(timerId);
   }, [latestRewardId]);
 
@@ -82,7 +97,11 @@ export function HomePage({
   const handleEquipItem = (itemId: string) => {
     onEquipItem(itemId);
     setPetAnimation("pop");
-    window.setTimeout(() => setPetAnimation("idle"), 700);
+    setTemporaryExpression("wink");
+    window.setTimeout(() => {
+      setPetAnimation("idle");
+      setTemporaryExpression("neutral");
+    }, 700);
   };
 
   return (
@@ -128,7 +147,7 @@ export function HomePage({
         </NameRow>
         <Speech>{petComment}</Speech>
         <PetPortrait>
-          <PetStage animation={petAnimation} equippedItem={equippedItem} pet={pet} />
+          <PetStage animation={petAnimation} equippedItem={equippedItem} expression={petExpression} pet={pet} />
           <WardrobeButton
             aria-label="옷장 열기"
             onClick={() => {
@@ -208,6 +227,12 @@ export function HomePage({
       )}
     </Page>
   );
+}
+
+function getPetExpression(stats: AppStats): PetExpression {
+  if (stats.mood < 55 || stats.fullness < 45) return "sad";
+
+  return "neutral";
 }
 
 const Page = styled.div`

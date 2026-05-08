@@ -32,6 +32,8 @@ export type UserPet = {
 
 export type PetAnimation = "idle" | "pop" | "shake" | "sparkle";
 
+export type PetExpression = "neutral" | "happy" | "sad" | "wink";
+
 export type PetStatus = {
   label: string;
   value: number;

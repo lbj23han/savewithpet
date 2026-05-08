@@ -1,19 +1,25 @@
 import styled, { css, keyframes } from "styled-components";
 
-import type { PetAnimation, ShopItemViewModel, UserPet } from "../types/app";
+import type { PetAnimation, PetExpression, ShopItemViewModel, UserPet } from "../types/app";
 
 type PetStageProps = {
   animation?: PetAnimation;
   equippedItem?: ShopItemViewModel;
+  expression?: PetExpression;
   pet: UserPet;
   size?: "home" | "compact";
 };
 
-export function PetStage({ animation = "idle", equippedItem, pet, size = "home" }: PetStageProps) {
+export function PetStage({ animation = "idle", equippedItem, expression = "neutral", pet, size = "home" }: PetStageProps) {
+  const baseBodyUrl = getBaseBodyUrl(pet.id);
+  const imageUrl = baseBodyUrl ?? pet.imageUrl;
+  const expressionUrl = baseBodyUrl ? getExpressionPartUrl(pet.id, expression) : null;
+
   return (
     <Stage $size={size}>
       <Character $animation={animation} $size={size}>
-        {pet.imageUrl ? <PetImage src={pet.imageUrl} alt={pet.name} /> : <PetEmoji $size={size}>{pet.emoji}</PetEmoji>}
+        {imageUrl ? <PetImage src={imageUrl} alt={pet.name} /> : <PetEmoji $size={size}>{pet.emoji}</PetEmoji>}
+        {expressionUrl && <ExpressionLayer src={expressionUrl} alt="" aria-hidden="true" />}
         {equippedItem && (
           <ItemLayer $itemId={equippedItem.id} $petId={pet.id} aria-label={`착용 아이템 ${equippedItem.name}`}>
             {renderItemVisual(equippedItem.id, equippedItem.icon)}
@@ -151,6 +157,18 @@ const PetImage = styled.img`
   -webkit-user-drag: none;
 `;
 
+const ExpressionLayer = styled.img`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+`;
+
 const PetEmoji = styled.span<{ $size: "home" | "compact" }>`
   display: grid;
   width: 100%;
@@ -173,6 +191,7 @@ const ItemLayer = styled.span<{ $itemId: string; $petId: string }>`
   font-size: clamp(20px, 6vw, 34px);
   line-height: 1;
   text-shadow: 0 4px 14px rgba(58, 36, 44, 0.18);
+  z-index: 2;
 
   ${({ $itemId, $petId }) => getItemPlacement($itemId, $petId)}
 `;
@@ -258,6 +277,18 @@ function renderItemVisual(itemId: string, icon: string) {
   if (itemId === "scarf") return <NecklaceVisual />;
   if (itemId === "bag") return <BagVisual />;
   return <ItemGlyph>{icon}</ItemGlyph>;
+}
+
+function getExpressionPartUrl(petId: string, expression: PetExpression) {
+  if (!["akkigae", "ttoosseunyang"].includes(petId)) return null;
+
+  return `/assets/pet-parts/${petId}/${expression}.svg`;
+}
+
+function getBaseBodyUrl(petId: string) {
+  if (!["akkigae", "ttoosseunyang"].includes(petId)) return null;
+
+  return `/assets/pets/base-body/${petId}.png`;
 }
 
 function getItemPlacement(itemId: string, petId: string) {

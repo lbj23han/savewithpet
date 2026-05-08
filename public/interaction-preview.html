@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>냥비하지말개 표정 파츠 미리보기</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: #29272a;
+        background:
+          radial-gradient(circle at 20% 0%, rgba(255, 231, 238, 0.7), transparent 34%),
+          linear-gradient(180deg, #fff 0%, #fff8fa 100%);
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      main {
+        width: min(960px, 100%);
+        margin: 0 auto;
+        padding: 32px 18px 44px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(24px, 5vw, 38px);
+        letter-spacing: 0;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: #80767b;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        display: grid;
+        gap: 18px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid #f2d9e2;
+        border-radius: 24px;
+        box-shadow: 0 18px 44px rgba(86, 48, 63, 0.1);
+      }
+
+      .card h2 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 0;
+      }
+
+      .stage {
+        position: relative;
+        display: grid;
+        width: min(100%, 330px);
+        aspect-ratio: 1;
+        place-items: center;
+        justify-self: center;
+        background: radial-gradient(circle, #fff4f7 0%, #fff8fa 68%, rgba(255, 255, 255, 0) 69%);
+        border-radius: 50%;
+      }
+
+      .character {
+        position: relative;
+        width: 78%;
+        aspect-ratio: 1;
+        animation: idle 3.2s ease-in-out infinite;
+        transform-origin: 50% 84%;
+      }
+
+      .character.pop {
+        animation: pop 620ms cubic-bezier(0.2, 0.9, 0.2, 1);
+      }
+
+      .character.shake {
+        animation: shake 560ms ease-in-out;
+      }
+
+      .character img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .body {
+        z-index: 0;
+      }
+
+      .face {
+        z-index: 1;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      button {
+        min-height: 42px;
+        color: #8a3959;
+        background: #fff;
+        border: 1px solid #f0ccd8;
+        border-radius: 999px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.active {
+        color: #fff;
+        background: #df6b8d;
+        border-color: #df6b8d;
+        box-shadow: 0 8px 20px rgba(223, 107, 141, 0.22);
+      }
+
+      .note {
+        min-height: 52px;
+        padding: 12px 14px;
+        color: #765b65;
+        background: #fff7f9;
+        border: 1px solid #f3d8e1;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      @keyframes idle {
+        0%,
+        100% {
+          transform: translateY(0) rotate(-0.5deg);
+        }
+
+        50% {
+          transform: translateY(-8px) rotate(0.5deg);
+        }
+      }
+
+      @keyframes pop {
+        0% {
+          transform: scale(0.96);
+        }
+
+        45% {
+          transform: scale(1.07) translateY(-6px);
+        }
+
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+
+        25% {
+          transform: translateX(-6px) rotate(-2deg);
+        }
+
+        50% {
+          transform: translateX(6px) rotate(2deg);
+        }
+
+        75% {
+          transform: translateX(-4px) rotate(-1deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>표정 파츠 조립 미리보기</h1>
+      <p>원본 캐릭터 PNG는 보존하고, 눈/코/입을 지운 base-body 위에 SVG 얼굴 파츠를 얹는 방식입니다.</p>
+
+      <section class="grid" aria-label="캐릭터별 표정 미리보기">
+        <article class="card" data-pet="akkigae">
+          <h2>아끼개</h2>
+          <div class="stage">
+            <div class="character">
+              <img class="body" src="/assets/pets/base-body/akkigae.png" alt="아끼개 얼굴 없는 베이스" />
+              <img class="face" src="/assets/pet-parts/akkigae/neutral.svg" alt="" aria-hidden="true" />
+            </div>
+          </div>
+          <div class="controls" aria-label="아끼개 표정 선택"></div>
+          <div class="note">neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.</div>
+        </article>
+
+        <article class="card" data-pet="ttoosseunyang">
+          <h2>또쓰냥</h2>
+          <div class="stage">
+            <div class="character">
+              <img class="body" src="/assets/pets/base-body/ttoosseunyang.png" alt="또쓰냥 얼굴 없는 베이스" />
+              <img class="face" src="/assets/pet-parts/ttoosseunyang/neutral.svg" alt="" aria-hidden="true" />
+            </div>
+          </div>
+          <div class="controls" aria-label="또쓰냥 표정 선택"></div>
+          <div class="note">neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.</div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const expressions = [
+        ["neutral", "기본"],
+        ["happy", "기쁨"],
+        ["sad", "슬픔"],
+        ["wink", "윙크"],
+      ];
+
+      const notes = {
+        neutral: "neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.",
+        happy: "happy: 보상/기록 완료 순간에 쓰는 닫힌 눈 + 반짝임 파츠입니다.",
+        sad: "sad: 기분/포만도가 낮거나 예산 초과 상태에 쓰는 걱정 표정입니다.",
+        wink: "wink: 옷장 아이템 장착 같은 짧은 상호작용에 쓰는 표정입니다.",
+      };
+
+      document.querySelectorAll(".card").forEach((card) => {
+        const petId = card.dataset.pet;
+        const controls = card.querySelector(".controls");
+        const face = card.querySelector(".face");
+        const note = card.querySelector(".note");
+        const character = card.querySelector(".character");
+
+        expressions.forEach(([expression, label]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          button.className = expression === "neutral" ? "active" : "";
+          button.addEventListener("click", () => {
+            face.src = `/assets/pet-parts/${petId}/${expression}.svg`;
+            note.textContent = notes[expression];
+            controls.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+            button.classList.add("active");
+
+            character.classList.remove("pop", "shake");
+            void character.offsetWidth;
+            character.classList.add(expression === "sad" ? "shake" : "pop");
+          });
+
+          controls.appendChild(button);
+        });
+      });
+    </script>
+  </body>
+</html>

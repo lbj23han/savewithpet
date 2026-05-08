@@ -182,6 +182,18 @@ type PetAnchorMap = {
 - `sparkle`: 보상/코인 획득 반응
 - `shake`: 주의/경고 반응용으로 예약
 
+표정 변화는 `PNG base + SVG expression part` 방식의 예시를 둡니다.
+
+- 기준 캐릭터 PNG: `public/assets/pets/*.png`
+- 조립용 얼굴 없는 베이스 PNG: `public/assets/pets/base-body/{petId}.png`
+- 표정 SVG: `public/assets/pet-parts/{petId}/{expression}.svg`
+- 현재 예시: `neutral`, `happy`, `sad`, `wink`
+- 렌더링 위치: `src/components/PetStage.tsx`
+- 홈 적용: 보상 직후 `happy`, 기분/포만도 낮음 `sad`, 옷장 아이템 장착 직후 `wink`
+- 미리보기: `public/interaction-preview.html`을 dev 서버의 Vite URL에서 열어 표정 전환을 확인합니다.
+
+이 방식은 AI가 캐릭터 전체를 다시 그리지 않게 하기 위한 MVP용 구조입니다. 현재 `base-body`는 원본 프리셋 PNG에서 눈/눈썹/코/입을 지운 실험용 베이스입니다. 정식 품질을 올리려면 디자이너가 눈/입 없는 `base-body.png`를 별도 제작하고, 눈/입/볼/이펙트 파츠를 전부 레이어로 조립하는 편이 더 안정적입니다.
+
 홈에서 캐릭터를 직접 누르는 동작은 캐릭터 변경 안내가 아니라 랜덤 인터랙션으로 사용합니다.
 
 - 예: "간지러워요", "오늘도 잘하고 있어요" 같은 짧은 대사
