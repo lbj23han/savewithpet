@@ -191,6 +191,7 @@ type PetAnchorMap = {
 - 렌더링 위치: `src/components/PetStage.tsx`
 - 홈 적용: 보상 직후 `happy`, 기분/포만도 낮음 `sad`, 옷장 아이템 장착 직후 `wink`
 - 미리보기: `public/interaction-preview.html`을 dev 서버의 Vite URL에서 열어 표정 전환을 확인합니다.
+- 생성 프롬프트: `docs/character-asset-prompts.md`
 
 이 방식은 AI가 캐릭터 전체를 다시 그리지 않게 하기 위한 MVP용 구조입니다. 현재 `base-body`는 원본 프리셋 PNG에서 눈/눈썹/코/입을 지운 실험용 베이스입니다. 정식 품질을 올리려면 디자이너가 눈/입 없는 `base-body.png`를 별도 제작하고, 눈/입/볼/이펙트 파츠를 전부 레이어로 조립하는 편이 더 안정적입니다.
 
