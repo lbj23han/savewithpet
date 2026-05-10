@@ -165,6 +165,7 @@ const ExpressionLayer = styled.img`
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+  transform: translate(-2%, -2.5%);
   user-select: none;
   -webkit-user-drag: none;
 `;

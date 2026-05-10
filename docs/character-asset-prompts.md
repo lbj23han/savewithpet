@@ -43,19 +43,23 @@ Negative prompt:
 eyes, eyebrows, nose, mouth, smile, tongue, teeth, lips, muzzle line, nostril, facial expression, circular background, glow, shadow, text, watermark, checkerboard background
 ```
 
-## Akkigae Base-Body V1 Notes
+## Preset Base-Body V1 Notes
 
-The current `public/assets/pets/base-body/akkigae.png` was generated with the base-body prompt above using the original `public/assets/pets/akkigae.png` as the identity reference.
+The current preset base-body assets were generated with the base-body prompt above using the original preset PNGs as identity references.
+
+- `public/assets/pets/base-body/akkigae.png`
+- `public/assets/pets/base-body/ttoosseunyang.png`
 
 Post-processing:
 
 - Generated on a flat `#00ff00` chroma-key background.
 - Removed the chroma key locally with `remove_chroma_key.py`.
 - Saved as transparent PNG.
-- Original `public/assets/pets/akkigae.png` remains unchanged.
+- Original `public/assets/pets/*.png` files remain unchanged.
 
 Quality notes:
 
 - Face feature removal is much cleaner than manual erasing.
-- The lower mouth artifact from the previous SVG overlay was fixed by simplifying the Akkigae mouth paths in `public/assets/pet-parts/akkigae/*.svg`.
+- The lower mouth artifact from the previous Akkigae SVG overlay was fixed by simplifying the mouth paths in `public/assets/pet-parts/akkigae/*.svg`.
+- Expression overlays are nudged slightly up-left in `src/components/PetStage.tsx` because the first SVG parts sat a little down-right on the regenerated base-body assets.
 - This is still an MVP asset. Final production should generate or draw `base-body`, `neutral`, `happy`, `sad`, and `wink` as one coordinated style set.
