@@ -1,13 +1,11 @@
 import {
   initialCategoryBudgets,
-  initialCommunityPosts,
-  initialLedgerEntries,
   ledgerCategories,
   petPresets,
 } from "../mocks/appData";
 import type { PersistedAppState, UserPet } from "../types/app";
 
-const STORAGE_KEY = "nyangbi-hajimalgae:v1";
+const STORAGE_KEY = "nyangbi-hajimalgae:v2";
 
 function createDefaultPet(): UserPet {
   const preset = petPresets[0];
@@ -26,13 +24,13 @@ function createDefaultPet(): UserPet {
 export const defaultAppState: PersistedAppState = {
   categories: ledgerCategories,
   categoryBudgets: initialCategoryBudgets,
-  communityPosts: initialCommunityPosts,
-  coins: 2840,
-  entries: initialLedgerEntries,
-  equippedItemId: "hat",
+  communityPosts: [],
+  coins: 0,
+  entries: [],
+  equippedItemId: null,
   hasCompletedOnboarding: false,
   monthlyBudget: 1_500_000,
-  ownedItemIds: ["hat", "bag"],
+  ownedItemIds: [],
   pet: createDefaultPet(),
   rewardEvents: [],
 };
@@ -51,7 +49,7 @@ export function loadAppState(): PersistedAppState {
       ...parsed,
       categories: mergeCategories(parsed.categories),
       categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
-      communityPosts: mergeCommunityPosts(parsed.communityPosts),
+      communityPosts: normalizeCommunityPosts(parsed.communityPosts),
       pet: normalizePet(parsed.pet),
     };
   } catch {
@@ -78,17 +76,14 @@ function mergeCategories(categories: unknown): typeof ledgerCategories {
   return Array.from(byId.values());
 }
 
-function mergeCommunityPosts(posts: unknown): PersistedAppState["communityPosts"] {
-  if (!Array.isArray(posts)) return initialCommunityPosts;
+function normalizeCommunityPosts(posts: unknown): PersistedAppState["communityPosts"] {
+  if (!Array.isArray(posts)) return [];
 
-  const byId = new Map(initialCommunityPosts.map((post) => [post.id, post]));
-  posts.forEach((post) => {
-    if (post && typeof post === "object" && "id" in post && typeof post.id === "string") {
-      byId.set(post.id, post as PersistedAppState["communityPosts"][number]);
-    }
-  });
-
-  return Array.from(byId.values()).sort((a, b) => b.likes - a.likes);
+  return posts
+    .filter((post): post is PersistedAppState["communityPosts"][number] =>
+      Boolean(post && typeof post === "object" && "id" in post && typeof post.id === "string"),
+    )
+    .sort((a, b) => b.likes - a.likes);
 }
 
 function normalizePet(pet: unknown): UserPet {
@@ -97,9 +92,11 @@ function normalizePet(pet: unknown): UserPet {
 
   const preset = petPresets.find((item) => item.id === pet.id);
   if (preset) {
+    const persistedName = "name" in pet && typeof pet.name === "string" ? pet.name.trim().slice(0, 12) : "";
+
     return {
       id: preset.id,
-      name: preset.name,
+      name: persistedName || preset.name,
       trait: preset.trait,
       emoji: preset.emoji,
       imageUrl: preset.imageUrl,

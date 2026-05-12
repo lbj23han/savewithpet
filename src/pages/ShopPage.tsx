@@ -75,44 +75,50 @@ export function ShopPage({
           <button onClick={onShareOutfit}>자랑하기</button>
         </CommunityHeader>
         <PostList>
-          {posts.slice(0, 3).map((post) => (
-            <PostCard key={post.id}>
-              <PostPet>
-                <span>
-                  {post.petImageUrl ? <PostPetImage src={post.petImageUrl} alt={post.petName} /> : post.petEmoji}
-                </span>
-                <strong>{post.petName}</strong>
-              </PostPet>
-              <PostBody>
-                <strong>{post.authorName}</strong>
-                <p>{post.caption}</p>
-                <PostActions>
-                  <button onClick={() => onPostLike(post.id)}>
-                    <Heart size={15} /> {post.likes}
-                  </button>
+          {posts.length === 0 ? (
+            <CommunityEmpty>
+              아직 자랑글이 없어요. 첫 코디를 저장해보세요.
+            </CommunityEmpty>
+          ) : (
+            posts.slice(0, 3).map((post) => (
+              <PostCard key={post.id}>
+                <PostPet>
                   <span>
-                    <MessageCircle size={15} /> {post.comments.length}
+                    {post.petImageUrl ? <PostPetImage src={post.petImageUrl} alt={post.petName} /> : post.petEmoji}
                   </span>
-                </PostActions>
-                <CommentInputRow>
-                  <input
-                    placeholder="짧게 응원하기"
-                    value={commentDrafts[post.id] ?? ""}
-                    onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
-                  />
-                  <button
-                    aria-label="댓글 등록"
-                    onClick={() => {
-                      onPostComment(post.id, commentDrafts[post.id] ?? "");
-                      setCommentDrafts((prev) => ({ ...prev, [post.id]: "" }));
-                    }}
-                  >
-                    <Send size={15} />
-                  </button>
-                </CommentInputRow>
-              </PostBody>
-            </PostCard>
-          ))}
+                  <strong>{post.petName}</strong>
+                </PostPet>
+                <PostBody>
+                  <strong>{post.authorName}</strong>
+                  <p>{post.caption}</p>
+                  <PostActions>
+                    <button onClick={() => onPostLike(post.id)}>
+                      <Heart size={15} /> {post.likes}
+                    </button>
+                    <span>
+                      <MessageCircle size={15} /> {post.comments.length}
+                    </span>
+                  </PostActions>
+                  <CommentInputRow>
+                    <input
+                      placeholder="짧게 응원하기"
+                      value={commentDrafts[post.id] ?? ""}
+                      onChange={(event) => setCommentDrafts((prev) => ({ ...prev, [post.id]: event.target.value }))}
+                    />
+                    <button
+                      aria-label="댓글 등록"
+                      onClick={() => {
+                        onPostComment(post.id, commentDrafts[post.id] ?? "");
+                        setCommentDrafts((prev) => ({ ...prev, [post.id]: "" }));
+                      }}
+                    >
+                      <Send size={15} />
+                    </button>
+                  </CommentInputRow>
+                </PostBody>
+              </PostCard>
+            ))
+          )}
         </PostList>
       </CommunityPanel>
     </Page>
@@ -325,6 +331,16 @@ const CommunityHeader = styled.div`
 const PostList = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const CommunityEmpty = styled.div`
+  padding: ${({ theme }) => theme.spacing.xl};
+  color: ${({ theme }) => theme.colors.muted};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
 `;
 
 const PostCard = styled.article`

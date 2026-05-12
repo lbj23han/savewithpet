@@ -1,4 +1,4 @@
-import type { Category, CommunityPost, LedgerEntry, PetPreset, PetStatus, ShopItem, SummaryMetric } from "../types/app";
+import type { Category, PetPreset, ShopItem } from "../types/app";
 
 export const petPresets: PetPreset[] = [
   {
@@ -28,18 +28,6 @@ export const petPresets: PetPreset[] = [
   },
 ];
 
-export const petStatuses: PetStatus[] = [
-  { label: "포만도", value: 85, tone: "orange" },
-  { label: "기분", value: 60, tone: "purple" },
-  { label: "성장", value: 42, tone: "green" },
-];
-
-export const todaySummary: SummaryMetric[] = [
-  { label: "지출", value: "12,400", tone: "red" },
-  { label: "저축", value: "5,000", tone: "green" },
-  { label: "연속기록", value: "7일", tone: "purple" },
-];
-
 export const ledgerCategories: Category[] = [
   { id: "food", label: "식비", icon: "🍽️", selected: true },
   { id: "cafe", label: "카페", icon: "☕" },
@@ -62,19 +50,6 @@ export const ledgerCategories: Category[] = [
   { id: "etc", label: "기타", icon: "🧾" },
 ];
 
-export const analysisCategories = [
-  { label: "식비", value: 40, color: "#A43E12" },
-  { label: "쇼핑", value: 25, color: "#704AA7" },
-  { label: "카페", value: 20, color: "#0C8054" },
-  { label: "교통", value: 15, color: "#FF8556" },
-];
-
-export const goalProgress = [
-  { label: "생활비 절약", value: 92, color: "#5BC08D" },
-  { label: "취미 활동", value: 45, color: "#B995EF" },
-  { label: "자기 개발", value: 78, color: "#FF8556" },
-];
-
 export const shopItems: ShopItem[] = [
   { id: "hat", name: "신사 모자", icon: "🎩", price: 800 },
   { id: "scarf", name: "하트 목걸이", icon: "💗", price: 450 },
@@ -82,16 +57,6 @@ export const shopItems: ShopItem[] = [
   { id: "sunglasses", name: "선글라스", icon: "🕶️", price: 600, requiredLevel: 5, unlockLabel: "Lv.5 해금" },
   { id: "ribbon", name: "핑크 리본", icon: "🎀", price: 300 },
   { id: "bag", name: "모험가 배낭", icon: "🎒", price: 1200 },
-];
-
-export const initialLedgerEntries: LedgerEntry[] = [
-  { id: "entry-1", categoryId: "food", amount: 12400, memo: "점심", date: "2026-05-04", type: "expense" },
-  { id: "entry-2", categoryId: "cafe", amount: 5200, memo: "아메리카노", date: "2026-05-04", type: "expense" },
-  { id: "entry-3", categoryId: "transport", amount: 1450, memo: "지하철", date: "2026-05-03", type: "expense" },
-  { id: "entry-4", categoryId: "shopping", amount: 28000, memo: "생활용품", date: "2026-05-02", type: "expense" },
-  { id: "entry-5", categoryId: "food", amount: 16900, memo: "저녁", date: "2026-05-01", type: "expense" },
-  { id: "entry-6", categoryId: "saving", amount: 5000, memo: "절약 보상", date: "2026-05-04", type: "saving" },
-  { id: "entry-7", categoryId: "income", amount: 32000, memo: "용돈", date: "2026-05-03", type: "income" },
 ];
 
 export const initialCategoryBudgets: Record<string, number> = {
@@ -102,37 +67,3 @@ export const initialCategoryBudgets: Record<string, number> = {
   mart: 250_000,
   home: 500_000,
 };
-
-export const initialCommunityPosts: CommunityPost[] = [
-  {
-    id: "community-1",
-    authorName: "알뜰냥",
-    caption: "이번 주 카페비를 줄이고 리본을 장착했어요.",
-    comments: [
-      {
-        id: "comment-1",
-        authorName: "아끼개",
-        createdAt: "2026-05-04T09:00:00.000Z",
-        message: "코디도 기록도 깔끔해요!",
-      },
-    ],
-    createdAt: "2026-05-04T08:30:00.000Z",
-    equippedItemId: "ribbon",
-    likes: 24,
-    petEmoji: "🐱",
-    petImageUrl: "/assets/pets/ttoosseunyang.png?v=2",
-    petName: "또쓰냥",
-  },
-  {
-    id: "community-2",
-    authorName: "절약멍",
-    caption: "교통비 절약 성공. 목걸이도 잘 어울리죠?",
-    comments: [],
-    createdAt: "2026-05-03T12:10:00.000Z",
-    equippedItemId: "scarf",
-    likes: 18,
-    petEmoji: "🐶",
-    petImageUrl: "/assets/pets/akkigae.png?v=2",
-    petName: "아끼개",
-  },
-];

@@ -19,6 +19,7 @@ export type AnalysisViewModel = {
   totalExpense: number;
   budget: number;
   achievementRate: number;
+  entryCount: number;
   topCategoryLabel: string;
   categories: CategoryAnalysis[];
   donutGradient: string;
@@ -61,6 +62,7 @@ export function createAnalysisViewModel(
     totalExpense,
     budget,
     achievementRate,
+    entryCount: scopedEntries.length,
     topCategoryLabel,
     categories,
     donutGradient,

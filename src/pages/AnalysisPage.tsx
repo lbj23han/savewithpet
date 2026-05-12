@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Panel } from "../components/Panel";
 import { type AnalysisPeriod, createAnalysisViewModel } from "../domain/analysis";
 import { formatWon, getCurrentMonthPeriodLabel } from "../domain/ledger";
-import { goalProgress } from "../mocks/appData";
 import type { Category, LedgerEntry } from "../types/app";
 
 type AnalysisPageProps = {
@@ -16,6 +15,7 @@ type AnalysisPageProps = {
 export function AnalysisPage({ budget, categories, entries }: AnalysisPageProps) {
   const [period, setPeriod] = useState<AnalysisPeriod>("month");
   const analysis = createAnalysisViewModel(entries, period, categories, budget);
+  const goalProgress = createGoalProgress(analysis);
 
   return (
     <Page>
@@ -101,6 +101,18 @@ export function AnalysisPage({ budget, categories, entries }: AnalysisPageProps)
       <MessageCard>{analysis.encouragement}</MessageCard>
     </Page>
   );
+}
+
+function createGoalProgress(analysis: ReturnType<typeof createAnalysisViewModel>) {
+  const budgetKeeping = analysis.totalExpense === 0 ? 0 : Math.max(0, Math.min(100, analysis.achievementRate));
+  const recordHabit = Math.min(100, analysis.entryCount * 20);
+  const categoryBalance = analysis.categories.length === 0 ? 0 : Math.min(100, analysis.categories.length * 34);
+
+  return [
+    { label: "예산 지키기", value: budgetKeeping, color: "#5BC08D" },
+    { label: "기록 습관", value: recordHabit, color: "#B995EF" },
+    { label: "소비 파악", value: categoryBalance, color: "#E8728C" },
+  ];
 }
 
 const periodOptions: Array<{ label: string; value: AnalysisPeriod }> = [

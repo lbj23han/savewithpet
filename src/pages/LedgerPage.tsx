@@ -65,7 +65,7 @@ export function LedgerPage({
   onUpdateEntry,
 }: LedgerPageProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState("food");
-  const [amount, setAmount] = useState("12500");
+  const [amount, setAmount] = useState("0");
   const [budgetDraft, setBudgetDraft] = useState(String(budget));
   const [budgetMode, setBudgetMode] = useState<CategoryBudgetMode>("manual");
   const [categoryBudgetDrafts, setCategoryBudgetDrafts] = useState<Record<string, string>>({});
@@ -360,10 +360,10 @@ export function LedgerPage({
       </PrimaryButton>
 
       <Advice>
-        <Avatar>🐶</Avatar>
+        <Avatar>{selectedCategory?.icon ?? "🧾"}</Avatar>
         <div>
-          <strong>아끼개가 말해요</strong>
-          <p>식비 지출이 많아지면 제 털이 조금 덜 보들보들해져요!</p>
+          <strong>기록 팁</strong>
+          <p>{createLedgerAdvice(entryType, selectedCategory)}</p>
         </div>
       </Advice>
 
@@ -540,6 +540,13 @@ function getTypeLabel(type: LedgerEntryType): string {
   if (type === "saving") return "저축";
   if (type === "income") return "수입";
   return "지출";
+}
+
+function createLedgerAdvice(type: LedgerEntryType, category?: Category): string {
+  if (type === "saving") return "저축을 기록하면 성장과 코인 보상에 바로 반영돼요.";
+  if (type === "income") return "수입을 남겨두면 이번 달 흐름을 더 정확히 볼 수 있어요.";
+
+  return `${category?.label ?? "선택한 카테고리"} 지출을 기록하면 홈 요약과 분석에 바로 반영돼요.`;
 }
 
 const Page = styled.div`
