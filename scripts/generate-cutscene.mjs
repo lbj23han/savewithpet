@@ -159,6 +159,7 @@ function defaultMoodByEvent(eventType) {
 function inferSpecies(petId) {
   if (petId === "akkigae") return "dog";
   if (petId === "ttoosseunyang") return "cat";
+  if (petId === "kangchongmu") return "rabbit";
   return "unknown";
 }
 
@@ -188,7 +189,7 @@ async function updateManifest({ outputDir, petId, eventType, outputName }) {
 }
 
 function buildCutscenePrompt({ eventType, mode, mood, petId, species, traitNotes, hasMask }) {
-  const petName = petId === "akkigae" ? "아끼개" : petId === "ttoosseunyang" ? "또쓰냥" : "the pet";
+  const petName = petId === "akkigae" ? "아끼개" : petId === "ttoosseunyang" ? "또쓰냥" : petId === "kangchongmu" ? "깡총무" : "the pet";
   const eventScene = describeEvent(eventType);
   const interaction = interactionSpec(eventType, species);
   const profile = petIdentityProfile({ petId, species, traitNotes });
@@ -283,12 +284,18 @@ function petIdentityProfile({ petId, species, traitNotes }) {
             "Must preserve: round brown eyes, exact eye spacing, white rounded head, floppy pink ears, tiny dark nose, tiny simple smiling mouth, cheek blush, pink neck/chest detail, tiny round paws, soft pastel line art.",
             "The puppy mouth is small and simple. It must not become a large anime mouth, human mouth, muzzle, tongue-forward mouth, or complex line cluster.",
           ]
-        : [
-            `User-generated ${species} character from an input pet photo.`,
-            "Must preserve all distinctive identity traits visible in the source: species, breed impression, coat color, patches, markings, ear shape, eye color, muzzle length, nose color, face proportions, body proportions, tail shape, and accessory-like natural markings.",
-            "If a trait is visible in the reference, treat it as locked unless the requested edit explicitly names that exact trait.",
-            "Do not average the pet into a generic cute dog/cat. Keep asymmetry, unique markings, uncommon colors, scars, spots, stripes, socks, muzzle color, eye color, and ear shape from the reference.",
-          ];
+        : petId === "kangchongmu"
+          ? [
+              "Known preset: 깡총무, a white rabbit character.",
+              "Must preserve: long upright pink inner ears, rounded white head, tiny pink rabbit nose, tiny simple rabbit mouth, cheek blush, pink chest detail, small rounded paws, cotton tail, soft pastel line art.",
+              "The rabbit mouth is small and simple. It must not become a large anime mouth, human mouth, puppy muzzle, cat mouth, or complex line cluster.",
+            ]
+          : [
+              `User-generated ${species} character from an input pet photo.`,
+              "Must preserve all distinctive identity traits visible in the source: species, breed impression, coat color, patches, markings, ear shape, eye color, muzzle length, nose color, face proportions, body proportions, tail shape, and accessory-like natural markings.",
+              "If a trait is visible in the reference, treat it as locked unless the requested edit explicitly names that exact trait.",
+              "Do not average the pet into a generic cute dog/cat/rabbit. Keep asymmetry, unique markings, uncommon colors, scars, spots, stripes, socks, muzzle color, eye color, and ear shape from the reference.",
+            ];
 
   return [
     ...baseProfile,
@@ -357,6 +364,13 @@ function speciesProfile(species) {
     ];
   }
 
+  if (species === "rabbit") {
+    return [
+      "Rabbit-specific locks: long upright ear identity, pink inner-ear shape, tiny rabbit nose, short rabbit muzzle, cheek roundness, compact paw shape, cotton tail, and rabbit-like eye spacing.",
+      "Do not make the rabbit look like a cat, dog, bear, fox, or generic mascot.",
+    ];
+  }
+
   return [
     "Species-specific locks: preserve the input animal's species and all visible anatomical identity cues.",
     "Do not convert the animal into another species or a generic mascot.",
@@ -364,7 +378,12 @@ function speciesProfile(species) {
 }
 
 function interactionSpec(eventType, species) {
-  const catMouthLock = species === "cat" ? "Keep the cat mouth tiny and curved; do not open it." : "Keep the mouth tiny and simple unless the requested edit explicitly requires a small smile.";
+  const catMouthLock =
+    species === "cat"
+      ? "Keep the cat mouth tiny and curved; do not open it."
+      : species === "rabbit"
+        ? "Keep the rabbit mouth tiny and simple; do not open it."
+        : "Keep the mouth tiny and simple unless the requested edit explicitly requires a small smile.";
 
   const specs = {
     wink: {
@@ -457,6 +476,10 @@ function facePatchPreservationRules({ species, editRegion }) {
     rules.push("For dog characters, the puppy nose and tiny simple mouth are identity anchors and must not become a larger open mouth, human smile, or cat mouth.");
   }
 
+  if (species === "rabbit") {
+    rules.push("For rabbit characters, the tiny rabbit nose and tiny simple mouth are identity anchors and must not become a puppy muzzle, cat mouth, human smile, or larger mouth.");
+  }
+
   return rules;
 }
 
@@ -478,6 +501,10 @@ function facialSafetyRules(species) {
 
   if (species === "dog") {
     rules.push("For dogs, preserve the tiny puppy nose and simple mouth exactly; no cat mouth or human mouth.");
+  }
+
+  if (species === "rabbit") {
+    rules.push("For rabbits, preserve the tiny rabbit nose and simple mouth exactly; no puppy muzzle, cat mouth, or human mouth.");
   }
 
   return rules;

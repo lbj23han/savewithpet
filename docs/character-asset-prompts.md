@@ -49,6 +49,7 @@ The current preset base-body assets were generated with the base-body prompt abo
 
 - `public/assets/pets/base-body/akkigae.png`
 - `public/assets/pets/base-body/ttoosseunyang.png`
+- `public/assets/pets/base-body/kangchongmu.png`
 
 Post-processing:
 
@@ -62,4 +63,5 @@ Quality notes:
 - Face feature removal is much cleaner than manual erasing.
 - The lower mouth artifact from the previous Akkigae SVG overlay was fixed by simplifying the mouth paths in `public/assets/pet-parts/akkigae/*.svg`.
 - Expression overlays are nudged slightly up-left in `src/components/PetStage.tsx` because the first SVG parts sat a little down-right on the regenerated base-body assets.
+- `kangchongmu` is the first rabbit preset and should be used as the reference for future upright-ear item placement such as hats, crowns, ribbons, and wings.
 - This is still an MVP asset. Final production should generate or draw `base-body`, `neutral`, `happy`, `sad`, and `wink` as one coordinated style set.

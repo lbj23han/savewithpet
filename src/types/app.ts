@@ -8,7 +8,7 @@ export type NavItem = {
   Icon: LucideIcon;
 };
 
-export type PetSpecies = "dog" | "cat" | "custom";
+export type PetSpecies = "dog" | "cat" | "rabbit" | "custom";
 
 export type PetPreset = {
   id: string;

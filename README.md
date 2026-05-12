@@ -32,7 +32,7 @@
 
 현재는 이미지 구상안을 기준으로 로컬 MVP 기능과 화면 이동 구조를 잡아둔 상태입니다.
 
-- 온보딩: 반려캐릭터 선택, 프리셋 2종, 사진 업로드 미리보기
+- 온보딩: 반려캐릭터 선택, 프리셋 3종, 사진 업로드 미리보기
 - 홈: 캐릭터 상태, 오늘 요약, 기록 CTA
 - 장부: 카테고리 선택, 지출 금액, 메모 입력
 - 분석: 월간 소비 분석, 카테고리 비율, 목표 달성 현황
@@ -44,7 +44,7 @@
 ### Onboarding
 
 - 반려캐릭터 선택
-- 프리셋 캐릭터 2종: `아끼개`, `또쓰냥`
+- 프리셋 캐릭터 3종: `아끼개`, `또쓰냥`, `깡총무`
 - 추후 반려동물 사진 기반 캐릭터 생성 진입점
 
 ### Home
@@ -104,10 +104,11 @@ src/
 
 ## Character Assets
 
-현재 연결된 프리셋 캐릭터는 2종입니다.
+현재 연결된 프리셋 캐릭터는 3종입니다.
 
 - `아끼개`: `public/assets/pets/akkigae.png`
 - `또쓰냥`: `public/assets/pets/ttoosseunyang.png`
+- `깡총무`: `public/assets/pets/kangchongmu.png`
 
 캐릭터 표시는 `src/components/PetStage.tsx`를 기준으로 통일합니다.
 
@@ -282,6 +283,7 @@ AI에 맡기면 위험한 영역:
 ```bash
 npm run cutscene -- --pet ttoosseunyang --event wink --print-prompt
 npm run cutscene -- --pet akkigae --event sad_eyes --species dog --print-prompt
+npm run cutscene -- --pet kangchongmu --event wink --species rabbit --print-prompt
 npm run cutscene -- --pet custom-pet --image public/assets/pets/custom.png --species cat --traits "black tuxedo coat, green eyes, white socks" --event one_hand_wave --print-prompt
 ```
 
@@ -291,7 +293,7 @@ npm run cutscene -- --pet custom-pet --image public/assets/pets/custom.png --spe
 - `--image`: 기준 PNG 경로. 사용자 사진 기반 캐릭터 실험 시 사용
 - `--event`: `wink`, `sad_eyes`, `one_hand_wave`, `record_complete`, `budget_over`, `level_up`, `feed_treat`, `daily_checkin`, `outfit_share`
 - `--mode`: `variant` 또는 `scene`. 기본은 작은 상호작용이면 `variant`
-- `--species`: `dog`, `cat`, `unknown`
+- `--species`: `dog`, `cat`, `rabbit`, `unknown`
 - `--traits`: 사진에서 추출한 털색, 무늬, 눈색, 귀 모양, 꼬리 모양 등 보존할 특징
 - `--mask`: 편집 가능 영역을 제한하는 마스크
 - `--print-prompt`: 이미지를 생성하지 않고 최종 프롬프트만 출력
@@ -563,7 +565,7 @@ main
 ### Next Priority
 
 - [ ] 실기기/브라우저에서 전체 플로우 QA: 온보딩, 기록, 수정, 삭제, 분석, 구매, 착용, 초기화
-- [x] 프리셋 캐릭터 2종 이미지 연결
+- [x] 프리셋 캐릭터 3종 이미지 연결
 - [x] 캐릭터 표시 공통 컴포넌트 정리
 - [x] 옷장 장착/보상 획득 캐릭터 반응 애니메이션 추가
 - [x] 소비 패턴별 캐릭터 코멘트 규칙 작성
@@ -624,7 +626,7 @@ main
 
 ### Pet Growth / Character
 
-- [x] 프리셋 캐릭터 `아끼개`, `또쓰냥` 모델링
+- [x] 프리셋 캐릭터 `아끼개`, `또쓰냥`, `깡총무` 모델링
 - [x] 프리셋 캐릭터 PNG asset 연결
 - [x] 프리셋 캐릭터 배경 체크무늬 제거 및 투명 PNG 변환
 - [x] 기존 저장 데이터의 구 프리셋을 기본 캐릭터로 보정

@@ -2,9 +2,9 @@
   <path d="M489 395C504 383 523 384 533 397" stroke="#d2a28f" stroke-width="17" stroke-linecap="round" opacity="0.95"/>
   <path d="M742 396C757 383 777 384 787 398" stroke="#d2a28f" stroke-width="17" stroke-linecap="round" opacity="0.95"/>
   <path d="M456 511C481 484 527 482 558 509" stroke="#5d342c" stroke-width="21" stroke-linecap="round"/>
-  <ellipse cx="774" cy="504" rx="54" ry="72" fill="#5a2d25"/>
-  <ellipse cx="774" cy="516" rx="33" ry="48" fill="#3d1e1a" opacity="0.36"/>
-  <circle cx="787" cy="463" r="17" fill="#fff"/>
+  <ellipse cx="774" cy="504" rx="46" ry="61" fill="#5a2d25"/>
+  <ellipse cx="774" cy="516" rx="28" ry="41" fill="#3d1e1a" opacity="0.36"/>
+  <circle cx="785" cy="469" r="14" fill="#fff"/>
   <ellipse cx="638" cy="543" rx="42" ry="25" fill="#5a3028"/>
   <path d="M638 563V590" stroke="#5a3028" stroke-width="11" stroke-linecap="round"/>
   <path d="M637 592C615 621 584 616 570 590" stroke="#5a3028" stroke-width="11" stroke-linecap="round"/>

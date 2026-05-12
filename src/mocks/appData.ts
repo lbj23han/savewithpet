@@ -18,6 +18,14 @@ export const petPresets: PetPreset[] = [
     imageUrl: "/assets/pets/ttoosseunyang.png?v=2",
     species: "cat",
   },
+  {
+    id: "kangchongmu",
+    name: "깡총무",
+    trait: "총무처럼 깡총깡총 예산을 챙겨주는 기록 친구예요",
+    emoji: "🐰",
+    imageUrl: "/assets/pets/kangchongmu.png?v=1",
+    species: "rabbit",
+  },
 ];
 
 export const petStatuses: PetStatus[] = [

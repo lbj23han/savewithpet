@@ -281,13 +281,13 @@ function renderItemVisual(itemId: string, icon: string) {
 }
 
 function getExpressionPartUrl(petId: string, expression: PetExpression) {
-  if (!["akkigae", "ttoosseunyang"].includes(petId)) return null;
+  if (!["akkigae", "ttoosseunyang", "kangchongmu"].includes(petId)) return null;
 
   return `/assets/pet-parts/${petId}/${expression}.svg`;
 }
 
 function getBaseBodyUrl(petId: string) {
-  if (!["akkigae", "ttoosseunyang"].includes(petId)) return null;
+  if (!["akkigae", "ttoosseunyang", "kangchongmu"].includes(petId)) return null;
 
   return `/assets/pets/base-body/${petId}.png`;
 }
