@@ -3,6 +3,7 @@ import styled, { css, keyframes } from "styled-components";
 import { PetItemArt } from "./PetItemArt";
 import { getBaseCharacterUrl, getExpressionPartUrl } from "../domain/petCharacterSet";
 import { isBackPetItem } from "../domain/petItems";
+import { getPetWearableAnchors } from "../domain/petWearableAnchors";
 import type { PetAnimation, PetExpression, ShopItemViewModel, UserPet } from "../types/app";
 
 type PetStageProps = {
@@ -17,20 +18,21 @@ export function PetStage({ animation = "idle", equippedItem, expression = "neutr
   const baseBodyUrl = getBaseCharacterUrl(pet.id);
   const imageUrl = baseBodyUrl ?? pet.imageUrl;
   const expressionUrl = baseBodyUrl ? getExpressionPartUrl(pet.id, expression) : null;
+  const anchors = getPetWearableAnchors(pet);
 
   return (
     <Stage $size={size}>
       <Character $animation={animation} $size={size}>
         {equippedItem && isBackPetItem(equippedItem.id) && (
           <BackItemLayer aria-label={`착용 아이템 ${equippedItem.name}`}>
-            <PetItemArt itemId={equippedItem.id} title={equippedItem.name} variant="stage" />
+            <PetItemArt anchors={anchors} itemId={equippedItem.id} title={equippedItem.name} variant="stage" />
           </BackItemLayer>
         )}
         {imageUrl ? <PetImage src={imageUrl} alt={pet.name} /> : <PetEmoji $size={size}>{pet.emoji}</PetEmoji>}
         {expressionUrl && <ExpressionLayer src={expressionUrl} alt="" aria-hidden="true" />}
         {equippedItem && !isBackPetItem(equippedItem.id) && (
           <ItemLayer aria-label={`착용 아이템 ${equippedItem.name}`}>
-            <PetItemArt itemId={equippedItem.id} title={equippedItem.name} variant="stage" />
+            <PetItemArt anchors={anchors} itemId={equippedItem.id} title={equippedItem.name} variant="stage" />
           </ItemLayer>
         )}
       </Character>

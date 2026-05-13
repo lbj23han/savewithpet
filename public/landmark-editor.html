@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>착용 랜드마크 에디터</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #fdf4f7;
+        color: #29272a;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 16px 24px 12px;
+        background: #fff;
+        border-bottom: 1px solid #f0d0dc;
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      header h1 { font-size: 20px; }
+      header p { font-size: 13px; color: #80767b; }
+
+      .workspace {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 220px 1fr 280px;
+        overflow: hidden;
+      }
+
+      /* ── Left panel ── */
+      .panel {
+        background: #fff;
+        border-right: 1px solid #f0d0dc;
+        overflow-y: auto;
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .panel-section h3 {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #a08090;
+        margin-bottom: 8px;
+      }
+
+      .btn-group { display: flex; flex-direction: column; gap: 6px; }
+
+      .btn {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #ecd6e0;
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        text-align: left;
+        color: #4a3840;
+        transition: all 120ms;
+      }
+
+      .btn:hover { background: #fdf0f4; }
+      .btn.active { background: #df6b8d; color: #fff; border-color: #df6b8d; }
+
+      .landmark-btn { display: flex; align-items: center; gap: 8px; }
+      .landmark-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+      /* ── Stage ── */
+      .stage-area {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 40%, #fff4f7, #fdf4f7 70%);
+        padding: 24px;
+      }
+
+      .stage-wrap {
+        position: relative;
+        width: 500px;
+        height: 500px;
+      }
+
+      #char-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      #overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+        overflow: visible;
+      }
+
+      .landmark-circle {
+        cursor: grab;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+      }
+
+      .landmark-circle:active { cursor: grabbing; }
+
+      .landmark-label {
+        font-size: 36px;
+        font-weight: 700;
+        font-family: system-ui, sans-serif;
+        fill: white;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .item-preview-group { opacity: 0.85; pointer-events: none; }
+
+      .instructions {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.65);
+        color: #fff;
+        font-size: 13px;
+        padding: 7px 14px;
+        border-radius: 20px;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      /* ── Right panel ── */
+      .right-panel {
+        background: #fff;
+        border-left: 1px solid #f0d0dc;
+        overflow-y: auto;
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .right-panel h3 {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #a08090;
+        margin-bottom: 6px;
+      }
+
+      .coord-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .coord-table td { padding: 4px 6px; border-bottom: 1px solid #f4e4ec; }
+      .coord-table td:first-child { color: #80767b; width: 100px; }
+      .coord-table td:last-child { font-family: monospace; font-size: 12px; color: #3a2030; }
+
+      #json-output {
+        background: #1a1520;
+        color: #e8d8ef;
+        border-radius: 12px;
+        padding: 14px;
+        font-family: "Fira Code", "Consolas", monospace;
+        font-size: 11px;
+        line-height: 1.6;
+        white-space: pre;
+        overflow-x: auto;
+        flex: 1;
+        min-height: 200px;
+      }
+
+      #copy-btn {
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        background: #df6b8d;
+        color: #fff;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      #copy-btn:hover { background: #ca5a7c; }
+
+      .tip {
+        font-size: 12px;
+        color: #80767b;
+        line-height: 1.5;
+        padding: 10px;
+        background: #fff8fa;
+        border: 1px solid #f0d8e4;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>착용 랜드마크 에디터</h1>
+      <p>캐릭터 위에 클릭/드래그로 앵커 점을 맞추고 JSON을 복사하세요</p>
+    </header>
+
+    <div class="workspace">
+      <!-- Left: character + landmark mode -->
+      <div class="panel">
+        <div class="panel-section">
+          <h3>캐릭터</h3>
+          <div class="btn-group" id="char-btns">
+            <button class="btn active" data-pet="akkigae">아끼개</button>
+            <button class="btn" data-pet="ttoosseunyang">또쓰냥</button>
+            <button class="btn" data-pet="kangchongmu">깡총무</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>마커 선택 (클릭으로 위치 지정)</h3>
+          <div class="btn-group" id="mode-btns">
+            <button class="btn landmark-btn active" data-mode="eyes-left">
+              <span class="landmark-dot" style="background:#3b82f6"></span>왼쪽 눈
+            </button>
+            <button class="btn landmark-btn" data-mode="eyes-right">
+              <span class="landmark-dot" style="background:#60a5fa"></span>오른쪽 눈
+            </button>
+            <button class="btn landmark-btn" data-mode="head">
+              <span class="landmark-dot" style="background:#10b981"></span>머리 꼭대기
+            </button>
+            <button class="btn landmark-btn" data-mode="chest">
+              <span class="landmark-dot" style="background:#f59e0b"></span>가슴 중앙
+            </button>
+            <button class="btn landmark-btn" data-mode="back">
+              <span class="landmark-dot" style="background:#f97316"></span>등 중앙
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>아이템 미리보기</h3>
+          <div class="btn-group" id="item-btns">
+            <button class="btn active" data-item="none">없음</button>
+            <button class="btn" data-item="sunglasses">선글라스</button>
+            <button class="btn" data-item="hat">모자</button>
+            <button class="btn" data-item="crown">왕관</button>
+            <button class="btn" data-item="ribbon">리본</button>
+            <button class="btn" data-item="scarf">목걸이</button>
+            <button class="btn" data-item="wings">날개</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: stage -->
+      <div class="stage-area">
+        <div class="stage-wrap">
+          <img id="char-img" src="/assets/pets/base-body/akkigae.png" alt="캐릭터" />
+          <svg id="overlay" viewBox="0 0 1254 1254" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="instructions" id="instructions">왼쪽 눈 중심을 클릭하세요</div>
+        </div>
+      </div>
+
+      <!-- Right: coords + JSON -->
+      <div class="right-panel">
+        <div>
+          <h3>현재 좌표 (SVG 1254×1254 기준)</h3>
+          <table class="coord-table" id="coord-table">
+            <tr><td>왼쪽 눈</td><td id="c-eyes-left">—</td></tr>
+            <tr><td>오른쪽 눈</td><td id="c-eyes-right">—</td></tr>
+            <tr><td>눈 너비</td><td id="c-eyes-width">—</td></tr>
+            <tr><td>눈 각도</td><td id="c-eyes-angle">—</td></tr>
+            <tr><td>머리 꼭대기</td><td id="c-head">—</td></tr>
+            <tr><td>가슴 중앙</td><td id="c-chest">—</td></tr>
+            <tr><td>등 중앙</td><td id="c-back">—</td></tr>
+          </table>
+        </div>
+
+        <div class="tip">
+          💡 선글라스는 <strong>왼쪽 눈·오른쪽 눈</strong>만 정확히 찍으면 자동으로 회전/스케일됩니다. 모자/왕관은 <strong>머리 꼭대기</strong> 기준입니다.
+        </div>
+
+        <div>
+          <h3>생성된 JSON (petWearableAnchors.ts에 붙여넣기)</h3>
+          <pre id="json-output">// 마커를 찍으면 자동 생성됩니다</pre>
+          <button id="copy-btn" onclick="copyJson()">JSON 복사</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ─── state ────────────────────────────────────────────────────────────
+      const STAGE = 1254;
+
+      const DEFAULTS = {
+        akkigae: {
+          back:  { x: 627, y: 736, width: 610 },
+          chest: { x: 638, y: 770, width: 145 },
+          eyes:  { x: 647, y: 468, width: 290, left: { x: 557, y: 468 }, right: { x: 737, y: 468 } },
+          head:  { x: 627, y: 356, width: 292 },
+        },
+        ttoosseunyang: {
+          back:  { x: 620, y: 720, width: 590 },
+          chest: { x: 628, y: 758, width: 145 },
+          eyes:  { x: 626, y: 505, width: 235, left: { x: 553, y: 505 }, right: { x: 699, y: 505 } },
+          head:  { x: 620, y: 350, width: 286 },
+        },
+        kangchongmu: {
+          back:  { x: 627, y: 744, width: 610 },
+          chest: { x: 638, y: 785, width: 150 },
+          eyes:  { x: 647, y: 533, width: 220, left: { x: 579, y: 533 }, right: { x: 715, y: 533 } },
+          head:  { x: 627, y: 372, width: 300 },
+        },
+      };
+
+      let currentPet = 'akkigae';
+      let currentMode = 'eyes-left';
+      let currentItem = 'none';
+
+      // deep-copy defaults into live state
+      const landmarks = {};
+      for (const [k, v] of Object.entries(DEFAULTS)) {
+        landmarks[k] = JSON.parse(JSON.stringify(v));
+      }
+
+      // ─── SVG item paths ────────────────────────────────────────────────────
+      const ITEM_SVG = {
+        sunglasses: `
+          <path d="M482 515C526 498 584 503 620 523L610 571C601 609 548 622 506 602C470 585 458 544 482 515Z" fill="#28252d"/>
+          <path d="M674 523C710 503 768 498 812 515C836 544 824 585 788 602C746 622 693 609 684 571L674 523Z" fill="#28252d"/>
+          <path d="M612 535C630 525 654 525 672 535" stroke="#28252d" stroke-linecap="round" stroke-width="18"/>
+          <path d="M493 517C528 508 574 511 604 526" stroke="#6f6873" stroke-linecap="round" stroke-width="9" opacity="0.5"/>
+          <path d="M690 526C720 511 766 508 801 517" stroke="#6f6873" stroke-linecap="round" stroke-width="9" opacity="0.5"/>
+          <path d="M511 531C539 520 570 522 593 533" stroke="#ffffff" stroke-linecap="round" stroke-width="8" opacity="0.2"/>`,
+        hat: `
+          <g transform="translate(0 -20) rotate(-4 627 322)">
+            <ellipse cx="632" cy="390" rx="226" ry="42" fill="#3a3134" opacity="0.22"/>
+            <path d="M475 283C492 216 538 176 622 176C707 176 756 218 776 283L795 364H454L475 283Z" fill="#4b4046"/>
+            <path d="M452 338C514 320 735 320 800 338C830 346 837 385 807 400C738 434 518 434 447 400C417 386 423 346 452 338Z" fill="#3a3134"/>
+            <path d="M484 335H763L753 376H493L484 335Z" fill="#ef8aa1"/>
+          </g>`,
+        crown: `
+          <g transform="translate(0 -28) rotate(-5 632 308)">
+            <path d="M438 396L480 225L580 352L632 197L688 352L784 225L829 396H438Z" fill="#f5b83b"/>
+            <path d="M466 366H801L787 432H480L466 366Z" fill="#df8f24"/>
+            <path d="M480 225L580 352L632 197L688 352L784 225L800 289C716 326 549 326 464 289L480 225Z" fill="#ffd25e"/>
+            <circle cx="480" cy="224" r="30" fill="#ffcf57"/>
+            <circle cx="632" cy="197" r="32" fill="#ffcf57"/>
+            <circle cx="784" cy="224" r="30" fill="#ffcf57"/>
+          </g>`,
+        ribbon: `
+          <g transform="translate(120 -18) rotate(17 746 360)">
+            <path d="M657 369C603 326 540 306 494 330C459 349 461 407 498 424C543 445 604 419 657 382V369Z" fill="#ef7094"/>
+            <path d="M694 369C748 326 811 306 857 330C892 349 890 407 853 424C808 445 747 419 694 382V369Z" fill="#ef7094"/>
+            <rect x="638" y="339" width="75" height="75" rx="22" fill="#d94e7c"/>
+          </g>`,
+        scarf: `
+          <g transform="translate(0 24)">
+            <ellipse cx="638" cy="760" rx="54" ry="18" fill="#8d4a55" opacity="0.13"/>
+            <path d="M638 709C617 688 582 705 582 734C582 762 610 779 638 806C667 779 695 762 695 734C695 705 659 688 638 709Z" fill="#f25f88"/>
+            <circle cx="638" cy="703" r="12" fill="#cf4e72"/>
+            <path d="M638 691V666" stroke="#cf4e72" stroke-linecap="round" stroke-width="10"/>
+          </g>`,
+        wings: `
+          <g opacity="0.82">
+            <path d="M292 420C178 444 93 521 78 626C64 725 130 797 237 785C310 777 366 728 409 658C362 648 324 617 302 573C281 531 277 476 292 420Z" fill="#f6fbff"/>
+            <path d="M962 420C1076 444 1161 521 1176 626C1190 725 1124 797 1017 785C944 777 888 728 845 658C892 648 930 617 952 573C973 531 977 476 962 420Z" fill="#f6fbff"/>
+            <path d="M128 632C215 634 315 600 386 536" stroke="#c9e2f1" stroke-linecap="round" stroke-width="26" opacity="0.78"/>
+            <path d="M154 716C240 704 331 656 404 590" stroke="#c9e2f1" stroke-linecap="round" stroke-width="22" opacity="0.72"/>
+            <path d="M1126 632C1039 634 939 600 868 536" stroke="#c9e2f1" stroke-linecap="round" stroke-width="26" opacity="0.78"/>
+            <path d="M1100 716C1014 704 923 656 850 590" stroke="#c9e2f1" stroke-linecap="round" stroke-width="22" opacity="0.72"/>
+          </g>`,
+      };
+
+      // ─── item placement params ─────────────────────────────────────────────
+      const ITEM_PLACEMENTS = {
+        crown:  { anchor: 'head',  fitWidth: 272, offset: {x:0, y:-24}, ref: {x:633,y:397}, refWidth: 391 },
+        hat:    { anchor: 'head',  fitWidth: 292, offset: {x:0, y:-22}, ref: {x:632,y:390}, refWidth: 360 },
+        ribbon: { anchor: 'head',  fitWidth: 148, offset: {x:108,y:34}, ref: {x:676,y:376}, refWidth: 360 },
+        scarf:  { anchor: 'chest', fitWidth: 82,  offset: {x:0, y:0},   ref: {x:638,y:744}, refWidth: 113 },
+        wings:  { anchor: 'back',  fitWidth: 560, offset: {x:0, y:22},  ref: {x:627,y:700}, refWidth: 1100 },
+      };
+
+      // Sunglasses: lens center positions in SVG space
+      const SG = { lx: 530, ly: 560, rx: 764, ry: 560, mx: 647, my: 560, dist: 234 };
+
+      function computeTransform(itemId, anchors) {
+        if (itemId === 'sunglasses') {
+          const eyes = anchors.eyes;
+          const lx = eyes.left?.x ?? eyes.x - eyes.width * 0.31;
+          const ly = eyes.left?.y ?? eyes.y;
+          const rx = eyes.right?.x ?? eyes.x + eyes.width * 0.31;
+          const ry = eyes.right?.y ?? eyes.y;
+          const mx = (lx + rx) / 2;
+          const my = (ly + ry) / 2;
+          const dist = Math.sqrt((rx-lx)**2 + (ry-ly)**2);
+          const s = dist / SG.dist;
+          const angle = Math.atan2(ry-ly, rx-lx) * 180 / Math.PI;
+          return `translate(${mx} ${my}) rotate(${angle}) scale(${s.toFixed(4)}) translate(${-SG.mx} ${-SG.my})`;
+        }
+
+        const p = ITEM_PLACEMENTS[itemId];
+        if (!p) return '';
+        const target = anchors[p.anchor];
+        const fittedScale = p.fitWidth / p.refWidth;
+        const anchorScale = (target.width ?? p.fitWidth) / p.fitWidth;
+        const scale = anchorScale * fittedScale;
+        const x = target.x + p.offset.x;
+        const y = target.y + p.offset.y;
+        return `translate(${x} ${y}) scale(${scale.toFixed(4)}) translate(${-p.ref.x} ${-p.ref.y})`;
+      }
+
+      // ─── DOM refs ──────────────────────────────────────────────────────────
+      const overlay = document.getElementById('overlay');
+      const charImg = document.getElementById('char-img');
+      const instructions = document.getElementById('instructions');
+
+      const LANDMARK_COLORS = {
+        'eyes-left':  '#3b82f6',
+        'eyes-right': '#60a5fa',
+        'head':       '#10b981',
+        'chest':      '#f59e0b',
+        'back':       '#f97316',
+      };
+
+      const LANDMARK_LABELS = {
+        'eyes-left':  '왼눈',
+        'eyes-right': '오른눈',
+        'head':       '머리',
+        'chest':      '가슴',
+        'back':       '등',
+      };
+
+      const INSTRUCTION_TEXT = {
+        'eyes-left':  '왼쪽 눈(동공) 중심을 클릭하세요',
+        'eyes-right': '오른쪽 눈(동공) 중심을 클릭하세요',
+        'head':       '머리 꼭대기 중심을 클릭하세요',
+        'chest':      '가슴/목 아랫부분 중심을 클릭하세요',
+        'back':       '등 중앙을 클릭하세요',
+      };
+
+      // ─── render ────────────────────────────────────────────────────────────
+      function render() {
+        overlay.innerHTML = '';
+        const anchors = landmarks[currentPet];
+
+        // 1. item preview
+        if (currentItem !== 'none' && ITEM_SVG[currentItem]) {
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('class', 'item-preview-group');
+          const tf = computeTransform(currentItem, anchors);
+          if (tf) g.setAttribute('transform', tf);
+          g.innerHTML = ITEM_SVG[currentItem];
+          overlay.appendChild(g);
+        }
+
+        // 2. landmark dots
+        const MODES = ['eyes-left', 'eyes-right', 'head', 'chest', 'back'];
+        for (const mode of MODES) {
+          const pos = getLandmarkPos(anchors, mode);
+          if (!pos) continue;
+
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('class', 'landmark-circle');
+          g.dataset.mode = mode;
+
+          const outerR = mode === currentMode ? 26 : 20;
+
+          // outer ring
+          const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          ring.setAttribute('cx', pos.x);
+          ring.setAttribute('cy', pos.y);
+          ring.setAttribute('r', outerR + 6);
+          ring.setAttribute('fill', 'none');
+          ring.setAttribute('stroke', LANDMARK_COLORS[mode]);
+          ring.setAttribute('stroke-width', '4');
+          ring.setAttribute('opacity', mode === currentMode ? '0.9' : '0.5');
+          g.appendChild(ring);
+
+          // fill dot
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('cx', pos.x);
+          dot.setAttribute('cy', pos.y);
+          dot.setAttribute('r', outerR);
+          dot.setAttribute('fill', LANDMARK_COLORS[mode]);
+          dot.setAttribute('opacity', mode === currentMode ? '1' : '0.75');
+          g.appendChild(dot);
+
+          // crosshair lines
+          const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          hLine.setAttribute('x1', pos.x - outerR); hLine.setAttribute('y1', pos.y);
+          hLine.setAttribute('x2', pos.x + outerR); hLine.setAttribute('y2', pos.y);
+          hLine.setAttribute('stroke', 'white'); hLine.setAttribute('stroke-width', '3');
+          hLine.setAttribute('opacity', '0.8');
+          g.appendChild(hLine);
+
+          const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          vLine.setAttribute('x1', pos.x); vLine.setAttribute('y1', pos.y - outerR);
+          vLine.setAttribute('x2', pos.x); vLine.setAttribute('y2', pos.y + outerR);
+          vLine.setAttribute('stroke', 'white'); vLine.setAttribute('stroke-width', '3');
+          vLine.setAttribute('opacity', '0.8');
+          g.appendChild(vLine);
+
+          makeDraggable(g, mode);
+          overlay.appendChild(g);
+        }
+
+        // 3. eye line (shows tilt)
+        const eyeLeft = getLandmarkPos(anchors, 'eyes-left');
+        const eyeRight = getLandmarkPos(anchors, 'eyes-right');
+        if (eyeLeft && eyeRight) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', eyeLeft.x); line.setAttribute('y1', eyeLeft.y);
+          line.setAttribute('x2', eyeRight.x); line.setAttribute('y2', eyeRight.y);
+          line.setAttribute('stroke', '#3b82f6');
+          line.setAttribute('stroke-width', '4');
+          line.setAttribute('stroke-dasharray', '16 8');
+          line.setAttribute('opacity', '0.5');
+          line.setAttribute('pointer-events', 'none');
+          overlay.insertBefore(line, overlay.firstChild);
+        }
+
+        updateCoordTable();
+        updateJson();
+      }
+
+      function getLandmarkPos(anchors, mode) {
+        switch (mode) {
+          case 'eyes-left':  return anchors.eyes.left  ?? null;
+          case 'eyes-right': return anchors.eyes.right ?? null;
+          case 'head':       return { x: anchors.head.x,  y: anchors.head.y };
+          case 'chest':      return { x: anchors.chest.x, y: anchors.chest.y };
+          case 'back':       return { x: anchors.back.x,  y: anchors.back.y };
+        }
+        return null;
+      }
+
+      function setLandmarkPos(pet, mode, svgX, svgY) {
+        const a = landmarks[pet];
+        const x = Math.round(svgX);
+        const y = Math.round(svgY);
+        switch (mode) {
+          case 'eyes-left':
+            if (!a.eyes.left) a.eyes.left = { x, y };
+            else { a.eyes.left.x = x; a.eyes.left.y = y; }
+            updateEyesCenter(a);
+            break;
+          case 'eyes-right':
+            if (!a.eyes.right) a.eyes.right = { x, y };
+            else { a.eyes.right.x = x; a.eyes.right.y = y; }
+            updateEyesCenter(a);
+            break;
+          case 'head':  a.head.x = x;  a.head.y = y;  break;
+          case 'chest': a.chest.x = x; a.chest.y = y; break;
+          case 'back':  a.back.x = x;  a.back.y = y;  break;
+        }
+      }
+
+      function updateEyesCenter(a) {
+        if (!a.eyes.left || !a.eyes.right) return;
+        a.eyes.x = Math.round((a.eyes.left.x + a.eyes.right.x) / 2);
+        a.eyes.y = Math.round((a.eyes.left.y + a.eyes.right.y) / 2);
+        const dx = a.eyes.right.x - a.eyes.left.x;
+        const dy = a.eyes.right.y - a.eyes.left.y;
+        a.eyes.width = Math.round(Math.sqrt(dx*dx + dy*dy));
+      }
+
+      // ─── coordinate table ──────────────────────────────────────────────────
+      function updateCoordTable() {
+        const a = landmarks[currentPet];
+        const fmtPt = (p) => p ? `(${p.x}, ${p.y})` : '—';
+
+        document.getElementById('c-eyes-left').textContent  = fmtPt(a.eyes.left);
+        document.getElementById('c-eyes-right').textContent = fmtPt(a.eyes.right);
+        document.getElementById('c-eyes-width').textContent = `${a.eyes.width} px`;
+        document.getElementById('c-head').textContent   = `(${a.head.x}, ${a.head.y})`;
+        document.getElementById('c-chest').textContent  = `(${a.chest.x}, ${a.chest.y})`;
+        document.getElementById('c-back').textContent   = `(${a.back.x}, ${a.back.y})`;
+
+        if (a.eyes.left && a.eyes.right) {
+          const angle = Math.atan2(a.eyes.right.y - a.eyes.left.y, a.eyes.right.x - a.eyes.left.x) * 180 / Math.PI;
+          document.getElementById('c-eyes-angle').textContent = `${angle.toFixed(1)}°`;
+        } else {
+          document.getElementById('c-eyes-angle').textContent = '—';
+        }
+      }
+
+      // ─── JSON output ───────────────────────────────────────────────────────
+      function updateJson() {
+        const a = landmarks[currentPet];
+        const lines = [
+          `  ${currentPet}: {`,
+          `    back:  { x: ${a.back.x}, y: ${a.back.y}, width: ${a.back.width ?? 610} },`,
+          `    chest: { x: ${a.chest.x}, y: ${a.chest.y}, width: ${a.chest.width ?? 145} },`,
+          `    eyes: {`,
+          `      x: ${a.eyes.x}, y: ${a.eyes.y}, width: ${a.eyes.width},`,
+        ];
+        if (a.eyes.left)  lines.push(`      left: { x: ${a.eyes.left.x}, y: ${a.eyes.left.y} },`);
+        if (a.eyes.right) lines.push(`      right: { x: ${a.eyes.right.x}, y: ${a.eyes.right.y} },`);
+        lines.push(
+          `    },`,
+          `    head: { x: ${a.head.x}, y: ${a.head.y}, width: ${a.head.width ?? 292} },`,
+          `  },`,
+        );
+        document.getElementById('json-output').textContent = lines.join('\n');
+      }
+
+      function copyJson() {
+        const text = document.getElementById('json-output').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById('copy-btn');
+          btn.textContent = '복사됨 ✓';
+          setTimeout(() => { btn.textContent = 'JSON 복사'; }, 1500);
+        });
+      }
+
+      // ─── SVG coordinate conversion ─────────────────────────────────────────
+      function clientToSvg(svgEl, clientX, clientY) {
+        const rect = svgEl.getBoundingClientRect();
+        const scaleX = STAGE / rect.width;
+        const scaleY = STAGE / rect.height;
+        return {
+          x: (clientX - rect.left) * scaleX,
+          y: (clientY - rect.top) * scaleY,
+        };
+      }
+
+      // ─── click-to-place ────────────────────────────────────────────────────
+      overlay.addEventListener('click', (e) => {
+        if (e.target.closest('.landmark-circle')) return;
+        const { x, y } = clientToSvg(overlay, e.clientX, e.clientY);
+        setLandmarkPos(currentPet, currentMode, x, y);
+        render();
+
+        // auto-advance mode
+        const order = ['eyes-left', 'eyes-right', 'head', 'chest', 'back'];
+        const idx = order.indexOf(currentMode);
+        if (idx < order.length - 1) {
+          setMode(order[idx + 1]);
+        }
+      });
+
+      // ─── drag ─────────────────────────────────────────────────────────────
+      function makeDraggable(el, mode) {
+        let dragging = false;
+
+        el.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          dragging = true;
+          setMode(mode);
+
+          const onMove = (e) => {
+            if (!dragging) return;
+            const { x, y } = clientToSvg(overlay, e.clientX, e.clientY);
+            setLandmarkPos(currentPet, mode, x, y);
+            render();
+          };
+
+          const onUp = () => {
+            dragging = false;
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          };
+
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        });
+
+        el.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMode(mode);
+          const touch = e.touches[0];
+
+          const onMove = (e) => {
+            const t = e.touches[0];
+            const { x, y } = clientToSvg(overlay, t.clientX, t.clientY);
+            setLandmarkPos(currentPet, mode, x, y);
+            render();
+          };
+          const onEnd = () => {
+            overlay.removeEventListener('touchmove', onMove);
+            overlay.removeEventListener('touchend', onEnd);
+          };
+          overlay.addEventListener('touchmove', onMove, { passive: false });
+          overlay.addEventListener('touchend', onEnd);
+        });
+      }
+
+      // ─── button wiring ─────────────────────────────────────────────────────
+      function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('#mode-btns .btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.mode === mode);
+        });
+        instructions.textContent = INSTRUCTION_TEXT[mode];
+        render();
+      }
+
+      document.querySelectorAll('#char-btns .btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentPet = btn.dataset.pet;
+          charImg.src = `/assets/pets/base-body/${currentPet}.png`;
+          document.querySelectorAll('#char-btns .btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          render();
+        });
+      });
+
+      document.querySelectorAll('#mode-btns .btn').forEach(btn => {
+        btn.addEventListener('click', () => setMode(btn.dataset.mode));
+      });
+
+      document.querySelectorAll('#item-btns .btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentItem = btn.dataset.item;
+          document.querySelectorAll('#item-btns .btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          render();
+        });
+      });
+
+      // ─── init ──────────────────────────────────────────────────────────────
+      render();
+    </script>
+  </body>
+</html>

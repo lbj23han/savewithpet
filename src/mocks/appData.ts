@@ -1,3 +1,4 @@
+import { STANDARD_CHARACTER_TEMPLATE_ID, STANDARD_WEARABLE_PROFILE } from "../domain/petWearableAnchors";
 import type { Category, PetPreset, ShopItem } from "../types/app";
 
 export const petPresets: PetPreset[] = [
@@ -9,6 +10,8 @@ export const petPresets: PetPreset[] = [
     imageUrl: "/assets/pets/akkigae.png?v=2",
     species: "dog",
     featured: true,
+    templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   },
   {
     id: "ttoosseunyang",
@@ -17,6 +20,8 @@ export const petPresets: PetPreset[] = [
     emoji: "🐱",
     imageUrl: "/assets/pets/ttoosseunyang.png?v=2",
     species: "cat",
+    templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   },
   {
     id: "kangchongmu",
@@ -25,6 +30,8 @@ export const petPresets: PetPreset[] = [
     emoji: "🐰",
     imageUrl: "/assets/pets/kangchongmu.png?v=1",
     species: "rabbit",
+    templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   },
 ];
 
@@ -52,7 +59,7 @@ export const ledgerCategories: Category[] = [
 
 export const shopItems: ShopItem[] = [
   { id: "hat", name: "신사 모자", icon: "hat", price: 800 },
-  { id: "scarf", name: "하트 목걸이", icon: "necklace", price: 450 },
+  { id: "scarf", name: "미니 하트 펜던트", icon: "pendant", price: 450 },
   { id: "crown", name: "황금 왕관", icon: "crown", price: 2500, requiredLevel: 12, unlockLabel: "Lv.12 해금" },
   { id: "sunglasses", name: "선글라스", icon: "sunglasses", price: 600, requiredLevel: 5, unlockLabel: "Lv.5 해금" },
   { id: "ribbon", name: "핑크 리본", icon: "ribbon", price: 300 },

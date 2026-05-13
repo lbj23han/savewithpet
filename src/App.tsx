@@ -15,17 +15,31 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { ShopPage } from "./pages/ShopPage";
 import type { AppPage, Category, LedgerEntryDraft, PersistedAppState } from "./types/app";
 
+const DEV_UNLOCKED_COINS = 999_999;
+const DEV_UNLOCKED_LEVEL = 99;
+
 function App() {
   const [appState, setAppState] = useState<PersistedAppState>(() => loadAppState());
   const [page, setPage] = useState<AppPage>(() => (loadAppState().hasCompletedOnboarding ? "home" : "onboarding"));
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const activePage = page === "onboarding" ? "home" : page;
   const stats = calculateAppStats(appState.entries, appState.monthlyBudget);
+  const appCoins = import.meta.env.DEV ? DEV_UNLOCKED_COINS : appState.coins;
+  const appStats = import.meta.env.DEV
+    ? {
+        ...stats,
+        fullness: 100,
+        growth: 100,
+        level: DEV_UNLOCKED_LEVEL,
+        mood: 100,
+      }
+    : stats;
+  const ownedItemIds = import.meta.env.DEV ? shopItems.map((item) => item.id) : appState.ownedItemIds;
   const shopItemViews = createShopItemViewModels({
     items: shopItems,
-    coins: appState.coins,
-    level: stats.level,
-    ownedItemIds: appState.ownedItemIds,
+    coins: appCoins,
+    level: appStats.level,
+    ownedItemIds,
     equippedItemId: appState.equippedItemId,
   });
   const equippedItem = shopItemViews.find((item) => item.id === appState.equippedItemId);
@@ -64,7 +78,7 @@ function App() {
 
   const addLedgerEntry = (draft: LedgerEntryDraft) => {
     const nextEntry = createLedgerEntry(draft);
-    const reward = createEntryReward(draft, stats.streakDays);
+    const reward = createEntryReward(draft, appStats.streakDays);
     setAppState((prev) => ({
       ...prev,
       coins: prev.coins + reward.coins,
@@ -143,7 +157,7 @@ function App() {
   };
 
   const openPremiumBox = () => {
-    const result = resolvePremiumBox(shopItemViews, appState.coins);
+    const result = resolvePremiumBox(shopItemViews, appCoins);
     if (result.outcome !== "item" || !result.itemId) {
       setToastMessage(result.label);
       return;
@@ -219,7 +233,7 @@ function App() {
   return (
     <AppShell
       activePage={activePage}
-      coin={appState.coins}
+      coin={appCoins}
       onNavigate={setPage}
       showCoin={activePage === "shop"}
       toastMessage={toastMessage}
@@ -232,7 +246,7 @@ function App() {
           monthlyBudget={appState.monthlyBudget}
           pet={appState.pet}
           rewardEvents={appState.rewardEvents}
-          stats={stats}
+          stats={appStats}
           wardrobeItems={shopItemViews.filter((item) => item.state === "owned" || item.state === "equipped")}
           onEquipItem={buyOrEquipItem}
           onOpenShop={() => setPage("shop")}
@@ -266,9 +280,9 @@ function App() {
       )}
       {activePage === "shop" && (
         <ShopPage
-          coins={appState.coins}
+          coins={appCoins}
           items={shopItemViews}
-          level={stats.level}
+          level={appStats.level}
           onItemAction={buyOrEquipItem}
           onOpenPremiumBox={openPremiumBox}
           onPostComment={addComment}
@@ -279,11 +293,11 @@ function App() {
       )}
       {activePage === "settings" && (
         <SettingsPage
-          coins={appState.coins}
+          coins={appCoins}
           entries={appState.entries}
           monthlyBudget={appState.monthlyBudget}
           pet={appState.pet}
-          stats={stats}
+          stats={appStats}
           onResetData={resetLocalData}
           onUpdateBudget={updateBudget}
         />

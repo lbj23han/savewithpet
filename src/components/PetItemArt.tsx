@@ -1,12 +1,18 @@
 import styled from "styled-components";
 
+import { getItemAnchorTransform } from "../domain/petWearableAnchors";
+import type { PetWearableAnchors } from "../types/app";
+
 type PetItemArtProps = {
+  anchors?: PetWearableAnchors;
   itemId: string;
   title?: string;
   variant?: "stage" | "preview";
 };
 
-export function PetItemArt({ itemId, title, variant = "preview" }: PetItemArtProps) {
+export function PetItemArt({ anchors, itemId, title, variant = "preview" }: PetItemArtProps) {
+  const itemTransform = getItemAnchorTransform({ anchors, itemId, variant });
+
   return (
     <ItemSvg
       $variant={variant}
@@ -15,7 +21,7 @@ export function PetItemArt({ itemId, title, variant = "preview" }: PetItemArtPro
       viewBox="0 0 1254 1254"
     >
       {title && <title>{title}</title>}
-      {renderItemPaths(itemId)}
+      <g transform={itemTransform}>{renderItemPaths(itemId)}</g>
     </ItemSvg>
   );
 }
@@ -46,27 +52,15 @@ function HatPaths() {
 
 function NecklacePaths() {
   return (
-    <g>
+    <g transform="translate(0 24)">
+      <ellipse cx="638" cy="760" rx="54" ry="18" fill="#8d4a55" opacity="0.13" />
       <path
-        d="M496 664C525 733 588 771 637 771C686 771 749 733 778 664"
-        fill="none"
-        stroke="#dd6b8a"
-        strokeLinecap="round"
-        strokeWidth="34"
-      />
-      <path
-        d="M556 681C577 719 613 742 637 742C662 742 697 719 718 681"
-        fill="none"
-        stroke="#ffb3c6"
-        strokeLinecap="round"
-        strokeWidth="12"
-        opacity="0.82"
-      />
-      <path
-        d="M638 777C606 745 554 771 554 815C554 857 596 883 638 924C681 883 723 857 723 815C723 771 670 745 638 777Z"
+        d="M638 709C617 688 582 705 582 734C582 762 610 779 638 806C667 779 695 762 695 734C695 705 659 688 638 709Z"
         fill="#f25f88"
       />
-      <path d="M595 803C605 785 629 783 640 800" stroke="#ffd6df" strokeLinecap="round" strokeWidth="12" opacity="0.8" />
+      <path d="M609 729C616 716 632 715 640 726" stroke="#ffd6df" strokeLinecap="round" strokeWidth="9" opacity="0.85" />
+      <circle cx="638" cy="703" r="12" fill="#cf4e72" />
+      <path d="M638 691V666" stroke="#cf4e72" strokeLinecap="round" strokeWidth="10" />
     </g>
   );
 }
@@ -88,12 +82,12 @@ function CrownPaths() {
 function SunglassesPaths() {
   return (
     <g>
-      <path d="M447 500C503 478 570 484 615 506L601 585C586 628 522 639 475 616C436 597 420 537 447 500Z" fill="#28252d" />
-      <path d="M681 506C725 484 792 478 849 500C875 537 860 597 820 616C773 639 709 628 695 585L681 506Z" fill="#28252d" />
-      <path d="M608 519C628 508 653 508 675 519" stroke="#28252d" strokeLinecap="round" strokeWidth="24" />
-      <path d="M465 503C507 491 560 496 594 512" stroke="#69616c" strokeLinecap="round" strokeWidth="12" opacity="0.55" />
-      <path d="M704 512C738 496 791 491 833 503" stroke="#69616c" strokeLinecap="round" strokeWidth="12" opacity="0.55" />
-      <path d="M487 520C520 507 553 511 581 524" stroke="#ffffff" strokeLinecap="round" strokeWidth="12" opacity="0.22" />
+      <path d="M482 515C526 498 584 503 620 523L610 571C601 609 548 622 506 602C470 585 458 544 482 515Z" fill="#28252d" />
+      <path d="M674 523C710 503 768 498 812 515C836 544 824 585 788 602C746 622 693 609 684 571L674 523Z" fill="#28252d" />
+      <path d="M612 535C630 525 654 525 672 535" stroke="#28252d" strokeLinecap="round" strokeWidth="18" />
+      <path d="M493 517C528 508 574 511 604 526" stroke="#6f6873" strokeLinecap="round" strokeWidth="9" opacity="0.5" />
+      <path d="M690 526C720 511 766 508 801 517" stroke="#6f6873" strokeLinecap="round" strokeWidth="9" opacity="0.5" />
+      <path d="M511 531C539 520 570 522 593 533" stroke="#ffffff" strokeLinecap="round" strokeWidth="8" opacity="0.2" />
     </g>
   );
 }
@@ -112,21 +106,21 @@ function RibbonPaths() {
 
 function WingPaths() {
   return (
-    <g opacity="0.96">
+    <g opacity="0.82">
       <path
-        d="M323 419C219 435 139 503 117 598C95 692 143 768 241 779C326 789 413 737 476 660C431 650 389 627 358 593C324 554 310 497 323 419Z"
+        d="M292 420C178 444 93 521 78 626C64 725 130 797 237 785C310 777 366 728 409 658C362 648 324 617 302 573C281 531 277 476 292 420Z"
         fill="#f6fbff"
       />
       <path
-        d="M931 419C1035 435 1115 503 1137 598C1159 692 1111 768 1013 779C928 789 841 737 778 660C823 650 865 627 896 593C930 554 944 497 931 419Z"
+        d="M962 420C1076 444 1161 521 1176 626C1190 725 1124 797 1017 785C944 777 888 728 845 658C892 648 930 617 952 573C973 531 977 476 962 420Z"
         fill="#f6fbff"
       />
-      <path d="M165 605C244 612 339 593 430 527" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="28" opacity="0.82" />
-      <path d="M181 699C258 698 357 656 463 580" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="24" opacity="0.78" />
-      <path d="M1089 605C1010 612 915 593 824 527" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="28" opacity="0.82" />
-      <path d="M1073 699C996 698 897 656 791 580" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="24" opacity="0.78" />
+      <path d="M128 632C215 634 315 600 386 536" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="26" opacity="0.78" />
+      <path d="M154 716C240 704 331 656 404 590" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="22" opacity="0.72" />
+      <path d="M1126 632C1039 634 939 600 868 536" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="26" opacity="0.78" />
+      <path d="M1100 716C1014 704 923 656 850 590" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="22" opacity="0.72" />
       <path
-        d="M318 432C219 451 145 514 126 598C107 684 150 752 241 763C321 773 409 724 468 653"
+        d="M288 435C186 458 109 527 97 624C86 710 143 769 238 767C306 765 363 722 402 658"
         fill="none"
         stroke="#fff"
         strokeLinecap="round"
@@ -134,7 +128,7 @@ function WingPaths() {
         opacity="0.72"
       />
       <path
-        d="M936 432C1035 451 1109 514 1128 598C1147 684 1104 752 1013 763C933 773 845 724 786 653"
+        d="M966 435C1068 458 1145 527 1157 624C1168 710 1111 769 1016 767C948 765 891 722 852 658"
         fill="none"
         stroke="#fff"
         strokeLinecap="round"

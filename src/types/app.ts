@@ -18,6 +18,33 @@ export type PetPreset = {
   imageUrl: string;
   species: Exclude<PetSpecies, "custom">;
   featured?: boolean;
+  templateId?: CharacterTemplateId;
+  wearableAnchors?: PetWearableAnchors;
+};
+
+export type CharacterTemplateId = "standard-v1";
+
+export type PetWearableAnchor = {
+  scale?: number;
+  width?: number;
+  x: number;
+  y: number;
+};
+
+export type PetEyesAnchor = {
+  scale?: number;
+  width: number;
+  x: number;
+  y: number;
+  left?: { x: number; y: number };
+  right?: { x: number; y: number };
+};
+
+export type PetWearableAnchors = {
+  back: PetWearableAnchor;
+  chest: PetWearableAnchor;
+  eyes: PetEyesAnchor;
+  head: PetWearableAnchor;
 };
 
 export type UserPet = {
@@ -28,6 +55,9 @@ export type UserPet = {
   imageUrl?: string;
   species: PetSpecies;
   source: "preset" | "photo" | "skip";
+  sourcePhotoUrl?: string;
+  templateId?: CharacterTemplateId;
+  wearableAnchors?: PetWearableAnchors;
 };
 
 export type PetAnimation = "idle" | "pop" | "shake" | "sparkle";

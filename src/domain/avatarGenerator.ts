@@ -1,4 +1,9 @@
 import type { PetPreset, UserPet } from "../types/app";
+import {
+  STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
+  STANDARD_CHARACTER_TEMPLATE_ID,
+  STANDARD_WEARABLE_PROFILE,
+} from "./petWearableAnchors";
 
 const defaultPet = {
   emoji: "🐶",
@@ -19,6 +24,8 @@ export function createPetFromPreset(preset: PetPreset): UserPet {
     imageUrl: preset.imageUrl,
     species: preset.species,
     source: "preset",
+    templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
   };
 }
 
@@ -28,11 +35,14 @@ export function createPetFromPhoto(file: File, imageUrl: string): UserPet {
   return {
     id: `photo-${Date.now()}`,
     name: "사진 속 친구",
-    trait: "사진을 바탕으로 만든 임시 캐릭터예요",
+    trait: "사진 특징을 standard-v1 템플릿에 반영할 캐릭터예요",
     emoji,
-    imageUrl,
+    imageUrl: STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
     species: "custom",
     source: "photo",
+    sourcePhotoUrl: imageUrl,
+    templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   };
 }
 
@@ -41,5 +51,7 @@ export function createSkippedPet(): UserPet {
     id: "default-akkigae",
     ...defaultPet,
     source: "skip",
+    templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   };
 }

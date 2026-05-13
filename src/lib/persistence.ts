@@ -4,6 +4,11 @@ import {
   petPresets,
   shopItems,
 } from "../mocks/appData";
+import {
+  STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
+  STANDARD_CHARACTER_TEMPLATE_ID,
+  STANDARD_WEARABLE_PROFILE,
+} from "../domain/petWearableAnchors";
 import type { PersistedAppState, UserPet } from "../types/app";
 
 const STORAGE_KEY = "nyangbi-hajimalgae:v2";
@@ -19,6 +24,8 @@ function createDefaultPet(): UserPet {
     imageUrl: preset.imageUrl,
     species: preset.species,
     source: "preset",
+    templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+    wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
   };
 }
 
@@ -118,17 +125,32 @@ function normalizePet(pet: unknown): UserPet {
       imageUrl: preset.imageUrl,
       species: preset.species,
       source: "preset",
+      templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+      wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
     };
   }
 
   if ("source" in pet && pet.source === "photo") {
+    const photoPet = pet as UserPet;
+
     return {
       ...createDefaultPet(),
-      ...(pet as UserPet),
+      ...photoPet,
+      imageUrl: getTemplateCharacterImageUrl(photoPet),
       species: "custom",
       source: "photo",
+      sourcePhotoUrl: photoPet.sourcePhotoUrl ?? photoPet.imageUrl,
+      templateId: photoPet.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+      wearableAnchors: photoPet.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
     };
   }
 
   return createDefaultPet();
+}
+
+function getTemplateCharacterImageUrl(pet: UserPet): string {
+  if (!pet.sourcePhotoUrl && pet.imageUrl?.startsWith("data:")) return STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
+  if (pet.sourcePhotoUrl && pet.imageUrl === pet.sourcePhotoUrl) return STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
+
+  return pet.imageUrl ?? STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
 }
