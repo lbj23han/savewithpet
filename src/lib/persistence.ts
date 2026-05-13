@@ -2,6 +2,7 @@ import {
   initialCategoryBudgets,
   ledgerCategories,
   petPresets,
+  shopItems,
 } from "../mocks/appData";
 import type { PersistedAppState, UserPet } from "../types/app";
 
@@ -50,11 +51,26 @@ export function loadAppState(): PersistedAppState {
       categories: mergeCategories(parsed.categories),
       categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
       communityPosts: normalizeCommunityPosts(parsed.communityPosts),
+      equippedItemId: normalizeEquippedItemId(parsed.equippedItemId),
+      ownedItemIds: normalizeOwnedItemIds(parsed.ownedItemIds),
       pet: normalizePet(parsed.pet),
     };
   } catch {
     return defaultAppState;
   }
+}
+
+function normalizeEquippedItemId(itemId: unknown): PersistedAppState["equippedItemId"] {
+  if (typeof itemId !== "string") return null;
+
+  return shopItems.some((item) => item.id === itemId) ? itemId : null;
+}
+
+function normalizeOwnedItemIds(itemIds: unknown): PersistedAppState["ownedItemIds"] {
+  if (!Array.isArray(itemIds)) return [];
+
+  const validIds = new Set(shopItems.map((item) => item.id));
+  return itemIds.filter((itemId): itemId is string => typeof itemId === "string" && validIds.has(itemId));
 }
 
 export function saveAppState(state: PersistedAppState): void {

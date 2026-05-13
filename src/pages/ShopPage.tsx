@@ -3,6 +3,7 @@ import { useState } from "react";
 import styled from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
+import { PetItemArt } from "../components/PetItemArt";
 import { PREMIUM_BOX_PRICE } from "../domain/shop";
 import type { CommunityPost, ShopItemState, ShopItemViewModel } from "../types/app";
 
@@ -49,7 +50,9 @@ export function ShopPage({
       <ItemGrid>
         {items.map((item) => (
           <ItemCard key={item.id} $locked={item.state === "locked"} onClick={() => onItemAction(item.id)}>
-            <IconCircle>{item.icon}</IconCircle>
+            <IconCircle>
+              <PetItemArt itemId={item.id} title={item.name} />
+            </IconCircle>
             {item.state === "locked" && <LockKeyhole size={24} />}
             <h2>{item.name}</h2>
             <StateBadge $state={item.state}>{getStateLabel(item)}</StateBadge>
@@ -218,7 +221,11 @@ const IconCircle = styled.div`
   place-items: center;
   background: ${({ theme }) => theme.colors.surfaceWarm};
   border-radius: 50%;
-  font-size: 32px;
+
+  svg {
+    width: 64px;
+    height: 64px;
+  }
 `;
 
 const StateBadge = styled.span<{ $state: ShopItemState }>`

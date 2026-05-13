@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" fill="none">
+  <path d="M487 390C507 369 536 367 556 389" stroke="#d2a28f" stroke-width="17" stroke-linecap="round" opacity="0.95"/>
+  <path d="M739 389C759 367 789 369 808 390" stroke="#d2a28f" stroke-width="17" stroke-linecap="round" opacity="0.95"/>
+  <ellipse cx="521" cy="510" rx="51" ry="67" fill="#5a2d25"/>
+  <ellipse cx="521" cy="523" rx="30" ry="43" fill="#3d1e1a" opacity="0.34"/>
+  <circle cx="536" cy="473" r="15" fill="#fff"/>
+  <ellipse cx="774" cy="510" rx="51" ry="67" fill="#5a2d25"/>
+  <ellipse cx="774" cy="523" rx="30" ry="43" fill="#3d1e1a" opacity="0.34"/>
+  <circle cx="789" cy="473" r="15" fill="#fff"/>
+  <ellipse cx="638" cy="544" rx="42" ry="25" fill="#5a3028"/>
+  <ellipse cx="638" cy="616" rx="34" ry="41" fill="#5a3028"/>
+  <ellipse cx="638" cy="611" rx="19" ry="24" fill="#7c443b" opacity="0.46"/>
+  <path d="M376 571C398 547 436 547 458 570" stroke="#f28fa6" stroke-width="16" stroke-linecap="round" opacity="0.35"/>
+  <path d="M797 570C820 547 858 547 880 571" stroke="#f28fa6" stroke-width="16" stroke-linecap="round" opacity="0.35"/>
+</svg>

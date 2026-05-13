@@ -1,5 +1,8 @@
 import styled, { css, keyframes } from "styled-components";
 
+import { PetItemArt } from "./PetItemArt";
+import { getBaseCharacterUrl, getExpressionPartUrl } from "../domain/petCharacterSet";
+import { isBackPetItem } from "../domain/petItems";
 import type { PetAnimation, PetExpression, ShopItemViewModel, UserPet } from "../types/app";
 
 type PetStageProps = {
@@ -11,18 +14,23 @@ type PetStageProps = {
 };
 
 export function PetStage({ animation = "idle", equippedItem, expression = "neutral", pet, size = "home" }: PetStageProps) {
-  const baseBodyUrl = getBaseBodyUrl(pet.id);
+  const baseBodyUrl = getBaseCharacterUrl(pet.id);
   const imageUrl = baseBodyUrl ?? pet.imageUrl;
   const expressionUrl = baseBodyUrl ? getExpressionPartUrl(pet.id, expression) : null;
 
   return (
     <Stage $size={size}>
       <Character $animation={animation} $size={size}>
+        {equippedItem && isBackPetItem(equippedItem.id) && (
+          <BackItemLayer aria-label={`착용 아이템 ${equippedItem.name}`}>
+            <PetItemArt itemId={equippedItem.id} title={equippedItem.name} variant="stage" />
+          </BackItemLayer>
+        )}
         {imageUrl ? <PetImage src={imageUrl} alt={pet.name} /> : <PetEmoji $size={size}>{pet.emoji}</PetEmoji>}
         {expressionUrl && <ExpressionLayer src={expressionUrl} alt="" aria-hidden="true" />}
-        {equippedItem && (
-          <ItemLayer $itemId={equippedItem.id} $petId={pet.id} aria-label={`착용 아이템 ${equippedItem.name}`}>
-            {renderItemVisual(equippedItem.id, equippedItem.icon)}
+        {equippedItem && !isBackPetItem(equippedItem.id) && (
+          <ItemLayer aria-label={`착용 아이템 ${equippedItem.name}`}>
+            <PetItemArt itemId={equippedItem.id} title={equippedItem.name} variant="stage" />
           </ItemLayer>
         )}
       </Character>
@@ -105,6 +113,19 @@ const itemPop = keyframes`
   }
 `;
 
+const CharacterItemLayer = styled.span`
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+
+  svg {
+    animation: ${itemPop} 220ms ease-out;
+  }
+`;
+
 const Stage = styled.div<{ $size: "home" | "compact" }>`
   position: relative;
   display: grid;
@@ -182,176 +203,10 @@ const PetEmoji = styled.span<{ $size: "home" | "compact" }>`
   font-size: ${({ $size }) => ($size === "home" ? "72px" : "34px")};
 `;
 
-const ItemLayer = styled.span<{ $itemId: string; $petId: string }>`
-  position: absolute;
-  display: grid;
-  width: 34%;
-  height: 34%;
-  place-items: center;
-  pointer-events: none;
-  font-size: clamp(20px, 6vw, 34px);
-  line-height: 1;
-  text-shadow: 0 4px 14px rgba(58, 36, 44, 0.18);
+const BackItemLayer = styled(CharacterItemLayer)`
+  z-index: 0;
+`;
+
+const ItemLayer = styled(CharacterItemLayer)`
   z-index: 2;
-
-  ${({ $itemId, $petId }) => getItemPlacement($itemId, $petId)}
 `;
-
-const ItemGlyph = styled.span`
-  display: block;
-  animation: ${itemPop} 220ms ease-out;
-`;
-
-const NecklaceVisual = styled.span`
-  position: relative;
-  display: block;
-  width: 58px;
-  height: 38px;
-  animation: ${itemPop} 220ms ease-out;
-
-  &::before {
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    width: 42px;
-    height: 26px;
-    border-right: 4px solid #de6d8d;
-    border-bottom: 4px solid #de6d8d;
-    border-left: 4px solid #de6d8d;
-    border-radius: 0 0 32px 32px;
-    content: "";
-    transform: translateX(-50%);
-  }
-
-  &::after {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 13px;
-    height: 13px;
-    background: linear-gradient(135deg, #ff8aae, #c83c70);
-    border-radius: 50% 50% 50% 0;
-    box-shadow: 0 2px 8px rgba(200, 60, 112, 0.2);
-    content: "";
-    transform: translateX(-50%) rotate(-45deg);
-  }
-`;
-
-const BagVisual = styled.span`
-  position: relative;
-  display: block;
-  width: 40px;
-  height: 48px;
-  background: linear-gradient(160deg, #ff8f91 0%, #d75d70 100%);
-  border: 3px solid rgba(116, 54, 64, 0.18);
-  border-radius: 13px 13px 11px 11px;
-  box-shadow: 0 7px 16px rgba(58, 36, 44, 0.14);
-  animation: ${itemPop} 220ms ease-out;
-
-  &::before {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    width: 21px;
-    height: 15px;
-    border: 4px solid #d75d70;
-    border-bottom: 0;
-    border-radius: 14px 14px 0 0;
-    content: "";
-    transform: translateX(-50%);
-  }
-
-  &::after {
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    width: 18px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.55);
-    border-radius: 999px;
-    content: "";
-    transform: translateX(-50%);
-  }
-`;
-
-function renderItemVisual(itemId: string, icon: string) {
-  if (itemId === "scarf") return <NecklaceVisual />;
-  if (itemId === "bag") return <BagVisual />;
-  return <ItemGlyph>{icon}</ItemGlyph>;
-}
-
-function getExpressionPartUrl(petId: string, expression: PetExpression) {
-  if (!["akkigae", "ttoosseunyang", "kangchongmu"].includes(petId)) return null;
-
-  return `/assets/pet-parts/${petId}/${expression}.svg`;
-}
-
-function getBaseBodyUrl(petId: string) {
-  if (!["akkigae", "ttoosseunyang", "kangchongmu"].includes(petId)) return null;
-
-  return `/assets/pets/base-body/${petId}.png`;
-}
-
-function getItemPlacement(itemId: string, petId: string) {
-  if (itemId === "hat") {
-    return css`
-      top: -6%;
-      left: 50%;
-      transform: translateX(-50%) rotate(-3deg) scale(0.92);
-    `;
-  }
-
-  if (itemId === "crown") {
-    return css`
-      top: -1%;
-      left: 50%;
-      transform: translateX(-50%) rotate(-4deg);
-    `;
-  }
-
-  if (itemId === "sunglasses") {
-    return css`
-      top: 31%;
-      left: 51%;
-      transform: translateX(-50%) scale(0.96);
-    `;
-  }
-
-  if (itemId === "scarf") {
-    return css`
-      top: 49%;
-      left: 51%;
-      transform: translateX(-50%) scale(0.78);
-    `;
-  }
-
-  if (itemId === "ribbon") {
-    if (petId === "ttoosseunyang") {
-      return css`
-        top: 8%;
-        right: 19%;
-        transform: rotate(20deg) scale(0.78);
-      `;
-    }
-
-    return css`
-      top: 15%;
-      right: 17%;
-      transform: rotate(18deg) scale(0.82);
-    `;
-  }
-
-  if (itemId === "bag") {
-    return css`
-      right: 5%;
-      bottom: 31%;
-      transform: rotate(8deg) scale(0.72);
-      z-index: -1;
-    `;
-  }
-
-  return css`
-    top: 8%;
-    right: 10%;
-  `;
-}

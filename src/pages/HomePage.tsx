@@ -4,6 +4,7 @@ import styled from "styled-components";
 
 import { EmptyState } from "../components/EmptyState";
 import { Panel } from "../components/Panel";
+import { PetItemArt } from "../components/PetItemArt";
 import { PetStage } from "../components/PetStage";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { formatWon, getTodayDate } from "../domain/ledger";
@@ -212,7 +213,9 @@ export function HomePage({
             ) : (
               wardrobeItems.map((item) => (
                 <WardrobeItem key={item.id} $active={item.state === "equipped"} onClick={() => handleEquipItem(item.id)}>
-                  <span>{item.icon}</span>
+                  <span>
+                    <PetItemArt itemId={item.id} title={item.name} />
+                  </span>
                   <strong>{item.name}</strong>
                 </WardrobeItem>
               ))
@@ -230,7 +233,9 @@ export function HomePage({
 }
 
 function getPetExpression(stats: AppStats): PetExpression {
+  if (stats.fullness < 35) return "sleepy";
   if (stats.mood < 55 || stats.fullness < 45) return "sad";
+  if (stats.growth > 82 && stats.mood > 75) return "happy";
 
   return "neutral";
 }
@@ -437,7 +442,9 @@ const WardrobeItem = styled.button<{ $active: boolean }>`
   border-radius: ${({ theme }) => theme.radius.lg};
 
   span {
-    font-size: 30px;
+    display: block;
+    width: 42px;
+    height: 42px;
   }
 
   strong {
