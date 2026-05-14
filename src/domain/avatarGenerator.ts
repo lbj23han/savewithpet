@@ -7,7 +7,7 @@ import {
 
 const defaultPet = {
   emoji: "🐶",
-  imageUrl: "/assets/pets/akkigae.png?v=2",
+  imageUrl: "/assets/pets/akkigae.svg",
   name: "아끼개",
   species: "dog" as const,
   trait: "예산을 지키며 차근차근 아끼는 절약 친구예요",

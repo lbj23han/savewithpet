@@ -45,18 +45,25 @@ eyes, eyebrows, nose, mouth, smile, tongue, teeth, lips, muzzle line, nostril, f
 
 ## Preset Base-Body V1 Notes
 
-The current preset base-body assets were generated with the base-body prompt above using the original preset PNGs as identity references.
+Legacy PNG base-body assets were generated with the base-body prompt above using the original preset PNGs as identity references.
 
 - `public/assets/pets/base-body/akkigae.png`
 - `public/assets/pets/base-body/ttoosseunyang.png`
 - `public/assets/pets/base-body/kangchongmu.png`
+
+The current standard-v1 assets are generated locally by `npm run character:standard` and share one wearable profile:
+
+- `public/assets/pets/base-body/akkigae.svg`
+- `public/assets/pets/base-body/ttoosseunyang.svg`
+- `public/assets/pets/base-body/kangchongmu.svg`
+- `reports/standard-v1-audit.md`
 
 Post-processing:
 
 - Generated on a flat `#00ff00` chroma-key background.
 - Removed the chroma key locally with `remove_chroma_key.py`.
 - Saved as transparent PNG.
-- Original `public/assets/pets/*.png` files remain unchanged.
+- Original `public/assets/pets/*.png` files remain unchanged as legacy references.
 
 Quality notes:
 

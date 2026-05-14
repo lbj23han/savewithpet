@@ -13,7 +13,7 @@ const posts: CommunityPost[] = [
     equippedItemId: null,
     likes: 0,
     petEmoji: "🐱",
-    petImageUrl: "/assets/pets/ttoosseunyang.png",
+    petImageUrl: "/assets/pets/ttoosseunyang.svg",
     petName: "또쓰냥",
   },
 ];

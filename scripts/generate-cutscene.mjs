@@ -178,10 +178,10 @@ async function updateManifest({ outputDir, petId, eventType, outputName }) {
   }
 
   manifest[petId] ??= {
-    baseImageUrl: `/assets/pets/${petId}.png?v=2`,
+    baseImageUrl: `/assets/pets/${petId}.svg`,
     scenes: {},
   };
-  manifest[petId].baseImageUrl = `/assets/pets/${petId}.png?v=2`;
+  manifest[petId].baseImageUrl = `/assets/pets/${petId}.svg`;
   manifest[petId].scenes ??= {};
   manifest[petId].scenes[eventType] = `/assets/cutscenes/${outputName}`;
 
