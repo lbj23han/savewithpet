@@ -262,7 +262,7 @@
       <!-- Center: stage -->
       <div class="stage-area">
         <div class="stage-wrap">
-          <img id="char-img" src="/assets/pets/base-body/akkigae.svg" alt="캐릭터" />
+          <img id="char-img" src="/assets/pets/base-body-standard/akkigae.png" alt="캐릭터" />
           <svg id="overlay" viewBox="0 0 1254 1254" xmlns="http://www.w3.org/2000/svg"></svg>
           <div class="instructions" id="instructions">왼쪽 눈 중심을 클릭하세요</div>
         </div>
@@ -707,7 +707,7 @@
       document.querySelectorAll('#char-btns .btn').forEach(btn => {
         btn.addEventListener('click', () => {
           currentPet = btn.dataset.pet;
-          charImg.src = `/assets/pets/base-body/${currentPet}.svg`;
+          charImg.src = `/assets/pets/base-body-standard/${currentPet}.png`;
           document.querySelectorAll('#char-btns .btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           render();

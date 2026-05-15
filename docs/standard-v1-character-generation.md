@@ -49,3 +49,17 @@ Generated art is accepted only when:
 - Head, chest, and back anchors match the standard profile
 - Sunglasses, hat, pendant, ribbon, crown, and wings align without per-pet overrides
 - The uploaded photo is stored only as `sourcePhotoUrl`
+
+## Current Base-Body Asset Rule
+
+The deterministic SVG assets are QA scaffolding only. The app renders PNG/WebP `base-body` assets.
+
+Current active review path:
+
+- `public/assets/pets/base-body-standard/*.png`
+
+Legacy high-quality reference path:
+
+- `public/assets/pets/base-body/*.png`
+
+The current candidates are documented in `reports/standard-v1-png-generation-report.md`.

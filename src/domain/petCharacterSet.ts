@@ -11,7 +11,7 @@ export function hasLayeredCharacterAssets(petId: string): boolean {
 export function getBaseCharacterUrl(petId: string): string | null {
   if (!hasLayeredCharacterAssets(petId)) return null;
 
-  return `/assets/pets/base-body/${petId}.svg`;
+  return `/assets/pets/base-body-standard/${petId}.png`;
 }
 
 export function getExpressionPartUrl(petId: string, expression: PetExpression): string | null {

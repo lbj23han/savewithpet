@@ -3,7 +3,7 @@ import type { PetEyesAnchor, PetWearableAnchors, UserPet } from "../types/app";
 export const STANDARD_CHARACTER_TEMPLATE_ID = "standard-v1" as const;
 
 export const CHARACTER_TEMPLATE_VIEWBOX = 1254;
-export const STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL = "/assets/pets/akkigae.svg";
+export const STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL = "/assets/pets/akkigae.png?v=2";
 
 export const STANDARD_WEARABLE_PROFILE: PetWearableAnchors = {
   back: { x: 627, y: 732, width: 610 },
