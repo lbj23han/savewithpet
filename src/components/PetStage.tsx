@@ -1,7 +1,7 @@
 import styled, { css, keyframes } from "styled-components";
 
 import { PetItemArt } from "./PetItemArt";
-import { getBaseCharacterUrl, getExpressionPartUrl } from "../domain/petCharacterSet";
+import { getBaseCharacterUrl, getExpressionPartUrl, getGeneratedOverlayUrl } from "../domain/petCharacterSet";
 import { isBackPetItem } from "../domain/petItems";
 import { getPetWearableAnchors } from "../domain/petWearableAnchors";
 import type { PetAnimation, PetExpression, ShopItemViewModel, UserPet } from "../types/app";
@@ -15,7 +15,8 @@ type PetStageProps = {
 };
 
 export function PetStage({ animation = "idle", equippedItem, expression = "neutral", pet, size = "home" }: PetStageProps) {
-  const baseBodyUrl = getBaseCharacterUrl(pet.id);
+  const baseBodyUrl = getBaseCharacterUrl(pet);
+  const generatedOverlayUrl = getGeneratedOverlayUrl(pet);
   const imageUrl = baseBodyUrl ?? pet.imageUrl;
   const expressionUrl = baseBodyUrl ? getExpressionPartUrl(pet.id, expression) : null;
   const anchors = getPetWearableAnchors(pet);
@@ -29,6 +30,7 @@ export function PetStage({ animation = "idle", equippedItem, expression = "neutr
           </BackItemLayer>
         )}
         {imageUrl ? <PetImage src={imageUrl} alt={pet.name} /> : <PetEmoji $size={size}>{pet.emoji}</PetEmoji>}
+        {generatedOverlayUrl && <GeneratedOverlayLayer src={generatedOverlayUrl} alt="" aria-hidden="true" />}
         {expressionUrl && <ExpressionLayer src={expressionUrl} alt="" aria-hidden="true" />}
         {equippedItem && !isBackPetItem(equippedItem.id) && (
           <ItemLayer aria-label={`착용 아이템 ${equippedItem.name}`}>
@@ -173,6 +175,8 @@ const Character = styled.div<{ $animation: PetAnimation; $size: "home" | "compac
 `;
 
 const PetImage = styled.img`
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -180,15 +184,27 @@ const PetImage = styled.img`
   -webkit-user-drag: none;
 `;
 
-const ExpressionLayer = styled.img`
+const GeneratedOverlayLayer = styled.img`
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   height: 100%;
   object-fit: contain;
   pointer-events: none;
-  transform: translate(-2%, -2.5%);
+  user-select: none;
+  -webkit-user-drag: none;
+`;
+
+const ExpressionLayer = styled.img`
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  transform: translate(-2%, -3%) scale(0.8);
   user-select: none;
   -webkit-user-drag: none;
 `;
@@ -210,5 +226,5 @@ const BackItemLayer = styled(CharacterItemLayer)`
 `;
 
 const ItemLayer = styled(CharacterItemLayer)`
-  z-index: 2;
+  z-index: 4;
 `;

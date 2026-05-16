@@ -106,34 +106,68 @@ function RibbonPaths() {
 
 function WingPaths() {
   return (
-    <g opacity="0.82">
+    <g opacity="0.86">
       <path
-        d="M292 420C178 444 93 521 78 626C64 725 130 797 237 785C310 777 366 728 409 658C362 648 324 617 302 573C281 531 277 476 292 420Z"
-        fill="#f6fbff"
+        d="M520 628C413 516 245 494 136 577C47 645 55 766 154 824C267 891 407 821 534 690C526 672 522 651 520 628Z"
+        fill="#f9fdff"
       />
       <path
-        d="M962 420C1076 444 1161 521 1176 626C1190 725 1124 797 1017 785C944 777 888 728 845 658C892 648 930 617 952 573C973 531 977 476 962 420Z"
-        fill="#f6fbff"
+        d="M734 628C841 516 1009 494 1118 577C1207 645 1199 766 1100 824C987 891 847 821 720 690C728 672 732 651 734 628Z"
+        fill="#f9fdff"
       />
-      <path d="M128 632C215 634 315 600 386 536" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="26" opacity="0.78" />
-      <path d="M154 716C240 704 331 656 404 590" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="22" opacity="0.72" />
-      <path d="M1126 632C1039 634 939 600 868 536" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="26" opacity="0.78" />
-      <path d="M1100 716C1014 704 923 656 850 590" stroke="#c9e2f1" strokeLinecap="round" strokeWidth="22" opacity="0.72" />
       <path
-        d="M288 435C186 458 109 527 97 624C86 710 143 769 238 767C306 765 363 722 402 658"
-        fill="none"
-        stroke="#fff"
+        d="M516 660C414 610 292 614 207 678C159 714 145 759 163 797C255 842 392 785 523 679C520 673 517 667 516 660Z"
+        fill="#eaf7ff"
+        opacity="0.82"
+      />
+      <path
+        d="M738 660C840 610 962 614 1047 678C1095 714 1109 759 1091 797C999 842 862 785 731 679C734 673 737 667 738 660Z"
+        fill="#eaf7ff"
+        opacity="0.82"
+      />
+      <path
+        d="M508 615C390 550 252 548 154 612"
+        stroke="#d3eaf6"
         strokeLinecap="round"
-        strokeWidth="20"
+        strokeWidth="24"
         opacity="0.72"
       />
       <path
-        d="M966 435C1068 458 1145 527 1157 624C1168 710 1111 769 1016 767C948 765 891 722 852 658"
+        d="M746 615C864 550 1002 548 1100 612"
+        stroke="#d3eaf6"
+        strokeLinecap="round"
+        strokeWidth="24"
+        opacity="0.72"
+      />
+      <path
+        d="M184 711C306 696 418 653 513 596"
+        stroke="#ffffff"
+        strokeLinecap="round"
+        strokeWidth="22"
+        opacity="0.86"
+      />
+      <path
+        d="M1070 711C948 696 836 653 741 596"
+        stroke="#ffffff"
+        strokeLinecap="round"
+        strokeWidth="22"
+        opacity="0.86"
+      />
+      <path
+        d="M136 577C47 645 55 766 154 824C267 891 407 821 534 690"
         fill="none"
-        stroke="#fff"
+        stroke="#ffffff"
         strokeLinecap="round"
         strokeWidth="20"
-        opacity="0.72"
+        opacity="0.76"
+      />
+      <path
+        d="M1118 577C1207 645 1199 766 1100 824C987 891 847 821 720 690"
+        fill="none"
+        stroke="#ffffff"
+        strokeLinecap="round"
+        strokeWidth="20"
+        opacity="0.76"
       />
     </g>
   );

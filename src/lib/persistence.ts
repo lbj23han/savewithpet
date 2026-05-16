@@ -4,6 +4,7 @@ import {
   petPresets,
   shopItems,
 } from "../mocks/appData";
+import { STANDARD_PRESET_BASE_BODY_URL, getPresetVisualLayers } from "../domain/petCharacterSet";
 import {
   STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
   STANDARD_CHARACTER_TEMPLATE_ID,
@@ -25,6 +26,7 @@ function createDefaultPet(): UserPet {
     species: preset.species,
     source: "preset",
     templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+    visualLayers: preset.visualLayers ?? getPresetVisualLayers(preset.id),
     wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
   };
 }
@@ -126,6 +128,7 @@ function normalizePet(pet: unknown): UserPet {
       species: preset.species,
       source: "preset",
       templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+      visualLayers: preset.visualLayers ?? getPresetVisualLayers(preset.id),
       wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
     };
   }
@@ -141,6 +144,7 @@ function normalizePet(pet: unknown): UserPet {
       source: "photo",
       sourcePhotoUrl: photoPet.sourcePhotoUrl ?? photoPet.imageUrl,
       templateId: photoPet.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
+      visualLayers: normalizeVisualLayers(photoPet),
       wearableAnchors: photoPet.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
     };
   }
@@ -153,4 +157,11 @@ function getTemplateCharacterImageUrl(pet: UserPet): string {
   if (pet.sourcePhotoUrl && pet.imageUrl === pet.sourcePhotoUrl) return STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
 
   return pet.imageUrl ?? STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
+}
+
+function normalizeVisualLayers(pet: UserPet): UserPet["visualLayers"] {
+  return {
+    baseBodyUrl: pet.visualLayers?.baseBodyUrl ?? STANDARD_PRESET_BASE_BODY_URL,
+    generatedOverlayUrl: pet.visualLayers?.generatedOverlayUrl,
+  };
 }

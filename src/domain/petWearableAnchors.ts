@@ -6,7 +6,7 @@ export const CHARACTER_TEMPLATE_VIEWBOX = 1254;
 export const STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL = "/assets/pets/akkigae.png?v=2";
 
 export const STANDARD_WEARABLE_PROFILE: PetWearableAnchors = {
-  back: { x: 627, y: 732, width: 610 },
+  back: { x: 627, y: 650, width: 760 },
   chest: { x: 638, y: 772, width: 150 },
   eyes: { x: 647, y: 506, width: 210, left: { x: 542, y: 506 }, right: { x: 752, y: 506 } },
   head: { x: 627, y: 356, width: 292 },
@@ -52,7 +52,7 @@ function getSunglassesTransform(eyes: PetEyesAnchor): string {
   const angle = Math.atan2(ry - ly, rx - lx) * (180 / Math.PI);
 
   return [
-    `translate(${mx} ${my})`,
+    `translate(${mx - 30} ${my})`,
     `rotate(${angle})`,
     `scale(${s})`,
     `translate(${-SVG_SUNGLASSES_MID.x} ${-SVG_SUNGLASSES_MID.y})`,
@@ -63,7 +63,7 @@ const ITEM_PLACEMENTS = {
   crown: {
     anchor: "head",
     fitWidth: 272,
-    offset: { x: 0, y: -24 },
+    offset: { x: 0, y: -58 },
     reference: { x: 633, y: 397 },
     referenceWidth: 391,
     scale: 1,
@@ -71,7 +71,7 @@ const ITEM_PLACEMENTS = {
   hat: {
     anchor: "head",
     fitWidth: 292,
-    offset: { x: 0, y: -22 },
+    offset: { x: 0, y: -56 },
     reference: { x: 632, y: 390 },
     referenceWidth: 360,
     scale: 1,
@@ -79,7 +79,7 @@ const ITEM_PLACEMENTS = {
   ribbon: {
     anchor: "head",
     fitWidth: 148,
-    offset: { x: 108, y: 34 },
+    offset: { x: 82, y: 2 },
     reference: { x: 676, y: 376 },
     referenceWidth: 360,
     scale: 1,
@@ -87,15 +87,15 @@ const ITEM_PLACEMENTS = {
   scarf: {
     anchor: "chest",
     fitWidth: 82,
-    offset: { x: 0, y: 0 },
+    offset: { x: 0, y: -30 },
     reference: { x: 638, y: 744 },
     referenceWidth: 113,
     scale: 1,
   },
   wings: {
     anchor: "back",
-    fitWidth: 560,
-    offset: { x: 0, y: 22 },
+    fitWidth: 900,
+    offset: { x: 0, y: 0 },
     reference: { x: 627, y: 700 },
     referenceWidth: 1100,
     scale: 1,

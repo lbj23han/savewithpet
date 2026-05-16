@@ -19,10 +19,16 @@ export type PetPreset = {
   species: Exclude<PetSpecies, "custom">;
   featured?: boolean;
   templateId?: CharacterTemplateId;
+  visualLayers?: PetVisualLayers;
   wearableAnchors?: PetWearableAnchors;
 };
 
 export type CharacterTemplateId = "standard-v1";
+
+export type PetVisualLayers = {
+  baseBodyUrl: string;
+  generatedOverlayUrl?: string;
+};
 
 export type PetWearableAnchor = {
   scale?: number;
@@ -57,6 +63,7 @@ export type UserPet = {
   source: "preset" | "photo" | "skip";
   sourcePhotoUrl?: string;
   templateId?: CharacterTemplateId;
+  visualLayers?: PetVisualLayers;
   wearableAnchors?: PetWearableAnchors;
 };
 

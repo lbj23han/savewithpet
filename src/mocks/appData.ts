@@ -1,3 +1,4 @@
+import { getPresetVisualLayers } from "../domain/petCharacterSet";
 import { STANDARD_CHARACTER_TEMPLATE_ID, STANDARD_WEARABLE_PROFILE } from "../domain/petWearableAnchors";
 import type { Category, PetPreset, ShopItem } from "../types/app";
 
@@ -11,6 +12,7 @@ export const petPresets: PetPreset[] = [
     species: "dog",
     featured: true,
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    visualLayers: getPresetVisualLayers("akkigae"),
     wearableAnchors: STANDARD_WEARABLE_PROFILE,
   },
   {
@@ -21,6 +23,7 @@ export const petPresets: PetPreset[] = [
     imageUrl: "/assets/pets/ttoosseunyang.png?v=2",
     species: "cat",
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    visualLayers: getPresetVisualLayers("ttoosseunyang"),
     wearableAnchors: STANDARD_WEARABLE_PROFILE,
   },
   {
@@ -31,6 +34,7 @@ export const petPresets: PetPreset[] = [
     imageUrl: "/assets/pets/kangchongmu.png?v=1",
     species: "rabbit",
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    visualLayers: getPresetVisualLayers("kangchongmu"),
     wearableAnchors: STANDARD_WEARABLE_PROFILE,
   },
 ];
