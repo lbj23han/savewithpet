@@ -80,6 +80,8 @@ savewithpet/
     standard-v1-wearable-profile.json     wearable anchor 기준값
 
   scripts/
+    lib/png-frame-qa.mjs                  PNG alpha silhouette QA helper
+    qa-character-assets.mjs               pre-DB 캐릭터 자산/표정 QA
     generate-standard-pets.mjs            로컬 SVG standard-v1 생성기
     generate-standard-basebody-pngs.mjs   AI full base-body PNG 생성 + QA
     generate-cutscene.mjs                 컷신/이벤트 이미지 실험 도구
@@ -169,6 +171,18 @@ npm run character:standard-png
 
 생성 스크립트는 `scripts/generate-standard-basebody-pngs.mjs`에 있습니다.
 
+DB 연동 전 캐릭터 준비 상태 점검:
+
+```bash
+npm run character:qa
+```
+
+이 명령은 다음 파일을 생성합니다.
+
+```text
+reports/pre-db-character-readiness.md
+```
+
 현재 자동 QA가 확인하는 것:
 
 - PNG 크기
@@ -190,6 +204,7 @@ npm run character:standard-png
 
 ```text
 reports/standard-v1-png-generation-report.md
+reports/pre-db-character-readiness.md
 ```
 
 ## Wearable System
@@ -248,7 +263,8 @@ back item layer
 
 - [ ] 프리셋 3종 base-body 출시용 최종본 확정
 - [ ] 전 아이템 착용 QA: 아끼개, 또쓰냥, 깡총무 x 모든 아이템
-- [ ] AI 생성 캐릭터 QA 파이프라인 확정: 자동 검사, 재생성, 수동 승인
+- [x] AI 생성 캐릭터 QA 파이프라인 1차 확정: 자동 검사, 재생성, 보고서
+- [x] 사진 기반 생성용 로컬 계약 고정: `sourcePhotoUrl`, `templateId`, `visualLayers`, `wearableAnchors`
 - [ ] 온보딩, 홈, 장부, 분석, 상점, 설정 핵심 루프 실기기 QA
 - [ ] localStorage 마이그레이션과 fallback 점검
 - [ ] 사진 기반 생성 과금/실패/재시도 정책 확정
@@ -266,6 +282,7 @@ back item layer
 
 ### P2: 운영 준비
 
+- [x] pre-DB 캐릭터 readiness 보고서 추가
 - [ ] 자동 착용 스크린샷 QA 도구 추가
 - [ ] `landmark-editor.html` 유지/삭제 결정
 - [ ] 서버 저장소와 사용자 식별 연결
