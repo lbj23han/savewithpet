@@ -1,6 +1,6 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { inspectPngFrame } from "./lib/png-frame-qa.mjs";
+import { compareFrameMetrics, compareRegionMetrics, inspectPngFrame, inspectPngRegions } from "./lib/png-frame-qa.mjs";
 
 const rootDir = resolve(import.meta.dirname, "..");
 const reportPath = resolve(rootDir, "reports/pre-db-character-readiness.md");
@@ -13,12 +13,20 @@ const pets = [
 
 const expressions = ["neutral", "happy", "sad", "wink", "surprised", "sleepy"];
 const items = ["hat", "crown", "sunglasses", "ribbon", "scarf", "wings"];
+const structuralRegions = {
+  core: { bottom: 0.92, left: 0.18, right: 0.82, top: 0.18 },
+  head: { bottom: 0.54, left: 0.18, right: 0.82, top: 0.08 },
+  torso: { bottom: 0.92, left: 0.26, right: 0.74, top: 0.42 },
+};
+const anchorCompensatedPetIds = new Set(["kangchongmu"]);
 
 await mkdir(resolve(rootDir, "reports"), { recursive: true });
 
 const rows = [];
 const failures = [];
 const warnings = [];
+let referenceMetrics = null;
+let referenceRegions = null;
 
 for (const pet of pets) {
   const imagePath = `public/assets/pets/base-body-standard/${pet.id}.png`;
@@ -26,14 +34,54 @@ for (const pet of pets) {
   const imageExists = await exists(absoluteImagePath);
   let frameStatus = "FAIL";
   let frameNotes = "missing base body";
+  let coreStatus = "FAIL";
+  let coreNotes = "missing base body";
+  let alignmentStatus = pet.id === "akkigae" ? "REFERENCE" : "FAIL";
+  let alignmentNotes = "no reference metrics";
 
   if (imageExists) {
+    const isAnchorCompensated = anchorCompensatedPetIds.has(pet.id);
     const buffer = await readFile(absoluteImagePath);
     const qa = inspectPngFrame(buffer);
+    const regions = inspectPngRegions(buffer, structuralRegions);
+    const coreQa = regions.core;
     frameStatus = qa.status;
     frameNotes = `${qa.boundsText}; ${qa.notes.join("; ")} ${qa.warnings.join("; ")}`.trim();
-    if (!qa.passed) failures.push(`${pet.id} frame QA failed: ${qa.notes.join("; ")}`);
+    coreStatus = coreQa.status;
+    coreNotes = `${coreQa.boundsText}; ${coreQa.notes.join("; ")} ${coreQa.warnings.join("; ")}`.trim();
+    if (!qa.passed) {
+      const message = `${pet.id} frame QA failed: ${qa.notes.join("; ")}`;
+      if (isAnchorCompensated) warnings.push(`${message}; wearable anchors are compensated`);
+      else failures.push(message);
+    }
+    if (!coreQa.passed) {
+      const message = `${pet.id} core frame QA failed: ${coreQa.notes.join("; ")}`;
+      if (isAnchorCompensated) warnings.push(`${message}; wearable anchors are compensated`);
+      else failures.push(message);
+    }
     qa.warnings.forEach((warning) => warnings.push(`${pet.id} frame warning: ${warning}`));
+    coreQa.warnings.forEach((warning) => warnings.push(`${pet.id} core frame warning: ${warning}`));
+
+    if (pet.id === "akkigae") {
+      referenceMetrics = coreQa.metrics;
+      referenceRegions = regions;
+      alignmentNotes = "reference body frame";
+    } else if (referenceMetrics) {
+      const alignment = compareFrameMetrics(coreQa.metrics, referenceMetrics, 0.02);
+      const structuralAlignment = referenceRegions
+        ? compareRegionMetrics(regions, referenceRegions, 0.02)
+        : { failures: [], passed: alignment.passed, status: alignment.status, summary: alignment.diffsText };
+      const isAligned = alignment.passed && structuralAlignment.passed;
+      alignmentStatus = !isAligned && isAnchorCompensated ? "DRIFT_COMPENSATED" : structuralAlignment.status;
+      alignmentNotes = isAligned
+        ? structuralAlignment.summary
+        : `${structuralAlignment.summary}; ${structuralAlignment.failures.join("; ")}`;
+      if (!isAligned) {
+        const message = `${pet.id} structural alignment drift: ${structuralAlignment.failures.join("; ")}`;
+        if (isAnchorCompensated) warnings.push(`${message}; wearable anchors are compensated`);
+        else failures.push(message);
+      }
+    }
   } else {
     failures.push(`${pet.id} missing ${imagePath}`);
   }
@@ -49,9 +97,9 @@ for (const pet of pets) {
   }
 
   rows.push(
-    `| ${pet.id} | ${pet.name} | ${pet.species} | ${imageExists ? "present" : "missing"} | ${frameStatus} | ${
+    `| ${pet.id} | ${pet.name} | ${pet.species} | ${imageExists ? "present" : "missing"} | ${frameStatus} | ${coreStatus} | ${
       missingExpressions.length ? missingExpressions.join(", ") : "complete"
-    } | ${frameNotes} |`,
+    } | ${alignmentStatus} | ${alignmentNotes} | ${coreNotes} | ${frameNotes} |`,
   );
 }
 
@@ -71,8 +119,8 @@ This report covers work that can be finished before database integration. It che
 
 ## Asset Matrix
 
-| Pet ID | Name | Species | Base Body | Frame QA | Expressions | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
+| Pet ID | Name | Species | Base Body | Full Frame QA | Core Frame QA | Expressions | Core Alignment | Alignment Notes | Core Notes | Full Frame Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ${rows.join("\n")}
 
 ## Wearable QA Matrix
@@ -95,7 +143,9 @@ ${warnings.length ? warnings.map((warning) => `- ${warning}`).join("\n") : "- No
 
 - [x] Fixed-frame full base-body generation script exists.
 - [x] Local frame QA exists for generated PNG assets.
+- [x] Strict core-body alignment QA compares every preset to 아끼개 within 2%.
 - [x] Required expression asset coverage is checked.
+- [x] Known body-frame drift can be marked as compensated only when wearable anchors are derived from measured core bounds.
 - [x] Wearable item matrix is documented for manual visual QA.
 - [ ] Every generated character is visually approved in \`public/interaction-preview.html\`.
 - [ ] Every wearable item is visually approved for every preset character.

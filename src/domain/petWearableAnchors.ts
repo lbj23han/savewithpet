@@ -14,10 +14,43 @@ export const STANDARD_WEARABLE_PROFILE: PetWearableAnchors = {
 
 export const DEFAULT_WEARABLE_ANCHORS = STANDARD_WEARABLE_PROFILE;
 
+type MeasuredCoreFrame = {
+  bottom: number;
+  itemScale?: number;
+  left: number;
+  right: number;
+  top: number;
+};
+
+const GENERATED_IMAGE_SIZE = 1024;
+const VIEWBOX_SCALE = CHARACTER_TEMPLATE_VIEWBOX / GENERATED_IMAGE_SIZE;
+
+const STANDARD_CORE_FRAME: MeasuredCoreFrame = {
+  bottom: 861,
+  left: 186,
+  right: 834,
+  top: 184,
+};
+
+const PRESET_CORE_FRAMES: Record<string, MeasuredCoreFrame> = {
+  akkigae: STANDARD_CORE_FRAME,
+  kangchongmu: {
+    bottom: 864,
+    itemScale: 1.18,
+    left: 324,
+    right: 693,
+    top: 184,
+  },
+  ttoosseunyang: {
+    ...STANDARD_CORE_FRAME,
+    itemScale: 1.08,
+  },
+};
+
 export const PRESET_WEARABLE_ANCHORS: Record<string, PetWearableAnchors> = {
   akkigae: STANDARD_WEARABLE_PROFILE,
-  kangchongmu: STANDARD_WEARABLE_PROFILE,
-  ttoosseunyang: STANDARD_WEARABLE_PROFILE,
+  kangchongmu: createProfileFromCoreFrame(PRESET_CORE_FRAMES.kangchongmu),
+  ttoosseunyang: createProfileFromCoreFrame(PRESET_CORE_FRAMES.ttoosseunyang),
 };
 
 export const STANDARD_CHARACTER_TEMPLATE_CONTRACT = {
@@ -104,6 +137,78 @@ const ITEM_PLACEMENTS = {
 
 export function getPetWearableAnchors(pet: Pick<UserPet, "id" | "wearableAnchors">): PetWearableAnchors {
   return pet.wearableAnchors ?? PRESET_WEARABLE_ANCHORS[pet.id] ?? DEFAULT_WEARABLE_ANCHORS;
+}
+
+export function getPresetWearableAnchors(petId: string): PetWearableAnchors {
+  return PRESET_WEARABLE_ANCHORS[petId] ?? DEFAULT_WEARABLE_ANCHORS;
+}
+
+function createProfileFromCoreFrame(frame: MeasuredCoreFrame): PetWearableAnchors {
+  const scaleX = getFrameWidth(frame) / getFrameWidth(STANDARD_CORE_FRAME);
+  const scaleY = getFrameHeight(frame) / getFrameHeight(STANDARD_CORE_FRAME);
+  const itemScale = frame.itemScale ?? 1;
+  const widthScale = Math.max(1, itemScale, scaleX * itemScale);
+  const eyeCenter = mapPoint(STANDARD_WEARABLE_PROFILE.eyes, frame);
+  const eyeDistance = (STANDARD_WEARABLE_PROFILE.eyes.right!.x - STANDARD_WEARABLE_PROFILE.eyes.left!.x) * widthScale;
+  const eyeY = mapPoint(STANDARD_WEARABLE_PROFILE.eyes.left!, frame).y;
+
+  return {
+    back: mapAnchor(STANDARD_WEARABLE_PROFILE.back, frame, widthScale),
+    chest: mapAnchor(STANDARD_WEARABLE_PROFILE.chest, frame, widthScale),
+    eyes: {
+      ...mapAnchor(STANDARD_WEARABLE_PROFILE.eyes, frame, widthScale),
+      left: { x: Math.round(eyeCenter.x - eyeDistance / 2), y: eyeY },
+      right: { x: Math.round(eyeCenter.x + eyeDistance / 2), y: eyeY },
+      width: Math.round(STANDARD_WEARABLE_PROFILE.eyes.width * widthScale),
+    },
+    head: mapAnchor(STANDARD_WEARABLE_PROFILE.head, frame, widthScale),
+  };
+
+  function mapAnchor<TAnchor extends { scale?: number; width?: number; x: number; y: number }>(
+    anchor: TAnchor,
+    targetFrame: MeasuredCoreFrame,
+    widthScale: number,
+  ): TAnchor {
+    const point = mapPoint(anchor, targetFrame);
+
+    return {
+      ...anchor,
+      width: anchor.width ? Math.round(anchor.width * widthScale) : anchor.width,
+      x: point.x,
+      y: Math.round(
+        mapScalar(anchor.y, STANDARD_CORE_FRAME.top * VIEWBOX_SCALE, getFrameHeight(STANDARD_CORE_FRAME) * VIEWBOX_SCALE, targetFrame.top * VIEWBOX_SCALE, getFrameHeight(targetFrame) * VIEWBOX_SCALE, scaleY),
+      ),
+    };
+  }
+}
+
+function mapPoint(point: { x: number; y: number }, targetFrame: MeasuredCoreFrame): { x: number; y: number } {
+  const sourceLeft = STANDARD_CORE_FRAME.left * VIEWBOX_SCALE;
+  const sourceTop = STANDARD_CORE_FRAME.top * VIEWBOX_SCALE;
+  const targetLeft = targetFrame.left * VIEWBOX_SCALE;
+  const targetTop = targetFrame.top * VIEWBOX_SCALE;
+
+  return {
+    x: Math.round(
+      mapScalar(point.x, sourceLeft, getFrameWidth(STANDARD_CORE_FRAME) * VIEWBOX_SCALE, targetLeft, getFrameWidth(targetFrame) * VIEWBOX_SCALE),
+    ),
+    y: Math.round(
+      mapScalar(point.y, sourceTop, getFrameHeight(STANDARD_CORE_FRAME) * VIEWBOX_SCALE, targetTop, getFrameHeight(targetFrame) * VIEWBOX_SCALE),
+    ),
+  };
+}
+
+function mapScalar(value: number, sourceStart: number, sourceSize: number, targetStart: number, targetSize: number, fallbackScale?: number): number {
+  if (!sourceSize) return targetStart + (value - sourceStart) * (fallbackScale ?? 1);
+  return targetStart + ((value - sourceStart) / sourceSize) * targetSize;
+}
+
+function getFrameWidth(frame: MeasuredCoreFrame): number {
+  return frame.right - frame.left + 1;
+}
+
+function getFrameHeight(frame: MeasuredCoreFrame): number {
+  return frame.bottom - frame.top + 1;
 }
 
 export function getItemAnchorTransform({

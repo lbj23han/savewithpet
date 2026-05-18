@@ -1,4 +1,4 @@
-import { inflateSync } from "node:zlib";
+import { deflateSync, inflateSync } from "node:zlib";
 
 export function inspectPngFrame(buffer, options = {}) {
   const png = decodePng(buffer);
@@ -6,12 +6,13 @@ export function inspectPngFrame(buffer, options = {}) {
   const warnings = [];
   const expectedWidth = options.expectedWidth ?? 1024;
   const expectedHeight = options.expectedHeight ?? 1024;
+  const boundsRegion = options.boundsRegion;
 
   if (png.width !== expectedWidth || png.height !== expectedHeight) {
     notes.push(`dimensions ${png.width}x${png.height}, expected ${expectedWidth}x${expectedHeight}`);
   }
 
-  const bounds = getAlphaBounds(png);
+  const bounds = getAlphaBounds(png, boundsRegion);
   if (!bounds) {
     return {
       bounds: null,
@@ -29,6 +30,7 @@ export function inspectPngFrame(buffer, options = {}) {
   const bottom = bounds.bottom / png.height;
   const widthRatio = (bounds.right - bounds.left + 1) / png.width;
   const heightRatio = (bounds.bottom - bounds.top + 1) / png.height;
+  const metrics = { bottom, centerX, heightRatio, top, widthRatio };
 
   if (Math.abs(centerX - 0.5) > 0.045) notes.push(`centerX ${centerX.toFixed(3)} outside 0.455-0.545`);
   if (top < 0.04 || top > 0.22) notes.push(`top ${top.toFixed(3)} outside 0.040-0.220`);
@@ -43,6 +45,7 @@ export function inspectPngFrame(buffer, options = {}) {
   return {
     bounds,
     boundsText: `left=${bounds.left}, top=${bounds.top}, right=${bounds.right}, bottom=${bounds.bottom}, centerX=${centerX.toFixed(3)}, width=${widthRatio.toFixed(3)}, height=${heightRatio.toFixed(3)}`,
+    metrics,
     notes: passed ? ["automated frame QA passed"] : notes,
     passed,
     score:
@@ -59,18 +62,96 @@ export function inspectPngFrame(buffer, options = {}) {
   };
 }
 
+export function inspectPngRegions(buffer, regions, options = {}) {
+  return Object.fromEntries(
+    Object.entries(regions).map(([name, boundsRegion]) => [
+      name,
+      inspectPngFrame(buffer, {
+        ...options,
+        boundsRegion,
+      }),
+    ]),
+  );
+}
+
+export function compareRegionMetrics(candidateRegions, referenceRegions, tolerance = 0.02) {
+  const entries = Object.keys(referenceRegions).map((regionName) => {
+    const candidate = candidateRegions[regionName]?.metrics;
+    const reference = referenceRegions[regionName]?.metrics;
+
+    if (!candidate || !reference) {
+      return {
+        comparison: {
+          diffs: {},
+          diffsText: "missing metrics",
+          failures: [`${regionName} missing metrics`],
+          passed: false,
+          status: "DRIFT",
+        },
+        regionName,
+      };
+    }
+
+    return {
+      comparison: compareFrameMetrics(candidate, reference, tolerance),
+      regionName,
+    };
+  });
+
+  const failures = entries.flatMap(({ comparison, regionName }) =>
+    comparison.failures.map((failure) => `${regionName}.${failure}`),
+  );
+
+  return {
+    details: Object.fromEntries(entries.map(({ comparison, regionName }) => [regionName, comparison])),
+    failures,
+    passed: failures.length === 0,
+    status: failures.length === 0 ? "MATCH" : "DRIFT",
+    summary: entries
+      .map(({ comparison, regionName }) => `${regionName}: ${comparison.diffsText}`)
+      .join(" | "),
+  };
+}
+
+export function compareFrameMetrics(candidate, reference, tolerance = 0.02) {
+  const diffs = {
+    bottom: Math.abs(candidate.bottom - reference.bottom),
+    centerX: Math.abs(candidate.centerX - reference.centerX),
+    heightRatio: Math.abs(candidate.heightRatio - reference.heightRatio),
+    top: Math.abs(candidate.top - reference.top),
+    widthRatio: Math.abs(candidate.widthRatio - reference.widthRatio),
+  };
+  const failures = Object.entries(diffs)
+    .filter(([, value]) => value > tolerance)
+    .map(([key, value]) => `${key} drift ${(value * 100).toFixed(1)}% > ${(tolerance * 100).toFixed(1)}%`);
+
+  return {
+    diffs,
+    diffsText: Object.entries(diffs)
+      .map(([key, value]) => `${key}=${(value * 100).toFixed(1)}%`)
+      .join(", "),
+    passed: failures.length === 0,
+    status: failures.length === 0 ? "MATCH" : "DRIFT",
+    failures,
+  };
+}
+
 export function scoreQa(qa) {
   return qa.score;
 }
 
-function getAlphaBounds(png) {
+function getAlphaBounds(png, region) {
   let left = png.width;
   let right = -1;
   let top = png.height;
   let bottom = -1;
+  const minX = Math.round((region?.left ?? 0) * png.width);
+  const maxX = Math.round((region?.right ?? 1) * png.width) - 1;
+  const minY = Math.round((region?.top ?? 0) * png.height);
+  const maxY = Math.round((region?.bottom ?? 1) * png.height) - 1;
 
-  for (let y = 0; y < png.height; y += 1) {
-    for (let x = 0; x < png.width; x += 1) {
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
       const index = (y * png.width + x) * 4;
       if (png.data[index + 3] <= 12) continue;
 
@@ -85,7 +166,7 @@ function getAlphaBounds(png) {
   return { bottom, left, right, top };
 }
 
-function decodePng(buffer) {
+export function decodePng(buffer) {
   const signature = buffer.subarray(0, 8).toString("hex");
   if (signature !== "89504e470d0a1a0a") {
     throw new Error("Output is not a PNG file.");
@@ -147,6 +228,51 @@ function decodePng(buffer) {
   }
 
   return { data, height, width };
+}
+
+export function encodePng({ data, height, width }) {
+  const colorType = 6;
+  const bitDepth = 8;
+  const stride = width * 4;
+  const raw = Buffer.alloc(height * (stride + 1));
+
+  for (let y = 0; y < height; y += 1) {
+    const rawRow = y * (stride + 1);
+    raw[rawRow] = 0;
+    data.copy(raw, rawRow + 1, y * stride, y * stride + stride);
+  }
+
+  const signature = Buffer.from("89504e470d0a1a0a", "hex");
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = bitDepth;
+  ihdr[9] = colorType;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+
+  return Buffer.concat([signature, chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
+}
+
+function chunk(type, data) {
+  const typeBuffer = Buffer.from(type, "ascii");
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
+  return Buffer.concat([length, typeBuffer, data, crc]);
+}
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 function unfilter(filter, value, left, up, upLeft) {

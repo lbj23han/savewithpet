@@ -9,16 +9,16 @@ This report covers work that can be finished before database integration. It che
 - Pets checked: 3
 - Expressions required per pet: 6
 - Wearable items requiring visual QA: 6
-- Failures: 0
-- Warnings: 1
+- Failures: 1
+- Warnings: 5
 
 ## Asset Matrix
 
-| Pet ID | Name | Species | Base Body | Frame QA | Expressions | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| akkigae | 아끼개 | dog | present | PASS | complete | left=186, top=113, right=834, bottom=861, centerX=0.498, width=0.634, height=0.731; automated frame QA passed |
-| ttoosseunyang | 또쓰냥 | cat | present | PASS | complete | left=254, top=109, right=779, bottom=899, centerX=0.504, width=0.514, height=0.772; automated frame QA passed |
-| kangchongmu | 깡총무 | rabbit | present | PASS_WITH_WARNINGS | complete | left=304, top=73, right=717, bottom=930, centerX=0.499, width=0.404, height=0.838; automated frame QA passed width 0.404 below preferred 0.420 |
+| Pet ID | Name | Species | Base Body | Full Frame QA | Core Frame QA | Expressions | Core Alignment | Alignment Notes | Core Notes | Full Frame Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| akkigae | 아끼개 | dog | present | PASS | PASS | complete | REFERENCE | reference body frame | left=186, top=184, right=834, bottom=861, centerX=0.498, width=0.634, height=0.662; automated frame QA passed | left=186, top=113, right=834, bottom=861, centerX=0.498, width=0.634, height=0.731; automated frame QA passed |
+| ttoosseunyang | 또쓰냥 | cat | present | PASS | PASS | complete | DRIFT | core: bottom=0.0%, centerX=0.0%, heightRatio=0.0%, top=0.0%, widthRatio=0.0% | head: bottom=0.0%, centerX=1.4%, heightRatio=0.0%, top=0.0%, widthRatio=2.7% | torso: bottom=0.0%, centerX=0.0%, heightRatio=0.0%, top=0.0%, widthRatio=0.0%; head.widthRatio drift 2.7% > 2.0% | left=186, top=184, right=834, bottom=861, centerX=0.498, width=0.634, height=0.662; automated frame QA passed | left=186, top=113, right=834, bottom=861, centerX=0.498, width=0.634, height=0.731; automated frame QA passed |
+| kangchongmu | 깡총무 | rabbit | present | FAIL | FAIL | complete | DRIFT_COMPENSATED | core: bottom=0.3%, centerX=0.1%, heightRatio=0.3%, top=0.0%, widthRatio=27.2% | head: bottom=0.0%, centerX=0.0%, heightRatio=3.0%, top=3.0%, widthRatio=24.0% | torso: bottom=0.3%, centerX=0.0%, heightRatio=0.3%, top=0.0%, widthRatio=13.0%; core.widthRatio drift 27.2% > 2.0%; head.heightRatio drift 3.0% > 2.0%; head.top drift 3.0% > 2.0%; head.widthRatio drift 24.0% > 2.0%; torso.widthRatio drift 13.0% > 2.0% | left=324, top=184, right=693, bottom=864, centerX=0.497, width=0.361, height=0.665; width 0.361 outside 0.400-0.780 width 0.361 below preferred 0.420 | left=309, top=68, right=711, bottom=864, centerX=0.498, width=0.394, height=0.778; width 0.394 outside 0.400-0.780 width 0.394 below preferred 0.420 |
 
 ## Wearable QA Matrix
 
@@ -32,17 +32,23 @@ The following matrix must be visually approved before photo-based generation tes
 
 ## Failures
 
-- None
+- ttoosseunyang structural alignment drift: head.widthRatio drift 2.7% > 2.0%
 
 ## Warnings
 
-- kangchongmu frame warning: width 0.404 below preferred 0.420
+- kangchongmu frame QA failed: width 0.394 outside 0.400-0.780; wearable anchors are compensated
+- kangchongmu core frame QA failed: width 0.361 outside 0.400-0.780; wearable anchors are compensated
+- kangchongmu frame warning: width 0.394 below preferred 0.420
+- kangchongmu core frame warning: width 0.361 below preferred 0.420
+- kangchongmu structural alignment drift: core.widthRatio drift 27.2% > 2.0%; head.heightRatio drift 3.0% > 2.0%; head.top drift 3.0% > 2.0%; head.widthRatio drift 24.0% > 2.0%; torso.widthRatio drift 13.0% > 2.0%; wearable anchors are compensated
 
 ## Pre-DB Done Criteria
 
 - [x] Fixed-frame full base-body generation script exists.
 - [x] Local frame QA exists for generated PNG assets.
+- [x] Strict core-body alignment QA compares every preset to 아끼개 within 2%.
 - [x] Required expression asset coverage is checked.
+- [x] Known body-frame drift can be marked as compensated only when wearable anchors are derived from measured core bounds.
 - [x] Wearable item matrix is documented for manual visual QA.
 - [ ] Every generated character is visually approved in `public/interaction-preview.html`.
 - [ ] Every wearable item is visually approved for every preset character.

@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
-import { inspectPngFrame, scoreQa } from "./lib/png-frame-qa.mjs";
+import { compareFrameMetrics, compareRegionMetrics, inspectPngFrame, inspectPngRegions, scoreQa } from "./lib/png-frame-qa.mjs";
 
 const rootDir = resolve(import.meta.dirname, "..");
 const env = await loadEnv();
@@ -17,6 +17,14 @@ const size = env.OPENAI_IMAGE_SIZE ?? "1024x1024";
 const quality = env.OPENAI_IMAGE_QUALITY ?? "low";
 const background = env.OPENAI_IMAGE_BACKGROUND ?? "transparent";
 const maxAttempts = Number(env.OPENAI_IMAGE_MAX_ATTEMPTS ?? 2);
+const onlyPetId = getArgValue("--pet");
+const referencePetId = env.STANDARD_REFERENCE_PET_ID ?? "akkigae";
+const alignmentTolerance = Number(env.STANDARD_ALIGNMENT_TOLERANCE ?? 0.02);
+const structuralRegions = {
+  core: { bottom: 0.92, left: 0.18, right: 0.82, top: 0.18 },
+  head: { bottom: 0.54, left: 0.18, right: 0.82, top: 0.08 },
+  torso: { bottom: 0.92, left: 0.26, right: 0.74, top: 0.42 },
+};
 
 const pets = [
   {
@@ -31,8 +39,13 @@ const pets = [
   },
   {
     id: "kangchongmu",
+    referenceId: "akkigae",
+    referencePath: "public/assets/pets/base-body-standard/akkigae.png",
     species: "round rabbit mascot",
-    traits: "cream white fur, tall rabbit ears with pink inner ears, round cotton tail, pink scarf body accent",
+    traits:
+      "cream white fur, tall rabbit ears with pink inner ears, round cotton tail, pink scarf body accent",
+    frameNotes:
+      "Use the input puppy image as the exact body-frame reference. Preserve the alpha silhouette and size from neck down exactly. Keep the same head width, torso width, arm positions, leg positions, foot positions, chest height, body centerline, and bottom baseline. Only convert species traits to rabbit by replacing floppy ears with tall rabbit ears and changing the tail to a small round cotton tail. Do not shrink the body. Do not create a slim rabbit body. Do not move the paws, torso, feet, or head silhouette inward.",
   },
 ];
 
@@ -40,8 +53,16 @@ await mkdir(outputDir, { recursive: true });
 await mkdir(reportDir, { recursive: true });
 
 const results = [];
-for (const pet of pets) {
-  const sourcePath = resolve(rootDir, `public/assets/pets/base-body/${pet.id}.png`);
+const selectedPets = onlyPetId ? pets.filter((pet) => pet.id === onlyPetId) : pets;
+if (!selectedPets.length) {
+  throw new Error(`Unknown pet id: ${onlyPetId}`);
+}
+
+const referenceMetrics = await loadReferenceMetrics();
+const referenceRegions = await loadReferenceRegions();
+
+for (const pet of selectedPets) {
+  const sourcePath = resolve(rootDir, pet.referencePath ?? `public/assets/pets/base-body/${pet.referenceId ?? pet.id}.png`);
   const outputPath = resolve(outputDir, `${pet.id}.png`);
   const attempts = [];
   let selected = null;
@@ -51,6 +72,23 @@ for (const pet of pets) {
     const outputBuffer = await generateBaseBody({ prompt, sourcePath });
     const [expectedWidth, expectedHeight] = size.split("x").map(Number);
     const qa = inspectPngFrame(outputBuffer, { expectedHeight, expectedWidth });
+    const regions = inspectPngRegions(outputBuffer, structuralRegions, { expectedHeight, expectedWidth });
+    const alignment =
+      pet.id === referencePetId
+        ? { diffsText: "reference body frame", failures: [], passed: true, status: "REFERENCE" }
+        : compareFrameMetrics(qa.metrics, referenceMetrics, alignmentTolerance);
+    const structuralAlignment =
+      pet.id === referencePetId
+        ? { failures: [], passed: true, status: "REFERENCE", summary: "reference body frame" }
+        : compareRegionMetrics(regions, referenceRegions, alignmentTolerance);
+    qa.alignment = alignment;
+    qa.structuralAlignment = structuralAlignment;
+    if (!alignment.passed || !structuralAlignment.passed) {
+      qa.passed = false;
+      qa.status = "FAIL";
+      qa.notes = [...qa.notes, ...alignment.failures, ...structuralAlignment.failures];
+      qa.score -= (alignment.failures.length + structuralAlignment.failures.length) * 30;
+    }
     attempts.push({ attempt, prompt, qa });
     console.log(`${pet.id} attempt ${attempt}: ${qa.passed ? "PASS" : "FAIL"} - ${qa.notes.join("; ")}`);
 
@@ -120,6 +158,8 @@ function buildPrompt(pet, attempt) {
     "- Canvas is exactly square. Generate for 1024x1024 transparent PNG, mapped to a 1254x1254 app asset coordinate system.",
     "- Full-body centered, front-facing standing pose. No sitting, no rotated body, no leaning, no cropped parts.",
     "- Overall character silhouette target in 1024 coordinates: left 200-300, right 724-824, top 70-180, bottom 835-950.",
+    "- If the input image already has a good body frame, preserve that frame exactly.",
+    "- For non-reference species, change only species traits while keeping the input body frame and proportions.",
     "- Keep the body centerline at x=512. The visual center must not drift left or right.",
     "- Head center target: x=512, y=350. Face area target: x=512, y=410.",
     "- Eye/expression anchors must remain available at left x=443 y=413 and right x=614 y=413 in 1024 coordinates.",
@@ -127,12 +167,15 @@ function buildPrompt(pet, attempt) {
     "- Feet must end near y=870-930 and remain symmetrical.",
     "- Keep the face blank: no eyes, no eyebrows, no nose, no mouth, no facial lines.",
     "- Same body size, face area, torso size, hand position, foot position, and framing for every species.",
+    "- Body width, torso width, arm positions, and foot positions must be visually identical to the reference character.",
     "- Species traits may change ear shape, tail shape, fur markings, and colors only. They must not move the torso, head, face area, hands, feet, or framing.",
     "- The result should look like one complete full base-body character, not detached overlay pieces.",
     "",
     `Pet identity: ${pet.species}.`,
     `Allowed visual traits only: ${pet.traits}.`,
+    pet.frameNotes ? `Species-specific frame lock: ${pet.frameNotes}` : "",
     `Generation pass: ${attempt}. If this is not pass 1, correct framing drift by making the body more centered and closer to the target coordinates.`,
+    `Strict visual alignment target: match ${referencePetId}'s body frame within ${(alignmentTolerance * 100).toFixed(0)}% for center, top, bottom, width, and height.`,
     "",
     "Style:",
     "- Same quality as the reference: soft premium 3D mascot, smooth rounded forms, gentle pastel shading, polished app icon character.",
@@ -146,7 +189,7 @@ function buildReport(results) {
   const rows = results
     .map(
       (result) =>
-        `| ${result.id} | ${result.outputPath} | ${result.qa.status} | ${result.qa.boundsText} | ${result.qa.notes.join("<br>")} ${result.qa.warnings.join("<br>")} |`,
+    `| ${result.id} | ${result.outputPath} | ${result.qa.status} | ${result.qa.structuralAlignment?.status ?? "n/a"} | ${result.qa.structuralAlignment?.summary ?? "n/a"} | ${result.qa.boundsText} | ${result.qa.notes.join("<br>")} ${result.qa.warnings.join("<br>")} |`,
     )
     .join("\n");
   const prompts = results
@@ -160,7 +203,7 @@ Selected QA: ${result.qa.status}
 ${result.attempts
   .map(
     (attempt) =>
-      `- Attempt ${attempt.attempt}: ${attempt.qa.status} / ${attempt.qa.boundsText} / ${attempt.qa.notes.join("; ")} ${attempt.qa.warnings.join("; ")}`,
+      `- Attempt ${attempt.attempt}: ${attempt.qa.status} / ${attempt.qa.structuralAlignment?.status ?? "n/a"} / ${attempt.qa.structuralAlignment?.summary ?? "n/a"} / ${attempt.qa.boundsText} / ${attempt.qa.notes.join("; ")} ${attempt.qa.warnings.join("; ")}`,
   )
   .join("\n")}
 
@@ -174,10 +217,10 @@ ${result.prompt}
 
   return `# Standard-V1 PNG Base-Body Generation Report
 
-Generated with ${model}, size ${size}, quality ${quality}, background ${background}, max attempts ${maxAttempts}.
+Generated with ${model}, size ${size}, quality ${quality}, background ${background}, max attempts ${maxAttempts}, reference ${referencePetId}, tolerance ${(alignmentTolerance * 100).toFixed(1)}%.
 
-| Pet | Output | Status | Bounds | Notes |
-| --- | --- | --- | --- | --- |
+| Pet | Output | Status | Structural Alignment | Region Diffs | Bounds | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
 ${rows}
 
 ## QA Criteria
@@ -185,12 +228,30 @@ ${rows}
 - Transparent PNG.
 - Blank face only: no eyes, no nose, no mouth.
 - Soft 3D pastel quality comparable to existing base-body PNG assets.
-- Body, face, hands, feet, and framing follow standard-v1.
+- Body, head, torso, face anchor, hands, feet, and framing follow standard-v1.
 - Wearable anchors should match the shared profile.
-- Automated QA currently checks PNG dimensions and alpha silhouette framing. Visual QA is still required for eye/face anchor quality.
+- Automated QA checks PNG dimensions, full alpha silhouette framing, and structural region alignment against the reference body.
 
 ${prompts}
 `;
+}
+
+async function loadReferenceMetrics() {
+  const referencePath = resolve(outputDir, `${referencePetId}.png`);
+  const buffer = await readFile(referencePath);
+  return inspectPngFrame(buffer).metrics;
+}
+
+async function loadReferenceRegions() {
+  const referencePath = resolve(outputDir, `${referencePetId}.png`);
+  const buffer = await readFile(referencePath);
+  return inspectPngRegions(buffer, structuralRegions);
+}
+
+function getArgValue(name) {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return null;
+  return process.argv[index + 1] ?? null;
 }
 
 async function loadEnv() {
