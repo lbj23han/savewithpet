@@ -259,12 +259,77 @@ back item layer
 
 ## Release Priority
 
+### Current Blocking Issues
+
+현재 출시를 막는 핵심 이슈는 캐릭터 base-body frame 불일치입니다. 아이템 anchor를 계속 보정하는 방식만으로는 해결하지 않습니다.
+
+#### Issue 1: `standard-v1` body/head/torso frame 불일치
+
+- 증상: 선글라스, 모자, 왕관, 리본, 날개가 캐릭터마다 살짝 삐뚤어지거나 크기가 어색하게 보입니다.
+- 원인: 프리셋 base-body PNG가 동일한 body rig를 공유하지 않습니다. 특히 머리 폭, 몸통 폭, core alpha bounds가 다릅니다.
+- 현재 기준 캐릭터: `akkigae`
+- 현재 QA 상태: `npm run character:qa` 기준 `ttoosseunyang`은 `head.widthRatio` 2.7% drift, `kangchongmu`는 core/head/torso drift가 큽니다.
+- 관련 리포트: `reports/pre-db-character-readiness.md`
+- 관련 파일:
+  - `public/assets/pets/base-body-standard/*.png`
+  - `scripts/generate-standard-basebody-pngs.mjs`
+  - `scripts/lib/png-frame-qa.mjs`
+  - `scripts/qa-character-assets.mjs`
+  - `src/domain/petWearableAnchors.ts`
+
+완료 기준:
+
+- [ ] `ttoosseunyang`과 `kangchongmu`를 `akkigae` 기준 `core`, `head`, `torso` structural alignment 2% 이내로 재생성
+- [ ] `npm run character:qa`가 failure 0으로 통과
+- [ ] `reports/pre-db-character-readiness.md`에서 `Core Alignment`가 `MATCH` 또는 명확히 승인된 예외만 표시
+- [ ] `public/interaction-preview.html`에서 3종 캐릭터 x 6개 아이템 착용이 육안으로 자연스러움
+
+#### Issue 2: AI 생성 프롬프트만으로 좌표 고정이 충분하지 않음
+
+- 증상: "same body frame"을 프롬프트에 강하게 적어도 생성물이 2% 이내로 안정적으로 맞지 않습니다.
+- 결정: 프롬프트는 보조 수단이고, 반드시 생성 후 structural QA에서 실패시키고 재생성해야 합니다.
+- 다음 작업 위치: `scripts/generate-standard-basebody-pngs.mjs`
+
+해결 방향:
+
+- [ ] 생성 후보를 여러 장 만들고 `compareRegionMetrics()` 점수가 가장 좋은 후보만 선택
+- [ ] `core`, `head`, `torso` 중 하나라도 2% 초과 drift면 최종 실패 처리
+- [ ] 실패 리포트에 어떤 region이 틀어졌는지 표시해서 다음 프롬프트 수정에 반영
+- [ ] 필요하면 `STANDARD_ALIGNMENT_TOLERANCE`를 env로 조정하되 출시 후보는 2%를 목표로 유지
+
+#### Issue 3: 착용 아이템은 body 보정 후 마지막에 조정해야 함
+
+- 증상: 현재는 `kangchongmu`, `ttoosseunyang`에 임시 item scale 보정이 들어가 있습니다.
+- 원인: base-body frame이 아직 완전히 동일하지 않아서 anchor가 임시 보정 역할을 하고 있습니다.
+- 관련 파일: `src/domain/petWearableAnchors.ts`
+
+원칙:
+
+- [ ] base-body가 structural QA를 통과하기 전까지 아이템 위치를 최종 확정하지 않음
+- [ ] base-body가 맞춰진 뒤 `STANDARD_WEARABLE_PROFILE`을 기준으로 공통 anchor를 재확정
+- [ ] 캐릭터별 `itemScale`/measured core frame 보정은 출시 전 제거하거나 "승인된 예외"로 문서화
+- [ ] 선글라스는 양쪽 눈 anchor, 모자/왕관/리본은 head anchor, 펜던트는 chest anchor, 날개는 back layer 기준으로만 조정
+
+#### Issue 4: 사진 기반 생성 테스트 전 필수 조건
+
+- 사진 기반 생성은 현재 프리셋 3종도 stable frame을 못 맞추면 시작하면 안 됩니다.
+- 유저 사진 기반 캐릭터도 동일한 `standard-v1` full base-body PNG 계약을 따라야 합니다.
+
+사진 기반 생성 테스트 진입 조건:
+
+- [ ] 프리셋 3종이 `npm run character:qa` failure 0
+- [ ] 프리셋 3종 x 전체 아이템 수동 QA 완료
+- [ ] 생성 실패/재시도/과금 정책 확정
+- [ ] 생성 결과 저장 구조: `templateId`, `visualLayers`, `wearableAnchors`, `sourcePhotoUrl` 보존
+
 ### P0: 출시 필수
 
-- [ ] 프리셋 3종 base-body 출시용 최종본 확정
-- [ ] 전 아이템 착용 QA: 아끼개, 또쓰냥, 깡총무 x 모든 아이템
+- [ ] 프리셋 3종 base-body 출시용 최종본 확정: `akkigae`, `ttoosseunyang`, `kangchongmu`
+- [ ] `npm run character:qa` failure 0 만들기
+- [ ] 전 아이템 착용 QA: 아끼개, 또쓰냥, 깡총무 x `hat`, `crown`, `sunglasses`, `ribbon`, `scarf`, `wings`
 - [x] AI 생성 캐릭터 QA 파이프라인 1차 확정: 자동 검사, 재생성, 보고서
 - [x] 사진 기반 생성용 로컬 계약 고정: `sourcePhotoUrl`, `templateId`, `visualLayers`, `wearableAnchors`
+- [ ] 사진 기반 생성 테스트 시작 전 프리셋 3종 structural QA 통과
 - [ ] 온보딩, 홈, 장부, 분석, 상점, 설정 핵심 루프 실기기 QA
 - [ ] localStorage 마이그레이션과 fallback 점검
 - [ ] 사진 기반 생성 과금/실패/재시도 정책 확정
@@ -272,9 +337,10 @@ back item layer
 
 ### P1: 출시 전 품질
 
-- [ ] 깡총무 base-body 재생성: 현재 report 기준 BEST_EFFORT
-- [ ] 표정 6종의 위치와 크기 전수 QA
-- [ ] 선글라스, 모자, 왕관, 리본, 펜던트, 날개 위치 최종 조정
+- [ ] 또쓰냥 base-body 재생성 또는 보정: `head.widthRatio` drift 2.7% 해결
+- [ ] 깡총무 base-body 재생성: core/head/torso drift 해결
+- [ ] 표정 6종의 위치와 크기 전수 QA: `public/assets/pet-parts/{petId}/*.svg`
+- [ ] 선글라스, 모자, 왕관, 리본, 펜던트, 날개 위치 최종 조정: body frame 확정 이후 진행
 - [ ] 아이템 SVG 퀄리티 개선: 캐릭터와 어울리는 3D/파스텔 톤
 - [ ] AI 생성 중 로딩, 실패, 재시도, 결제 실패 UX 정리
 - [ ] 코디 공유/커뮤니티 MVP 흐름 확인
@@ -285,6 +351,7 @@ back item layer
 - [x] pre-DB 캐릭터 readiness 보고서 추가
 - [ ] 자동 착용 스크린샷 QA 도구 추가
 - [ ] `landmark-editor.html` 유지/삭제 결정
+- [ ] `interaction-preview.html`를 QA 전용 체크리스트 화면으로 정리
 - [ ] 서버 저장소와 사용자 식별 연결
 - [ ] 커뮤니티 게시글/댓글 API 연결
 - [ ] 부적절 사진/생성물 필터 정책
