@@ -58,6 +58,7 @@ export const ledgerCategories: Category[] = [
 ];
 
 export const shopItems: ShopItem[] = [
+  { id: "canola-garden", name: "유채꽃 정원", icon: "canola-garden", price: 1200 },
   { id: "cozy-cushion", name: "포근 방석", icon: "cushion", price: 450 },
   { id: "heart-aura", name: "하트 오라", icon: "heart-aura", price: 600 },
   {

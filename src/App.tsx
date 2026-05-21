@@ -114,6 +114,8 @@ function App() {
   };
 
   const deleteLedgerEntry = (entryId: string) => {
+    if (!confirmAction("이 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.")) return;
+
     setAppState((prev) => ({
       ...prev,
       entries: prev.entries.filter((entry) => entry.id !== entryId),
@@ -137,6 +139,8 @@ function App() {
   };
 
   const deleteCategory = (categoryId: string) => {
+    if (!confirmAction("이 카테고리를 삭제할까요? 연결된 기록은 기타 카테고리로 이동해요.")) return;
+
     setAppState((prev) => ({
       ...prev,
       categoryBudgets: Object.fromEntries(Object.entries(prev.categoryBudgets).filter(([id]) => id !== categoryId)),
@@ -163,6 +167,8 @@ function App() {
     }
 
     if (!item.canBuy) return;
+    if (!confirmAction(`${item.name}을 ${item.price.toLocaleString("ko-KR")}코인으로 구매하고 적용할까요?`)) return;
+
     setAppState((prev) => ({
       ...prev,
       coins: spendCoins(prev.coins, item.price),
@@ -216,6 +222,10 @@ function App() {
       return;
     }
 
+    if (!confirmAction(`${preset.name}을 ${BASE_CHARACTER_PRICE.toLocaleString("ko-KR")}코인으로 구매하고 바로 사용할까요?`)) {
+      return;
+    }
+
     setAppState((prev) => ({
       ...prev,
       coins: spendCoins(prev.coins, BASE_CHARACTER_PRICE),
@@ -226,6 +236,10 @@ function App() {
   };
 
   const openAiCharacterCreation = () => {
+    if (!confirmAction("AI 캐릭터 생성은 1회 500원 결제 상품으로 제공될 예정이에요. 결제 화면으로 이동할까요?")) {
+      return;
+    }
+
     setToastMessage("AI 캐릭터 생성은 결제 연동 후 500원 상품으로 열릴 예정이에요");
   };
 
@@ -250,6 +264,8 @@ function App() {
   };
 
   const shareOutfit = () => {
+    if (!confirmAction("현재 캐릭터 모습을 코디 자랑에 올릴까요?")) return;
+
     const post = createOutfitPost({ equippedItem, pet: appState.pet });
     setAppState((prev) => ({
       ...prev,
@@ -383,6 +399,11 @@ function App() {
 function spendCoins(currentCoins: number, amount: number): number {
   if (import.meta.env.DEV) return currentCoins;
   return Math.max(0, currentCoins - amount);
+}
+
+function confirmAction(message: string): boolean {
+  if (typeof window === "undefined") return true;
+  return window.confirm(message);
 }
 
 export default App;

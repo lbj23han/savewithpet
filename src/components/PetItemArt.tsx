@@ -21,6 +21,7 @@ export function PetItemArt({ itemId, title, variant = "preview" }: PetItemArtPro
 }
 
 function renderItemPaths(itemId: string) {
+  if (itemId === "canola-garden") return <CanolaGardenPaths />;
   if (itemId === "cozy-cushion") return <CozyCushionPaths />;
   if (itemId === "heart-aura") return <HeartAuraPaths />;
   if (itemId === "coin-shower") return <CoinShowerPaths />;
@@ -28,6 +29,44 @@ function renderItemPaths(itemId: string) {
   if (itemId === "saving-sprout") return <SavingSproutPaths />;
 
   return <SparkleStickerPaths />;
+}
+
+function CanolaGardenPaths() {
+  return (
+    <g>
+      <defs>
+        <linearGradient id="canola-sky" x1="0" x2="0" y1="180" y2="1000" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#dff6ff" />
+          <stop offset="0.55" stopColor="#fff8dc" />
+          <stop offset="1" stopColor="#e9f8d8" />
+        </linearGradient>
+        <linearGradient id="canola-field" x1="0" x2="0" y1="650" y2="1040" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fff2a3" />
+          <stop offset="1" stopColor="#bde88b" />
+        </linearGradient>
+      </defs>
+      <circle cx="627" cy="610" r="496" fill="url(#canola-sky)" opacity="0.9" />
+      <path d="M150 826C320 706 498 704 646 830C780 718 974 724 1102 822V1052H150Z" fill="url(#canola-field)" />
+      <path d="M184 770C356 690 478 722 626 800C778 710 932 706 1078 782" fill="none" stroke="#8bd07c" strokeWidth="20" strokeLinecap="round" opacity="0.55" />
+      <circle cx="914" cy="300" r="72" fill="#ffe27a" opacity="0.82" />
+      <circle cx="880" cy="278" r="20" fill="#fff8c8" opacity="0.76" />
+      {[
+        [238, 778, 0.82],
+        [326, 720, 0.76],
+        [432, 790, 0.7],
+        [790, 782, 0.82],
+        [904, 718, 0.72],
+        [1018, 790, 0.78],
+        [192, 930, 0.62],
+        [512, 910, 0.64],
+        [726, 930, 0.66],
+        [1058, 928, 0.6],
+      ].map(([x, y, scale], index) => (
+        <CanolaFlower key={index} x={x} y={y} scale={scale} />
+      ))}
+      <path d="M230 1000C416 940 834 940 1024 1000" fill="none" stroke="#f6d16b" strokeWidth="18" strokeLinecap="round" opacity="0.35" />
+    </g>
+  );
 }
 
 function CozyCushionPaths() {
@@ -97,6 +136,19 @@ function SavingSproutPaths() {
       <path d="M1014 829C960 787 912 793 876 847C930 881 978 871 1014 829Z" fill="#6bcf95" />
       <circle cx="1040" cy="711" r="48" fill="#ffd35d" />
       <path d="M1026 727V695H1054" stroke="#d99422" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+  );
+}
+
+function CanolaFlower({ scale, x, y }: { scale: number; x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      <path d="M0 24V92" stroke="#6bb56d" strokeWidth="10" strokeLinecap="round" />
+      <ellipse cx="-24" cy="-4" rx="24" ry="18" fill="#ffd84f" transform="rotate(-32 -24 -4)" />
+      <ellipse cx="24" cy="-4" rx="24" ry="18" fill="#ffd84f" transform="rotate(32 24 -4)" />
+      <ellipse cx="-12" cy="-30" rx="22" ry="17" fill="#ffe875" transform="rotate(-68 -12 -30)" />
+      <ellipse cx="12" cy="-30" rx="22" ry="17" fill="#ffe875" transform="rotate(68 12 -30)" />
+      <circle cx="0" cy="-10" r="12" fill="#e8a827" />
     </g>
   );
 }

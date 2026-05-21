@@ -1,9 +1,9 @@
 import { Camera, Palette } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 
 import { ONBOARDING_COPY } from "../constants/copy";
-import { createPetFromPhoto, createPetFromPreset, createSkippedPet } from "../domain/avatarGenerator";
+import { createPetFromPreset, createSkippedPet } from "../domain/avatarGenerator";
 import { petPresets } from "../mocks/appData";
 import { PrimaryButton } from "../components/PrimaryButton";
 import type { PetPreset, UserPet } from "../types/app";
@@ -13,24 +13,9 @@ type OnboardingPageProps = {
 };
 
 export function OnboardingPage({ onComplete }: OnboardingPageProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const defaultPreset = petPresets.find((pet) => pet.featured) ?? petPresets[0];
-  const [photoPreview, setPhotoPreview] = useState<UserPet | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<PetPreset>(defaultPreset);
   const [petName, setPetName] = useState(defaultPreset.name);
-
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setPhotoPreview(createPetFromPhoto(file, reader.result));
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   const selectPreset = (preset: PetPreset) => {
     setSelectedPreset(preset);
@@ -48,16 +33,13 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
       <Title>{ONBOARDING_COPY.title}</Title>
       <Description>{ONBOARDING_COPY.description}</Description>
 
-      {photoPreview && (
-        <GeneratedPreview>
-          <GeneratedImage src={photoPreview.imageUrl} alt="업로드한 반려동물" />
-          <div>
-            <strong>{photoPreview.name}</strong>
-            <span>{photoPreview.trait}</span>
-          </div>
-          <button onClick={() => onComplete(photoPreview)}>이 캐릭터로 시작</button>
-        </GeneratedPreview>
-      )}
+      <PhotoInfo>
+        <Camera size={20} />
+        <div>
+          <strong>내 반려동물 사진으로 캐릭터를 만들 수 있어요!</strong>
+          <span>사진 기반 AI 캐릭터 생성은 시작 후 캐릭터 상점에서 500원 상품으로 이용할 수 있어요.</span>
+        </div>
+      </PhotoInfo>
 
       <PresetList>
         {petPresets.map((pet) => (
@@ -89,11 +71,6 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
       </NamePanel>
 
       <Actions>
-        <HiddenFileInput ref={fileInputRef} accept="image/*" type="file" onChange={handlePhotoChange} />
-        <GhostButton onClick={() => fileInputRef.current?.click()}>
-          <Camera size={20} />
-          {ONBOARDING_COPY.photoButton}
-        </GhostButton>
         <PrimaryButton onClick={completeWithPreset}>
           <Palette size={20} />
           이 이름으로 시작하기
@@ -135,11 +112,51 @@ const Title = styled.h1`
 `;
 
 const Description = styled.p`
-  margin: ${({ theme }) => theme.spacing.lg} 0 52px;
+  margin: ${({ theme }) => theme.spacing.lg} 0 ${({ theme }) => theme.spacing.xl};
   color: ${({ theme }) => theme.colors.muted};
   font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
+`;
+
+const PhotoInfo = styled.section`
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: ${({ theme }) => theme.spacing.md};
+  align-items: center;
+  margin-bottom: 48px;
+  padding: ${({ theme }) => theme.spacing.lg};
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+
+  svg {
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    background: ${({ theme }) => theme.colors.surfaceWarm};
+    border-radius: 50%;
+  }
+
+  div {
+    display: grid;
+    gap: 4px;
+  }
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    line-height: 1.45;
+  }
 `;
 
 const PresetList = styled.div`
@@ -148,52 +165,6 @@ const PresetList = styled.div`
   align-items: end;
   gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: 72px;
-`;
-
-const GeneratedPreview = styled.section`
-  display: grid;
-  grid-template-columns: 66px 1fr;
-  gap: ${({ theme }) => theme.spacing.md};
-  align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  padding: ${({ theme }) => theme.spacing.md};
-  background: rgba(255, 255, 255, 0.80);
-  border: 1px solid ${({ theme }) => theme.colors.line};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  backdrop-filter: blur(8px);
-
-  div {
-    display: grid;
-    gap: ${({ theme }) => theme.spacing.xs};
-  }
-
-  strong {
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  span {
-    color: ${({ theme }) => theme.colors.muted};
-    font-size: 13px;
-    font-weight: 400;
-  }
-
-  button {
-    grid-column: 1 / -1;
-    min-height: 40px;
-    color: ${({ theme }) => theme.colors.surface};
-    background: ${({ theme }) => theme.colors.orange};
-    border-radius: ${({ theme }) => theme.radius.md};
-    font-size: 15px;
-    font-weight: 600;
-  }
-`;
-
-const GeneratedImage = styled.img`
-  width: 66px;
-  height: 66px;
-  object-fit: cover;
-  border-radius: ${({ theme }) => theme.radius.lg};
 `;
 
 const PresetButton = styled.button<{ $featured: boolean; $selected: boolean }>`
@@ -287,17 +258,6 @@ const PetTrait = styled.span`
 const Actions = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
-`;
-
-const HiddenFileInput = styled.input`
-  display: none;
-`;
-
-const GhostButton = styled(PrimaryButton)`
-  color: ${({ theme }) => theme.colors.orangeDark};
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1.5px solid ${({ theme }) => theme.colors.orange};
-  box-shadow: none;
 `;
 
 const LaterButton = styled.button`

@@ -90,6 +90,9 @@ savewithpet/
     generate-standard-basebody-pngs.mjs   이전 AI full base-body PNG 생성 실험
     generate-cutscene.mjs                 컷신/이벤트 이미지 실험 도구
 
+  supabase/
+    initial-schema.sql                    초기 DB 테이블/RLS/상점 seed query
+
   src/
     components/                           공통 UI와 캐릭터 렌더링 컴포넌트
     constants/                            탭, 카피 등 상수
@@ -222,6 +225,7 @@ backdrop item layer
 
 현재 아이템:
 
+- `canola-garden`: 유채꽃 정원
 - `cozy-cushion`: 포근 방석
 - `heart-aura`: 하트 오라
 - `coin-shower`: 코인 링
@@ -343,7 +347,8 @@ backdrop item layer
 ### P0: 출시 필수
 
 - [ ] 프리셋 3종 single PNG 출시용 최종본 확정: `akkigae`, `ttoosseunyang`, `kangchongmu`
-- [ ] 전 아이템 적용 QA: 아끼개, 또쓰냥, 깡총무 x `cozy-cushion`, `heart-aura`, `coin-shower`, `sparkle-sticker`, `saving-sprout`
+- [ ] 전 아이템 적용 QA: 아끼개, 또쓰냥, 깡총무 x `canola-garden`, `cozy-cushion`, `heart-aura`, `coin-shower`, `sparkle-sticker`, `saving-sprout`
+- [x] Supabase 초기 schema/query 준비: `supabase/initial-schema.sql`
 - [ ] 상태 이펙트 QA: normal, happy, sweat, angry, small, large
 - [x] 사진 기반 생성용 로컬 계약 단순화: `imageUrl`, `sourcePhotoUrl`, `templateId`
 - [ ] 사진 기반 single PNG 생성 테스트
