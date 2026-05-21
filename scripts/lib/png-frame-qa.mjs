@@ -30,7 +30,10 @@ export function inspectPngFrame(buffer, options = {}) {
   const bottom = bounds.bottom / png.height;
   const widthRatio = (bounds.right - bounds.left + 1) / png.width;
   const heightRatio = (bounds.bottom - bounds.top + 1) / png.height;
-  const metrics = { bottom, centerX, heightRatio, top, widthRatio };
+  const alphaCenterX = bounds.alphaSumX / bounds.visiblePixels / png.width;
+  const alphaCenterY = bounds.alphaSumY / bounds.visiblePixels / png.height;
+  const coverageRatio = bounds.visiblePixels / bounds.regionPixels;
+  const metrics = { alphaCenterX, alphaCenterY, bottom, centerX, coverageRatio, heightRatio, top, widthRatio };
 
   if (Math.abs(centerX - 0.5) > 0.045) notes.push(`centerX ${centerX.toFixed(3)} outside 0.455-0.545`);
   if (top < 0.04 || top > 0.22) notes.push(`top ${top.toFixed(3)} outside 0.040-0.220`);
@@ -75,6 +78,19 @@ export function inspectPngRegions(buffer, regions, options = {}) {
 }
 
 export function compareRegionMetrics(candidateRegions, referenceRegions, tolerance = 0.02) {
+  const structuralMetricTolerances = {
+    coverageRatio: 0.06,
+  };
+  const structuralMetricKeys = [
+    "alphaCenterX",
+    "alphaCenterY",
+    "bottom",
+    "centerX",
+    "coverageRatio",
+    "heightRatio",
+    "top",
+    "widthRatio",
+  ];
   const entries = Object.keys(referenceRegions).map((regionName) => {
     const candidate = candidateRegions[regionName]?.metrics;
     const reference = referenceRegions[regionName]?.metrics;
@@ -93,7 +109,7 @@ export function compareRegionMetrics(candidateRegions, referenceRegions, toleran
     }
 
     return {
-      comparison: compareFrameMetrics(candidate, reference, tolerance),
+      comparison: compareFrameMetrics(candidate, reference, tolerance, structuralMetricKeys, structuralMetricTolerances),
       regionName,
     };
   });
@@ -113,17 +129,20 @@ export function compareRegionMetrics(candidateRegions, referenceRegions, toleran
   };
 }
 
-export function compareFrameMetrics(candidate, reference, tolerance = 0.02) {
-  const diffs = {
-    bottom: Math.abs(candidate.bottom - reference.bottom),
-    centerX: Math.abs(candidate.centerX - reference.centerX),
-    heightRatio: Math.abs(candidate.heightRatio - reference.heightRatio),
-    top: Math.abs(candidate.top - reference.top),
-    widthRatio: Math.abs(candidate.widthRatio - reference.widthRatio),
-  };
+export function compareFrameMetrics(
+  candidate,
+  reference,
+  tolerance = 0.02,
+  metricKeys = ["bottom", "centerX", "heightRatio", "top", "widthRatio"],
+  metricTolerances = {},
+) {
+  const diffs = Object.fromEntries(metricKeys.map((key) => [key, Math.abs(candidate[key] - reference[key])]));
   const failures = Object.entries(diffs)
-    .filter(([, value]) => value > tolerance)
-    .map(([key, value]) => `${key} drift ${(value * 100).toFixed(1)}% > ${(tolerance * 100).toFixed(1)}%`);
+    .filter(([key, value]) => value > (metricTolerances[key] ?? tolerance))
+    .map(([key, value]) => {
+      const metricTolerance = metricTolerances[key] ?? tolerance;
+      return `${key} drift ${(value * 100).toFixed(1)}% > ${(metricTolerance * 100).toFixed(1)}%`;
+    });
 
   return {
     diffs,
@@ -145,10 +164,14 @@ function getAlphaBounds(png, region) {
   let right = -1;
   let top = png.height;
   let bottom = -1;
+  let alphaSumX = 0;
+  let alphaSumY = 0;
+  let visiblePixels = 0;
   const minX = Math.round((region?.left ?? 0) * png.width);
   const maxX = Math.round((region?.right ?? 1) * png.width) - 1;
   const minY = Math.round((region?.top ?? 0) * png.height);
   const maxY = Math.round((region?.bottom ?? 1) * png.height) - 1;
+  const regionPixels = (maxX - minX + 1) * (maxY - minY + 1);
 
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
@@ -159,11 +182,14 @@ function getAlphaBounds(png, region) {
       right = Math.max(right, x);
       top = Math.min(top, y);
       bottom = Math.max(bottom, y);
+      alphaSumX += x;
+      alphaSumY += y;
+      visiblePixels += 1;
     }
   }
 
   if (right < left || bottom < top) return null;
-  return { bottom, left, right, top };
+  return { alphaSumX, alphaSumY, bottom, left, regionPixels, right, top, visiblePixels };
 }
 
 export function decodePng(buffer) {

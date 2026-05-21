@@ -15,11 +15,15 @@
 
 캐릭터 시스템은 서비스의 핵심 품질 요소입니다. 현재 방향은 다음과 같습니다.
 
-- 프리셋/사진 기반 캐릭터 모두 `standard-v1` body frame을 기준으로 생성한다.
-- AI가 생성하는 것은 자유형 캐릭터가 아니라, 고정된 프레임에 맞춘 full base-body PNG다.
-- 아이템 착용은 캐릭터별 하드코딩이 아니라 공통 wearable anchor를 기준으로 렌더링한다.
-- 생성 결과는 자동 QA와 수동 QA를 통과한 것만 앱에 연결한다.
-- overlay 파츠만 따로 생성해 합성하는 방식은 현재 품질이 불안정해서 사용하지 않는다.
+- 프리셋/사진 기반 캐릭터는 고퀄 투명 PNG 1장을 앱에 연결한다.
+- 표정 파츠, 눈 좌표, body frame 고정, 정밀 착용 아이템은 출시 범위에서 제외한다.
+- 포만도, 기분, 성장 상태는 캐릭터 전체 scale과 하트/땀/분노/반짝임 이펙트로 표현한다.
+- 상점 아이템은 모자/선글라스처럼 몸에 맞추는 물건이 아니라 방석, 배경, 오라, 스티커처럼 캐릭터와 충돌하지 않는 꾸미기 요소로 제한한다.
+- AI 캐릭터 생성도 최종 산출물을 single PNG로 저장하는 방향을 우선한다.
+- 상점은 `옷장`, `간식`, `캐릭터 상점` 3탭으로 운영한다.
+- 기본 3종 캐릭터는 첫 선택 1종만 무료 제공하고, 나머지는 캐릭터 상점에서 200코인으로 구매한다.
+- AI 캐릭터 생성은 결제 연동 후 생성 1회당 500원 프리미엄 상품으로 운영한다.
+- 프리미엄 상자는 10,000코인 상품으로 두되, 기간 한정 판매 아이템 풀이 준비될 때까지 열 수 없게 막아둔다.
 
 ## Tech Stack
 
@@ -65,25 +69,25 @@ savewithpet/
   public/
     assets/
       pets/
-        *.png                             기존 프리셋 대표 이미지
+        *.png                             앱에 직접 연결되는 프리셋 캐릭터 PNG
         *.svg                             로컬/실험용 벡터 프리셋
-        base-body/                        원본 기반 얼굴 없는 base-body 실험 자산
-        base-body-standard/               현재 앱에 연결된 standard-v1 PNG 후보
+        base-body/                        이전 base-body 실험 자산
+        base-body-standard/               이전 standard-v1 실험 자산
       pet-parts/
-        {petId}/{expression}.svg          표정 파츠
-    interaction-preview.html              캐릭터/아이템/표정 로컬 미리보기
-    landmark-editor.html                  anchor 수동 보정용 로컬 도구
+        {petId}/{expression}.svg          이전 표정 파츠 실험 자산
+    interaction-preview.html              PNG 캐릭터/상태 이펙트 로컬 미리보기
+    landmark-editor.html                  이전 anchor 수동 보정용 로컬 도구
 
   reports/
     standard-v1-audit.md                  로컬 standard-v1 audit 기록
-    standard-v1-png-generation-report.md  AI base-body 생성 QA 보고서
-    standard-v1-wearable-profile.json     wearable anchor 기준값
+    standard-v1-png-generation-report.md  이전 AI base-body 생성 QA 보고서
+    standard-v1-wearable-profile.json     이전 wearable anchor 기준값
 
   scripts/
     lib/png-frame-qa.mjs                  PNG alpha silhouette QA helper
-    qa-character-assets.mjs               pre-DB 캐릭터 자산/표정 QA
+    qa-character-assets.mjs               이전 pre-DB 캐릭터 자산/표정 QA
     generate-standard-pets.mjs            로컬 SVG standard-v1 생성기
-    generate-standard-basebody-pngs.mjs   AI full base-body PNG 생성 + QA
+    generate-standard-basebody-pngs.mjs   이전 AI full base-body PNG 생성 실험
     generate-cutscene.mjs                 컷신/이벤트 이미지 실험 도구
 
   src/
@@ -105,18 +109,21 @@ Onboarding
 -> Home에서 캐릭터 상태/요약 확인
 -> Ledger에서 소비/저축/수입 기록
 -> Rewards로 코인/성장 반영
--> Shop에서 아이템 구매/착용
--> PetStage에서 캐릭터 + 표정 + 아이템 렌더링
+-> Shop에서 옷장/간식/캐릭터 상점 확인
+-> 옷장에서 배경/방석/오라/스티커형 꾸미기 구매/적용
+-> 캐릭터 상점에서 기본 3종 추가 구매 또는 AI 캐릭터 생성 진입
+-> PetStage에서 캐릭터 PNG + 상태 이펙트 + 비접촉형 아이템 렌더링
 ```
 
 핵심 파일:
 
 - `src/App.tsx`: 앱 상태와 화면 전환
-- `src/components/PetStage.tsx`: 캐릭터, 표정, 아이템 레이어 렌더링
-- `src/components/PetItemArt.tsx`: SVG 아이템 아트
-- `src/domain/petWearableAnchors.ts`: wearable anchor와 아이템 배치 규칙
-- `src/domain/petCharacterSet.ts`: 프리셋 캐릭터 asset 경로와 표정 파츠 경로
+- `src/components/PetStage.tsx`: 캐릭터 PNG, scale, 상태 이펙트, 꾸미기 레이어 렌더링
+- `src/components/PetItemArt.tsx`: 방석/배경/오라/스티커형 SVG 아이템 아트
+- `src/domain/petItems.ts`: 아이템을 backdrop/foreground 레이어로 분류
+- `src/domain/petCharacterSet.ts`: 프리셋 캐릭터 PNG 경로
 - `src/domain/avatarGenerator.ts`: 프리셋/사진 기반 펫 생성
+- `src/domain/shop.ts`: 아이템 구매 상태, 프리미엄 상자 정책
 - `src/lib/persistence.ts`: localStorage 저장/마이그레이션
 - `src/mocks/appData.ts`: 프리셋, 카테고리, 상점 아이템
 
@@ -124,54 +131,49 @@ Onboarding
 
 현재 앱에 연결된 프리셋 캐릭터는 3종입니다.
 
-| ID | Name | Current Base Body |
+| ID | Name | Current PNG |
 | --- | --- | --- |
-| `akkigae` | 아끼개 | `public/assets/pets/base-body-standard/akkigae.png` |
-| `ttoosseunyang` | 또쓰냥 | `public/assets/pets/base-body-standard/ttoosseunyang.png` |
-| `kangchongmu` | 깡총무 | `public/assets/pets/base-body-standard/kangchongmu.png` |
+| `akkigae` | 아끼개 | `public/assets/pets/akkigae.png` |
+| `ttoosseunyang` | 또쓰냥 | `public/assets/pets/ttoosseunyang.png` |
+| `kangchongmu` | 깡총무 | `public/assets/pets/kangchongmu.png` |
 
-표정 파츠:
+런타임 원칙:
 
 ```text
-public/assets/pet-parts/{petId}/neutral.svg
-public/assets/pet-parts/{petId}/happy.svg
-public/assets/pet-parts/{petId}/sad.svg
-public/assets/pet-parts/{petId}/wink.svg
-public/assets/pet-parts/{petId}/surprised.svg
-public/assets/pet-parts/{petId}/sleepy.svg
+single character PNG
+-> optional backdrop item
+-> character image
+-> mood/effect overlay
+-> optional foreground item
 ```
 
-공통 좌표계:
+상태 표현:
 
-- Canvas: `1024x1024` PNG 생성, 앱 내부 anchor는 `1254x1254` 기준값 사용
-- Body frame: 정면, full-body, 중심축 고정
-- Face anchor: 눈/표정 파츠가 같은 위치에 얹혀야 함
-- Head anchor: 모자, 왕관, 리본 기준
-- Chest anchor: 펜던트/몸통 아이템 기준
-- Back anchor: 날개처럼 몸 뒤에 놓이는 아이템 기준
+- 성장/재정/기분이 낮으면 캐릭터 전체 scale을 줄이고 땀/주의 이펙트를 띄운다.
+- 성장/기분이 높으면 캐릭터 scale을 키우고 하트/반짝임 이펙트를 띄운다.
+- 캐릭터 얼굴 자체를 바꾸거나 아이템을 몸에 정밀 부착하지 않는다.
 
 ## AI Character Generation
 
 실서비스 방향:
 
 ```text
-사용자 사진 또는 프리셋 원본
--> standard-v1 full base-body PNG 생성
--> 자동 QA: 크기, 투명 PNG, 중심축, 실루엣 bounds
--> 실패 시 재생성
--> 수동 QA: 얼굴 위치, 손발, 귀/꼬리, 착용 테스트
--> 통과한 이미지만 앱/스토리지에 저장
+사용자 사진
+-> 고퀄 투명 PNG 캐릭터 1장 생성
+-> 앱에는 imageUrl로 직접 연결
+-> 포만도/기분/성장은 scale과 이펙트로 표현
+-> 몸에 맞추는 착용 아이템은 사용하지 않음
 ```
 
-현재 생성 스크립트:
+이전 base-body 생성 스크립트:
 
 ```bash
 npm run character:standard-png
 ```
 
-생성 스크립트는 `scripts/generate-standard-basebody-pngs.mjs`에 있습니다.
+해당 스크립트는 이전 실험용입니다. 출시 방향은 single PNG 캐릭터 생성입니다.
 
-DB 연동 전 캐릭터 준비 상태 점검:
+이전 DB 연동 전 캐릭터 준비 상태 점검:
 
 ```bash
 npm run character:qa
@@ -183,7 +185,7 @@ npm run character:qa
 reports/pre-db-character-readiness.md
 ```
 
-현재 자동 QA가 확인하는 것:
+이전 자동 QA가 확인하는 것:
 
 - PNG 크기
 - alpha silhouette bounds
@@ -191,11 +193,11 @@ reports/pre-db-character-readiness.md
 - top/bottom framing
 - 전체 width/height ratio
 
-자동 QA가 아직 확인하지 못하는 것:
+현재 single PNG 방식에서 사람이 확인해야 하는 것:
 
-- 실제 눈/표정 anchor가 미적으로 맞는지
 - 손/발/귀/꼬리가 서비스 톤에 맞는지
-- 아이템 착용 시 자연스럽게 보이는지
+- 상태 이펙트가 캐릭터를 가리지 않는지
+- 배경/방석/오라 아이템이 캐릭터와 자연스럽게 보이는지
 - 캐릭터가 충분히 귀엽고 출시 품질인지
 
 따라서 생성 보고서가 PASS여도 반드시 사람이 앱에서 확인해야 합니다.
@@ -207,33 +209,48 @@ reports/standard-v1-png-generation-report.md
 reports/pre-db-character-readiness.md
 ```
 
-## Wearable System
+## Decoration System
 
-아이템은 `PetStage` 안에서 캐릭터와 분리된 레이어로 렌더링합니다.
+아이템은 캐릭터 몸에 부착하지 않고 `PetStage` 안에서 캐릭터와 분리된 레이어로 렌더링합니다.
 
 ```text
-back item layer
--> base body image
--> expression part
--> front item layer
+backdrop item layer
+-> character PNG
+-> mood/effect overlay
+-> foreground item layer
 ```
 
 현재 아이템:
 
-- `hat`: 신사 모자
-- `crown`: 왕관
-- `sunglasses`: 선글라스
-- `ribbon`: 리본
-- `scarf`: 미니 하트 펜던트
-- `wings`: 저축 날개
+- `cozy-cushion`: 포근 방석
+- `heart-aura`: 하트 오라
+- `coin-shower`: 코인 링
+- `sparkle-sticker`: 반짝 스티커
+- `saving-sprout`: 저축 새싹
 
 중요 규칙:
 
-- 선글라스는 양쪽 눈 anchor를 기준으로 중심, 크기, 회전을 계산한다.
-- 모자/왕관/리본은 head anchor 기준으로 붙인다.
-- 펜던트는 목걸이 줄처럼 크게 두르지 않고, 가슴 쪽 작은 장식으로만 사용한다.
-- 날개는 front item이 아니라 back item으로 렌더링한다.
-- 가방류는 현재 방향에서 제외한다.
+- 캐릭터 머리/얼굴/몸에 정확히 맞춰야 하는 아이템은 출시 범위에서 제외한다.
+- 방석, 배경, 오라, 스티커, 식물, 코인비처럼 캐릭터와 충돌하지 않는 아이템만 사용한다.
+- 아이템은 `src/domain/petItems.ts`에서 `backdrop` 또는 `foreground`로만 분류한다.
+- 캐릭터 상태 반응은 `PetStage`의 scale과 mood effect에서 처리한다.
+- 실제 판매용 배경 아이템은 현재 SVG 예시가 아니라, 레퍼런스 스타일의 고퀄 PNG 배경 에셋으로 교체하는 것을 권장한다.
+
+## Shop and Monetization
+
+현재 상점 구조:
+
+- `옷장`: 캐릭터와 직접 맞닿지 않는 배경/방석/오라/스티커/장식 아이템
+- `간식`: 포만도 회복, 기분 상승 등 소비형 아이템 예정
+- `캐릭터 상점`: 기본 3종 추가 구매, AI 캐릭터 생성 진입점
+
+가격 정책:
+
+- 첫 온보딩에서 고른 기본 캐릭터 1종은 무료입니다.
+- 나머지 기본 캐릭터는 각 200코인으로 구매합니다.
+- AI 캐릭터 생성은 생성 1회당 500원 결제 상품으로 운영 예정입니다.
+- 프리미엄 상자는 10,000코인이며, 기간 한정 판매 상품 풀을 따로 만든 뒤 랜덤 보상으로 연결합니다.
+- 프리미엄 상자는 현재 코드에서 비활성화되어 있습니다.
 
 ## Data Persistence
 
@@ -246,6 +263,8 @@ back item layer
 - ledger entries
 - coins
 - owned/equipped item ids
+- ownedPetIds
+- ownedCustomPets
 - pet
 - communityPosts
 - rewardEvents
@@ -253,7 +272,6 @@ back item layer
 마이그레이션에서 특히 보존해야 할 pet 필드:
 
 - `templateId`
-- `wearableAnchors`
 - `visualLayers`
 - `sourcePhotoUrl`
 
@@ -261,87 +279,86 @@ back item layer
 
 ### Current Blocking Issues
 
-현재 출시를 막는 핵심 이슈는 캐릭터 base-body frame 불일치입니다. 아이템 anchor를 계속 보정하는 방식만으로는 해결하지 않습니다.
+이전 blocking issue였던 base-body frame과 wearable anchor 문제는 출시 범위에서 제거했습니다. 현재 방향은 single PNG 캐릭터 + 상태 이펙트 + 비접촉형 꾸미기입니다.
 
-#### Issue 1: `standard-v1` body/head/torso frame 불일치
+#### Issue 1: single PNG 캐릭터 품질 확정
 
-- 증상: 선글라스, 모자, 왕관, 리본, 날개가 캐릭터마다 살짝 삐뚤어지거나 크기가 어색하게 보입니다.
-- 원인: 프리셋 base-body PNG가 동일한 body rig를 공유하지 않습니다. 특히 머리 폭, 몸통 폭, core alpha bounds가 다릅니다.
-- 현재 기준 캐릭터: `akkigae`
-- 현재 QA 상태: `npm run character:qa` 기준 `ttoosseunyang`은 `head.widthRatio` 2.7% drift, `kangchongmu`는 core/head/torso drift가 큽니다.
-- 관련 리포트: `reports/pre-db-character-readiness.md`
+- 증상: 캐릭터 정밀 착용 대신 PNG 1장을 쓰므로, PNG 자체의 완성도가 곧 서비스 품질입니다.
+- 결정: `public/assets/pets/*.png`를 런타임 캐릭터로 사용합니다.
 - 관련 파일:
-  - `public/assets/pets/base-body-standard/*.png`
-  - `scripts/generate-standard-basebody-pngs.mjs`
-  - `scripts/lib/png-frame-qa.mjs`
-  - `scripts/qa-character-assets.mjs`
-  - `src/domain/petWearableAnchors.ts`
+  - `public/assets/pets/akkigae.png`
+  - `public/assets/pets/ttoosseunyang.png`
+  - `public/assets/pets/kangchongmu.png`
+  - `src/domain/petCharacterSet.ts`
+  - `src/domain/avatarGenerator.ts`
 
 완료 기준:
 
-- [ ] `ttoosseunyang`과 `kangchongmu`를 `akkigae` 기준 `core`, `head`, `torso` structural alignment 2% 이내로 재생성
-- [ ] `npm run character:qa`가 failure 0으로 통과
-- [ ] `reports/pre-db-character-readiness.md`에서 `Core Alignment`가 `MATCH` 또는 명확히 승인된 예외만 표시
-- [ ] `public/interaction-preview.html`에서 3종 캐릭터 x 6개 아이템 착용이 육안으로 자연스러움
+- [ ] 프리셋 3종 PNG가 배경 제거/여백/해상도/톤 면에서 출시 품질
+- [ ] 사진 기반 AI 생성도 최종 `imageUrl`에 PNG 1장을 저장하는 흐름으로 확정
+- [ ] `public/interaction-preview.html`에서 3종 캐릭터 상태 이펙트가 자연스러움
 
-#### Issue 2: AI 생성 프롬프트만으로 좌표 고정이 충분하지 않음
+#### Issue 2: 상태 이펙트/성장 scale 최종 튜닝
 
-- 증상: "same body frame"을 프롬프트에 강하게 적어도 생성물이 2% 이내로 안정적으로 맞지 않습니다.
-- 결정: 프롬프트는 보조 수단이고, 반드시 생성 후 structural QA에서 실패시키고 재생성해야 합니다.
-- 다음 작업 위치: `scripts/generate-standard-basebody-pngs.mjs`
+- 증상: 캐릭터 얼굴을 바꾸지 않으므로 상태 표현이 이펙트와 크기 변화에 달려 있습니다.
+- 관련 파일:
+  - `src/components/PetStage.tsx`
+  - `public/interaction-preview.html`
 
 해결 방향:
 
-- [ ] 생성 후보를 여러 장 만들고 `compareRegionMetrics()` 점수가 가장 좋은 후보만 선택
-- [ ] `core`, `head`, `torso` 중 하나라도 2% 초과 drift면 최종 실패 처리
-- [ ] 실패 리포트에 어떤 region이 틀어졌는지 표시해서 다음 프롬프트 수정에 반영
-- [ ] 필요하면 `STANDARD_ALIGNMENT_TOLERANCE`를 env로 조정하되 출시 후보는 2%를 목표로 유지
+- [ ] 성장/기분/포만도 기준 scale 범위 검수: 대략 74%-118%
+- [ ] 하트, 땀, 분노, 반짝임 이펙트가 캐릭터 얼굴을 과하게 가리지 않게 조정
+- [ ] `shake`, `sparkle`, `pop`, `idle` 애니메이션이 Toss WebView에서 자연스럽게 동작
 
-#### Issue 3: 착용 아이템은 body 보정 후 마지막에 조정해야 함
+#### Issue 3: 상점 아이템을 비접촉형으로 유지
 
-- 증상: 현재는 `kangchongmu`, `ttoosseunyang`에 임시 item scale 보정이 들어가 있습니다.
-- 원인: base-body frame이 아직 완전히 동일하지 않아서 anchor가 임시 보정 역할을 하고 있습니다.
-- 관련 파일: `src/domain/petWearableAnchors.ts`
+- 증상: 몸에 붙는 아이템은 캐릭터별/사진 생성별 오차가 큽니다.
+- 결정: 배경, 방석, 오라, 스티커, 장식물 위주로만 운영합니다.
+- 관련 파일:
+  - `src/components/PetItemArt.tsx`
+  - `src/domain/petItems.ts`
+  - `src/mocks/appData.ts`
 
 원칙:
 
-- [ ] base-body가 structural QA를 통과하기 전까지 아이템 위치를 최종 확정하지 않음
-- [ ] base-body가 맞춰진 뒤 `STANDARD_WEARABLE_PROFILE`을 기준으로 공통 anchor를 재확정
-- [ ] 캐릭터별 `itemScale`/measured core frame 보정은 출시 전 제거하거나 "승인된 예외"로 문서화
-- [ ] 선글라스는 양쪽 눈 anchor, 모자/왕관/리본은 head anchor, 펜던트는 chest anchor, 날개는 back layer 기준으로만 조정
+- [ ] 모자, 안경, 목걸이, 날개처럼 신체 부착이 필요한 아이템은 추가하지 않음
+- [ ] 신규 아이템은 `backdrop` 또는 `foreground` 중 하나로만 분류
+- [ ] 캐릭터 PNG가 달라도 아이템이 어색하지 않아야 함
 
 #### Issue 4: 사진 기반 생성 테스트 전 필수 조건
 
-- 사진 기반 생성은 현재 프리셋 3종도 stable frame을 못 맞추면 시작하면 안 됩니다.
-- 유저 사진 기반 캐릭터도 동일한 `standard-v1` full base-body PNG 계약을 따라야 합니다.
+- 사진 기반 생성은 고퀄 투명 PNG 1장 생성이 목표입니다.
+- 생성 결과를 캐릭터 파츠로 분해하거나 wearable anchor에 맞추지 않습니다.
 
 사진 기반 생성 테스트 진입 조건:
 
-- [ ] 프리셋 3종이 `npm run character:qa` failure 0
-- [ ] 프리셋 3종 x 전체 아이템 수동 QA 완료
+- [ ] 프리셋 3종 x 상태 이펙트 수동 QA 완료
+- [ ] 프리셋 3종 x 비접촉형 아이템 수동 QA 완료
 - [ ] 생성 실패/재시도/과금 정책 확정
-- [ ] 생성 결과 저장 구조: `templateId`, `visualLayers`, `wearableAnchors`, `sourcePhotoUrl` 보존
+- [ ] 생성 결과 저장 구조: `imageUrl`, `sourcePhotoUrl`, `templateId` 보존
+- [x] 기본 캐릭터 컬렉션 구조 추가: 첫 선택 무료, 나머지 200코인
+- [x] AI 캐릭터 생성 500원 상품 진입점 추가
 
 ### P0: 출시 필수
 
-- [ ] 프리셋 3종 base-body 출시용 최종본 확정: `akkigae`, `ttoosseunyang`, `kangchongmu`
-- [ ] `npm run character:qa` failure 0 만들기
-- [ ] 전 아이템 착용 QA: 아끼개, 또쓰냥, 깡총무 x `hat`, `crown`, `sunglasses`, `ribbon`, `scarf`, `wings`
-- [x] AI 생성 캐릭터 QA 파이프라인 1차 확정: 자동 검사, 재생성, 보고서
-- [x] 사진 기반 생성용 로컬 계약 고정: `sourcePhotoUrl`, `templateId`, `visualLayers`, `wearableAnchors`
-- [ ] 사진 기반 생성 테스트 시작 전 프리셋 3종 structural QA 통과
+- [ ] 프리셋 3종 single PNG 출시용 최종본 확정: `akkigae`, `ttoosseunyang`, `kangchongmu`
+- [ ] 전 아이템 적용 QA: 아끼개, 또쓰냥, 깡총무 x `cozy-cushion`, `heart-aura`, `coin-shower`, `sparkle-sticker`, `saving-sprout`
+- [ ] 상태 이펙트 QA: normal, happy, sweat, angry, small, large
+- [x] 사진 기반 생성용 로컬 계약 단순화: `imageUrl`, `sourcePhotoUrl`, `templateId`
+- [ ] 사진 기반 single PNG 생성 테스트
 - [ ] 온보딩, 홈, 장부, 분석, 상점, 설정 핵심 루프 실기기 QA
 - [ ] localStorage 마이그레이션과 fallback 점검
 - [ ] 사진 기반 생성 과금/실패/재시도 정책 확정
+- [x] 상점 탭 구조 변경: 옷장, 간식, 캐릭터 상점
+- [x] 프리미엄 상자 10,000코인으로 변경 및 오픈 비활성화
 - [ ] Toss WebView 실제 환경에서 build/deploy 확인
 
 ### P1: 출시 전 품질
 
-- [ ] 또쓰냥 base-body 재생성 또는 보정: `head.widthRatio` drift 2.7% 해결
-- [ ] 깡총무 base-body 재생성: core/head/torso drift 해결
-- [ ] 표정 6종의 위치와 크기 전수 QA: `public/assets/pet-parts/{petId}/*.svg`
-- [ ] 선글라스, 모자, 왕관, 리본, 펜던트, 날개 위치 최종 조정: body frame 확정 이후 진행
-- [ ] 아이템 SVG 퀄리티 개선: 캐릭터와 어울리는 3D/파스텔 톤
+- [ ] 상태 이펙트 SVG/CSS 퀄리티 개선: 하트, 땀, 분노, 반짝임
+- [ ] 비접촉형 아이템 퀄리티 개선: 방석, 배경, 오라, 스티커, 새싹, 코인
+- [ ] 판매용 배경 아이템 PNG 에셋 제작/교체
 - [ ] AI 생성 중 로딩, 실패, 재시도, 결제 실패 UX 정리
 - [ ] 코디 공유/커뮤니티 MVP 흐름 확인
 - [ ] 이미지 용량 최적화와 캐시 정책 검토
@@ -349,7 +366,7 @@ back item layer
 ### P2: 운영 준비
 
 - [x] pre-DB 캐릭터 readiness 보고서 추가
-- [ ] 자동 착용 스크린샷 QA 도구 추가
+- [ ] 자동 상태/꾸미기 스크린샷 QA 도구 추가
 - [ ] `landmark-editor.html` 유지/삭제 결정
 - [ ] `interaction-preview.html`를 QA 전용 체크리스트 화면으로 정리
 - [ ] 서버 저장소와 사용자 식별 연결
@@ -365,8 +382,8 @@ back item layer
 - 홈: 캐릭터 상태, 오늘 요약, 기록 CTA
 - 장부: 지출/수입/저축 기록, 카테고리, 메모, 수정/삭제
 - 분석: 월간 소비 분석, 카테고리별 요약, 예산 상태
-- 상점: 아이템 구매, 해금, 착용, 프리미엄 상자
-- 설정: 예산/데이터 관리, 캐릭터 상태 확인
+- 상점: 옷장/간식/캐릭터 상점, 비접촉형 꾸미기 아이템 구매, 프리미엄 상자 비활성 상태
+- 설정: 예산/데이터 관리, 보유 캐릭터 전환
 - 커뮤니티 MVP: 로컬 베스트 코디, 좋아요, 댓글
 - 품질: 타입체크, 린트, 도메인 단위 테스트, AIT build
 
@@ -404,4 +421,4 @@ main
 - page 컴포넌트는 조립 위주로 유지하고, 도메인 규칙은 `src/domain`에 둡니다.
 - 스타일은 styled-components와 theme token을 사용합니다.
 - 새 추상화는 실제 중복이나 복잡도를 줄일 때만 추가합니다.
-- 캐릭터 품질과 아이템 착용 품질은 출시 판단의 핵심입니다.
+- 캐릭터 PNG 품질과 상태 이펙트/꾸미기 자연스러움은 출시 판단의 핵심입니다.

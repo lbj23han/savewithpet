@@ -10,7 +10,7 @@ export function createOutfitPost({
   return {
     id: `community-${Date.now()}-${Math.round(Math.random() * 1000)}`,
     authorName: "나",
-    caption: equippedItem ? `${pet.name}에게 ${equippedItem.name}을 입혀봤어요.` : `${pet.name}의 오늘 모습을 자랑해요.`,
+    caption: equippedItem ? `${pet.name} 주변에 ${equippedItem.name}을 꾸며봤어요.` : `${pet.name}의 오늘 모습을 자랑해요.`,
     comments: [],
     createdAt: new Date().toISOString(),
     equippedItemId: equippedItem?.id ?? null,

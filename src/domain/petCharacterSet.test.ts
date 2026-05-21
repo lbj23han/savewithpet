@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BASE_CHARACTER_IDS,
   PET_EXPRESSIONS,
-  STANDARD_PRESET_BASE_BODY_URL,
+  STANDARD_PRESET_CHARACTER_URL,
   getBaseCharacterUrl,
   getExpressionPartUrl,
   getGeneratedOverlayUrl,
@@ -17,17 +17,17 @@ describe("petCharacterSet", () => {
     expect(PET_EXPRESSIONS).toEqual(["neutral", "happy", "sad", "wink", "surprised", "sleepy"]);
   });
 
-  it("returns fixed-frame base body paths for preset pets", () => {
+  it("returns single PNG character paths for preset pets", () => {
     expect(getPresetVisualLayers("akkigae")).toEqual({
-      baseBodyUrl: "/assets/pets/base-body-standard/akkigae.png",
+      baseBodyUrl: "/assets/pets/akkigae.png?v=2",
     });
     expect(getPresetVisualLayers("unknown")).toBeUndefined();
   });
 
-  it("falls back to preset base body paths when visual layers are absent", () => {
-    expect(getBaseCharacterUrl({ id: "ttoosseunyang" })).toBe("/assets/pets/base-body-standard/ttoosseunyang.png");
-    expect(getBaseCharacterUrl({ id: "custom", visualLayers: { baseBodyUrl: STANDARD_PRESET_BASE_BODY_URL } })).toBe(
-      STANDARD_PRESET_BASE_BODY_URL,
+  it("falls back to preset character paths when visual layers are absent", () => {
+    expect(getBaseCharacterUrl({ id: "ttoosseunyang" })).toBe("/assets/pets/ttoosseunyang.png?v=2");
+    expect(getBaseCharacterUrl({ id: "custom", visualLayers: { baseBodyUrl: STANDARD_PRESET_CHARACTER_URL } })).toBe(
+      STANDARD_PRESET_CHARACTER_URL,
     );
     expect(getBaseCharacterUrl({ id: "custom" })).toBeNull();
   });
@@ -40,10 +40,10 @@ describe("petCharacterSet", () => {
   });
 
   it("keeps generated overlays optional and disabled by default", () => {
-    expect(getGeneratedOverlayUrl({ visualLayers: { baseBodyUrl: STANDARD_PRESET_BASE_BODY_URL } })).toBeNull();
+    expect(getGeneratedOverlayUrl({ visualLayers: { baseBodyUrl: STANDARD_PRESET_CHARACTER_URL } })).toBeNull();
     expect(
       getGeneratedOverlayUrl({
-        visualLayers: { baseBodyUrl: STANDARD_PRESET_BASE_BODY_URL, generatedOverlayUrl: "/assets/overlay.png" },
+        visualLayers: { baseBodyUrl: STANDARD_PRESET_CHARACTER_URL, generatedOverlayUrl: "/assets/overlay.png" },
       }),
     ).toBe("/assets/overlay.png");
   });

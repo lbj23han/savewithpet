@@ -1,6 +1,7 @@
 import type { PremiumBoxResult, ShopItem, ShopItemViewModel } from "../types/app";
 
-export const PREMIUM_BOX_PRICE = 900;
+export const PREMIUM_BOX_PRICE = 10_000;
+const PREMIUM_BOX_LIMITED_SALES_ENABLED = false;
 
 export function createShopItemViewModels({
   items,
@@ -35,6 +36,15 @@ export function openPremiumBox(items: ShopItemViewModel[], coins: number): Premi
       label: "코인이 부족해요",
       coinsSpent: 0,
       outcome: "not_enough_coins",
+    };
+  }
+
+  if (!PREMIUM_BOX_LIMITED_SALES_ENABLED) {
+    return {
+      itemId: null,
+      label: "기간 한정 판매 상품 준비 중이에요",
+      coinsSpent: 0,
+      outcome: "unavailable",
     };
   }
 

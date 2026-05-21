@@ -1,5 +1,4 @@
-import { getPresetVisualLayers } from "../domain/petCharacterSet";
-import { STANDARD_CHARACTER_TEMPLATE_ID, getPresetWearableAnchors } from "../domain/petWearableAnchors";
+import { STANDARD_CHARACTER_TEMPLATE_ID, getPresetVisualLayers } from "../domain/petCharacterSet";
 import type { Category, PetPreset, ShopItem } from "../types/app";
 
 export const petPresets: PetPreset[] = [
@@ -13,18 +12,16 @@ export const petPresets: PetPreset[] = [
     featured: true,
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
     visualLayers: getPresetVisualLayers("akkigae"),
-    wearableAnchors: getPresetWearableAnchors("akkigae"),
   },
   {
     id: "ttoosseunyang",
     name: "또쓰냥",
-    trait: "또 쓰려는 순간을 귀엽게 잡아주는 지출 감시자예요",
+    trait: "또 쓰려는 순간을 잡아주는 지출 감시자예요",
     emoji: "🐱",
     imageUrl: "/assets/pets/ttoosseunyang.png?v=2",
     species: "cat",
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
     visualLayers: getPresetVisualLayers("ttoosseunyang"),
-    wearableAnchors: getPresetWearableAnchors("ttoosseunyang"),
   },
   {
     id: "kangchongmu",
@@ -35,7 +32,6 @@ export const petPresets: PetPreset[] = [
     species: "rabbit",
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
     visualLayers: getPresetVisualLayers("kangchongmu"),
-    wearableAnchors: getPresetWearableAnchors("kangchongmu"),
   },
 ];
 
@@ -62,12 +58,18 @@ export const ledgerCategories: Category[] = [
 ];
 
 export const shopItems: ShopItem[] = [
-  { id: "hat", name: "신사 모자", icon: "hat", price: 800 },
-  { id: "scarf", name: "미니 하트 펜던트", icon: "pendant", price: 450 },
-  { id: "crown", name: "황금 왕관", icon: "crown", price: 2500, requiredLevel: 12, unlockLabel: "Lv.12 해금" },
-  { id: "sunglasses", name: "선글라스", icon: "sunglasses", price: 600, requiredLevel: 5, unlockLabel: "Lv.5 해금" },
-  { id: "ribbon", name: "핑크 리본", icon: "ribbon", price: 300 },
-  { id: "wings", name: "저축 날개", icon: "wings", price: 1200 },
+  { id: "cozy-cushion", name: "포근 방석", icon: "cushion", price: 450 },
+  { id: "heart-aura", name: "하트 오라", icon: "heart-aura", price: 600 },
+  {
+    id: "coin-shower",
+    name: "코인 링",
+    icon: "coin-shower",
+    price: 1600,
+    requiredLevel: 12,
+    unlockLabel: "Lv.12 해금",
+  },
+  { id: "sparkle-sticker", name: "반짝 스티커", icon: "sparkle-sticker", price: 300 },
+  { id: "saving-sprout", name: "저축 새싹", icon: "saving-sprout", price: 900 },
 ];
 
 export const initialCategoryBudgets: Record<string, number> = {

@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 
 import { AppShell } from "./components/AppShell";
 import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
+import { createPetFromPreset } from "./domain/avatarGenerator";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
 import { createEntryReward } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
 import { defaultAppState, loadAppState, saveAppState } from "./lib/persistence";
-import { shopItems } from "./mocks/appData";
+import { petPresets, shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { HomePage } from "./pages/HomePage";
 import { LedgerPage } from "./pages/LedgerPage";
@@ -17,6 +18,7 @@ import type { AppPage, Category, LedgerEntryDraft, PersistedAppState } from "./t
 
 const DEV_UNLOCKED_COINS = 999_999;
 const DEV_UNLOCKED_LEVEL = 99;
+const BASE_CHARACTER_PRICE = 200;
 
 function App() {
   const [appState, setAppState] = useState<PersistedAppState>(() => loadAppState());
@@ -35,6 +37,9 @@ function App() {
       }
     : stats;
   const ownedItemIds = import.meta.env.DEV ? shopItems.map((item) => item.id) : appState.ownedItemIds;
+  const ownedPetIds = appState.ownedPetIds.includes(appState.pet.id)
+    ? appState.ownedPetIds
+    : [...appState.ownedPetIds, appState.pet.id];
   const shopItemViews = createShopItemViewModels({
     items: shopItems,
     coins: appCoins,
@@ -43,6 +48,17 @@ function App() {
     equippedItemId: appState.equippedItemId,
   });
   const equippedItem = shopItemViews.find((item) => item.id === appState.equippedItemId);
+  const characterShopItems = petPresets.map((preset) => {
+    const owned = ownedPetIds.includes(preset.id);
+
+    return {
+      ...preset,
+      active: appState.pet.id === preset.id,
+      canBuy: !owned && appCoins >= BASE_CHARACTER_PRICE,
+      owned,
+      price: BASE_CHARACTER_PRICE,
+    };
+  });
 
   useEffect(() => {
     saveAppState(appState);
@@ -136,20 +152,20 @@ function App() {
 
     if (item.state === "equipped") {
       setAppState((prev) => ({ ...prev, equippedItemId: null }));
-      setToastMessage(`${item.name} 착용 해제`);
+      setToastMessage(`${item.name} 해제`);
       return;
     }
 
     if (item.state === "owned") {
       setAppState((prev) => ({ ...prev, equippedItemId: item.id }));
-      setToastMessage(`${item.name} 착용 완료`);
+      setToastMessage(`${item.name} 적용 완료`);
       return;
     }
 
     if (!item.canBuy) return;
     setAppState((prev) => ({
       ...prev,
-      coins: prev.coins - item.price,
+      coins: spendCoins(prev.coins, item.price),
       equippedItemId: item.id,
       ownedItemIds: [...prev.ownedItemIds, item.id],
     }));
@@ -166,11 +182,51 @@ function App() {
 
     setAppState((prev) => ({
       ...prev,
-      coins: prev.coins - result.coinsSpent,
+      coins: spendCoins(prev.coins, result.coinsSpent),
       equippedItemId: itemId,
       ownedItemIds: prev.ownedItemIds.includes(itemId) ? prev.ownedItemIds : [...prev.ownedItemIds, itemId],
     }));
     setToastMessage(result.label);
+  };
+
+  const buyOrSelectCharacter = (petId: string) => {
+    const preset = petPresets.find((candidate) => candidate.id === petId);
+    if (!preset) {
+      const customPet = appState.ownedCustomPets.find((candidate) => candidate.id === petId);
+      if (!customPet) return;
+
+      setAppState((prev) => ({ ...prev, pet: customPet }));
+      setToastMessage(`${customPet.name}로 변경했어요`);
+      return;
+    }
+
+    const owned = ownedPetIds.includes(petId);
+    if (owned) {
+      setAppState((prev) => ({
+        ...prev,
+        ownedPetIds: prev.ownedPetIds.includes(petId) ? prev.ownedPetIds : [...prev.ownedPetIds, petId],
+        pet: createPetFromPreset(preset),
+      }));
+      setToastMessage(`${preset.name}로 변경했어요`);
+      return;
+    }
+
+    if (appCoins < BASE_CHARACTER_PRICE) {
+      setToastMessage("코인이 부족해요");
+      return;
+    }
+
+    setAppState((prev) => ({
+      ...prev,
+      coins: spendCoins(prev.coins, BASE_CHARACTER_PRICE),
+      ownedPetIds: prev.ownedPetIds.includes(petId) ? prev.ownedPetIds : [...prev.ownedPetIds, petId],
+      pet: createPetFromPreset(preset),
+    }));
+    setToastMessage(`${preset.name} 구매 완료`);
+  };
+
+  const openAiCharacterCreation = () => {
+    setToastMessage("AI 캐릭터 생성은 결제 연동 후 500원 상품으로 열릴 예정이에요");
   };
 
   const updateBudget = (budget: number) => {
@@ -223,7 +279,19 @@ function App() {
     return (
       <OnboardingPage
         onComplete={(nextPet) => {
-          setAppState((prev) => ({ ...prev, hasCompletedOnboarding: true, pet: nextPet }));
+          setAppState((prev) => ({
+            ...prev,
+            hasCompletedOnboarding: true,
+            ownedCustomPets:
+              nextPet.source === "photo" && !prev.ownedCustomPets.some((customPet) => customPet.id === nextPet.id)
+                ? [...prev.ownedCustomPets, nextPet]
+                : prev.ownedCustomPets,
+            ownedPetIds:
+              nextPet.source === "preset" && !prev.ownedPetIds.includes(nextPet.id)
+                ? [...prev.ownedPetIds, nextPet.id]
+                : prev.ownedPetIds,
+            pet: nextPet,
+          }));
           setPage("home");
         }}
       />
@@ -281,8 +349,11 @@ function App() {
       {activePage === "shop" && (
         <ShopPage
           coins={appCoins}
+          characters={characterShopItems}
           items={shopItemViews}
           level={appStats.level}
+          onAiCharacterCreate={openAiCharacterCreation}
+          onCharacterAction={buyOrSelectCharacter}
           onItemAction={buyOrEquipItem}
           onOpenPremiumBox={openPremiumBox}
           onPostComment={addComment}
@@ -296,14 +367,22 @@ function App() {
           coins={appCoins}
           entries={appState.entries}
           monthlyBudget={appState.monthlyBudget}
+          ownedCustomPets={appState.ownedCustomPets}
           pet={appState.pet}
+          ownedPetIds={ownedPetIds}
           stats={appStats}
+          onSelectPet={buyOrSelectCharacter}
           onResetData={resetLocalData}
           onUpdateBudget={updateBudget}
         />
       )}
     </AppShell>
   );
+}
+
+function spendCoins(currentCoins: number, amount: number): number {
+  if (import.meta.env.DEV) return currentCoins;
+  return Math.max(0, currentCoins - amount);
 }
 
 export default App;

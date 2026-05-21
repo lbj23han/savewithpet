@@ -4,12 +4,7 @@ import {
   petPresets,
   shopItems,
 } from "../mocks/appData";
-import { STANDARD_PRESET_BASE_BODY_URL, getPresetVisualLayers } from "../domain/petCharacterSet";
-import {
-  STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
-  STANDARD_CHARACTER_TEMPLATE_ID,
-  STANDARD_WEARABLE_PROFILE,
-} from "../domain/petWearableAnchors";
+import { STANDARD_CHARACTER_TEMPLATE_ID, getPresetVisualLayers } from "../domain/petCharacterSet";
 import type { PersistedAppState, UserPet } from "../types/app";
 
 const STORAGE_KEY = "nyangbi-hajimalgae:v2";
@@ -27,7 +22,6 @@ function createDefaultPet(): UserPet {
     source: "preset",
     templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
     visualLayers: preset.visualLayers ?? getPresetVisualLayers(preset.id),
-    wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
   };
 }
 
@@ -40,7 +34,9 @@ export const defaultAppState: PersistedAppState = {
   equippedItemId: null,
   hasCompletedOnboarding: false,
   monthlyBudget: 1_500_000,
+  ownedCustomPets: [],
   ownedItemIds: [],
+  ownedPetIds: [createDefaultPet().id],
   pet: createDefaultPet(),
   rewardEvents: [],
 };
@@ -61,8 +57,10 @@ export function loadAppState(): PersistedAppState {
       categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
       communityPosts: normalizeCommunityPosts(parsed.communityPosts),
       equippedItemId: normalizeEquippedItemId(parsed.equippedItemId),
+      ownedCustomPets: normalizeOwnedCustomPets(parsed.ownedCustomPets, parsed.pet),
       ownedItemIds: normalizeOwnedItemIds(parsed.ownedItemIds),
       pet: normalizePet(parsed.pet),
+      ownedPetIds: normalizeOwnedPetIds(parsed.ownedPetIds, parsed.pet),
     };
   } catch {
     return defaultAppState;
@@ -80,6 +78,41 @@ function normalizeOwnedItemIds(itemIds: unknown): PersistedAppState["ownedItemId
 
   const validIds = new Set(shopItems.map((item) => item.id));
   return itemIds.filter((itemId): itemId is string => typeof itemId === "string" && validIds.has(itemId));
+}
+
+function normalizeOwnedPetIds(petIds: unknown, pet: unknown): PersistedAppState["ownedPetIds"] {
+  const validIds = new Set(petPresets.map((preset) => preset.id));
+  const owned = new Set<string>();
+
+  if (Array.isArray(petIds)) {
+    petIds.forEach((petId) => {
+      if (typeof petId === "string" && validIds.has(petId)) owned.add(petId);
+    });
+  }
+
+  if (pet && typeof pet === "object" && "id" in pet && typeof pet.id === "string" && validIds.has(pet.id)) {
+    owned.add(pet.id);
+  }
+
+  if (owned.size === 0) owned.add(createDefaultPet().id);
+
+  return Array.from(owned);
+}
+
+function normalizeOwnedCustomPets(pets: unknown, activePet: unknown): PersistedAppState["ownedCustomPets"] {
+  const byId = new Map<string, UserPet>();
+
+  if (Array.isArray(pets)) {
+    pets.forEach((pet) => {
+      const normalized = normalizePet(pet);
+      if (normalized.source === "photo") byId.set(normalized.id, normalized);
+    });
+  }
+
+  const normalizedActivePet = normalizePet(activePet);
+  if (normalizedActivePet.source === "photo") byId.set(normalizedActivePet.id, normalizedActivePet);
+
+  return Array.from(byId.values());
 }
 
 export function saveAppState(state: PersistedAppState): void {
@@ -129,7 +162,6 @@ function normalizePet(pet: unknown): UserPet {
       source: "preset",
       templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
       visualLayers: preset.visualLayers ?? getPresetVisualLayers(preset.id),
-      wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
     };
   }
 
@@ -139,29 +171,14 @@ function normalizePet(pet: unknown): UserPet {
     return {
       ...createDefaultPet(),
       ...photoPet,
-      imageUrl: getTemplateCharacterImageUrl(photoPet),
+      imageUrl: photoPet.imageUrl ?? photoPet.sourcePhotoUrl,
       species: "custom",
       source: "photo",
       sourcePhotoUrl: photoPet.sourcePhotoUrl ?? photoPet.imageUrl,
       templateId: photoPet.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
-      visualLayers: normalizeVisualLayers(photoPet),
-      wearableAnchors: photoPet.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
+      visualLayers: photoPet.visualLayers,
     };
   }
 
   return createDefaultPet();
-}
-
-function getTemplateCharacterImageUrl(pet: UserPet): string {
-  if (!pet.sourcePhotoUrl && pet.imageUrl?.startsWith("data:")) return STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
-  if (pet.sourcePhotoUrl && pet.imageUrl === pet.sourcePhotoUrl) return STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
-
-  return pet.imageUrl ?? STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL;
-}
-
-function normalizeVisualLayers(pet: UserPet): UserPet["visualLayers"] {
-  return {
-    baseBodyUrl: pet.visualLayers?.baseBodyUrl ?? STANDARD_PRESET_BASE_BODY_URL,
-    generatedOverlayUrl: pet.visualLayers?.generatedOverlayUrl,
-  };
 }

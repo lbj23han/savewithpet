@@ -1,10 +1,5 @@
 import type { PetPreset, UserPet } from "../types/app";
-import { STANDARD_PRESET_BASE_BODY_URL, getPresetVisualLayers } from "./petCharacterSet";
-import {
-  STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
-  STANDARD_CHARACTER_TEMPLATE_ID,
-  STANDARD_WEARABLE_PROFILE,
-} from "./petWearableAnchors";
+import { STANDARD_CHARACTER_TEMPLATE_ID, getPresetVisualLayers } from "./petCharacterSet";
 
 const defaultPet = {
   emoji: "🐶",
@@ -28,7 +23,6 @@ export function createPetFromPreset(preset: PetPreset): UserPet {
     source: "preset",
     templateId: preset.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
     visualLayers: preset.visualLayers ?? getPresetVisualLayers(preset.id),
-    wearableAnchors: preset.wearableAnchors ?? STANDARD_WEARABLE_PROFILE,
   };
 }
 
@@ -38,17 +32,13 @@ export function createPetFromPhoto(file: File, imageUrl: string): UserPet {
   return {
     id: `photo-${Date.now()}`,
     name: "사진 속 친구",
-    trait: "사진 특징을 standard-v1 템플릿에 반영할 캐릭터예요",
+    trait: "사진 특징을 고퀄 PNG 캐릭터로 반영할 친구예요",
     emoji,
-    imageUrl: STANDARD_CHARACTER_PLACEHOLDER_IMAGE_URL,
+    imageUrl,
     species: "custom",
     source: "photo",
     sourcePhotoUrl: imageUrl,
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
-    visualLayers: {
-      baseBodyUrl: STANDARD_PRESET_BASE_BODY_URL,
-    },
-    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   };
 }
 
@@ -58,6 +48,5 @@ export function createSkippedPet(): UserPet {
     ...defaultPet,
     source: "skip",
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
-    wearableAnchors: STANDARD_WEARABLE_PROFILE,
   };
 }

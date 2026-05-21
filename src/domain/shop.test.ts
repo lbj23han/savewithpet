@@ -13,11 +13,11 @@ describe("shop domain", () => {
     expect(openPremiumBox(items, PREMIUM_BOX_PRICE - 1).outcome).toBe("not_enough_coins");
   });
 
-  it("selects an available item for premium box", () => {
+  it("keeps premium box unavailable until limited items are added", () => {
     const result = openPremiumBox(items, PREMIUM_BOX_PRICE);
 
-    expect(result.outcome).toBe("item");
-    expect(result.itemId).toBe("scarf");
-    expect(result.coinsSpent).toBe(PREMIUM_BOX_PRICE);
+    expect(result.outcome).toBe("unavailable");
+    expect(result.itemId).toBeNull();
+    expect(result.coinsSpent).toBe(0);
   });
 });

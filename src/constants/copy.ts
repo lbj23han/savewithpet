@@ -37,8 +37,8 @@ export const ANALYSIS_COPY = {
 export const SHOP_COPY = {
   title: "상점",
   description: "나만의 펫을 꾸미고 돌볼 특별한 아이템들!",
-  tabs: ["코스튬", "간식", "배경"],
+  tabs: ["옷장", "간식", "캐릭터 상점"],
   premiumTitle: "프리미엄 상자",
-  premiumDescription: "전설급 아이템을 획득하세요!",
-  premiumButton: "상자 열기",
+  premiumDescription: "기간 한정 판매 상품만 랜덤으로 등장할 예정이에요.",
+  premiumButton: "준비중",
 };

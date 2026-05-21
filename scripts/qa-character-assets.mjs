@@ -14,9 +14,9 @@ const pets = [
 const expressions = ["neutral", "happy", "sad", "wink", "surprised", "sleepy"];
 const items = ["hat", "crown", "sunglasses", "ribbon", "scarf", "wings"];
 const structuralRegions = {
-  core: { bottom: 0.92, left: 0.18, right: 0.82, top: 0.18 },
-  head: { bottom: 0.54, left: 0.18, right: 0.82, top: 0.08 },
-  torso: { bottom: 0.92, left: 0.26, right: 0.74, top: 0.42 },
+  core: { bottom: 0.86, left: 0.3, right: 0.7, top: 0.24 },
+  head: { bottom: 0.54, left: 0.27, right: 0.73, top: 0.22 },
+  torso: { bottom: 0.86, left: 0.3, right: 0.7, top: 0.48 },
 };
 const anchorCompensatedPetIds = new Set(["kangchongmu"]);
 

@@ -1,65 +1,73 @@
 # Standard-V1 PNG Base-Body Generation Report
 
-Generated with gpt-image-1.5, size 1024x1024, quality low, background transparent, max attempts 3, reference akkigae, tolerance 2.0%.
+Generated with gpt-image-1.5, size 1024x1024, quality low, background transparent, maxAttempts 3, candidatesPerAttempt 3, reference akkigae, tolerance 2.0%.
 
-| Pet | Output | Status | Alignment | Alignment Diffs | Bounds | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| kangchongmu | public/assets/pets/base-body-standard/kangchongmu.png | FAIL | DRIFT | bottom=0.3%, centerX=0.0%, heightRatio=4.7%, top=4.4%, widthRatio=24.0% | left=309, top=68, right=711, bottom=864, centerX=0.498, width=0.394, height=0.778 | width 0.394 outside 0.400-0.780<br>heightRatio drift 4.7% > 2.0%<br>top drift 4.4% > 2.0%<br>widthRatio drift 24.0% > 2.0% width 0.394 below preferred 0.420 |
+| Pet | Output | Status | Structural | Region Diffs | Bounds | Passed/Total | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ttoosseunyang | public/assets/pets/base-body-standard/ttoosseunyang.png | FAIL | DRIFT | core: alphaCenterX=0.1%, alphaCenterY=1.1%, bottom=1.9%, centerX=0.0%, coverageRatio=4.2%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.2%, alphaCenterY=0.5%, bottom=0.0%, centerX=0.1%, coverageRatio=2.6%, heightRatio=0.0%, top=0.0%, widthRatio=0.8% | torso: alphaCenterX=0.2%, alphaCenterY=0.9%, bottom=1.9%, centerX=0.0%, coverageRatio=6.7%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | left=268, top=65, right=828, bottom=921, centerX=0.535, width=0.548, height=0.837 | 0/9 | automated frame QA passed<br>torso.coverageRatio drift 6.7% > 6.0%  |
 
 ## QA Criteria
 
 - Transparent PNG.
-- Blank face only: no eyes, no nose, no mouth.
-- Soft 3D pastel quality comparable to existing base-body PNG assets.
-- Body, face, hands, feet, and framing follow standard-v1.
+- Blank face: no eyes, no nose, no mouth.
+- Soft 3D pastel quality comparable to reference assets.
+- Body frame matches standard-v1: centerline, silhouette bounds, structural region alignment within 2%.
 - Wearable anchors should match the shared profile.
-- Automated QA currently checks PNG dimensions and alpha silhouette framing. Visual QA is still required for eye/face anchor quality.
+- Automated QA checks: PNG dimensions, alpha silhouette framing, structural region alignment (core/head/torso) against reference body.
+- Manual QA still required for visual quality, expression anchor placement, and wearable fit.
 
-## kangchongmu
+## ttoosseunyang
 
-Output: `public/assets/pets/base-body-standard/kangchongmu.png`
+Output: `public/assets/pets/base-body-standard/ttoosseunyang.png`
 
-Selected QA: FAIL
+Selected QA: FAIL | structural=DRIFT | core: alphaCenterX=0.1%, alphaCenterY=1.1%, bottom=1.9%, centerX=0.0%, coverageRatio=4.2%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.2%, alphaCenterY=0.5%, bottom=0.0%, centerX=0.1%, coverageRatio=2.6%, heightRatio=0.0%, top=0.0%, widthRatio=0.8% | torso: alphaCenterX=0.2%, alphaCenterY=0.9%, bottom=1.9%, centerX=0.0%, coverageRatio=6.7%, heightRatio=1.9%, top=0.0%, widthRatio=0.0%
 
-- Attempt 1: FAIL / DRIFT / bottom=0.3%, centerX=0.0%, heightRatio=4.7%, top=4.4%, widthRatio=24.0% / left=309, top=68, right=711, bottom=864, centerX=0.498, width=0.394, height=0.778 / width 0.394 outside 0.400-0.780; heightRatio drift 4.7% > 2.0%; top drift 4.4% > 2.0%; widthRatio drift 24.0% > 2.0% width 0.394 below preferred 0.420
-- Attempt 2: FAIL / DRIFT / bottom=1.6%, centerX=0.8%, heightRatio=8.2%, top=6.6%, widthRatio=27.0% / left=332, top=45, right=704, bottom=877, centerX=0.506, width=0.364, height=0.813 / width 0.364 outside 0.400-0.780; heightRatio drift 8.2% > 2.0%; top drift 6.6% > 2.0%; widthRatio drift 27.0% > 2.0% width 0.364 below preferred 0.420
-- Attempt 3: FAIL / DRIFT / bottom=7.9%, centerX=0.1%, heightRatio=15.0%, top=7.1%, widthRatio=10.3% / left=240, top=40, right=783, bottom=942, centerX=0.500, width=0.531, height=0.882 / top 0.039 outside 0.040-0.220; bottom drift 7.9% > 2.0%; heightRatio drift 15.0% > 2.0%; top drift 7.1% > 2.0%; widthRatio drift 10.3% > 2.0% 
+- Attempt 1 (0/3 passed):
+  - candidate 1: FAIL score=-45.8 structural=core: alphaCenterX=0.2%, alphaCenterY=0.8%, bottom=1.9%, centerX=0.0%, coverageRatio=2.1%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.0%, alphaCenterY=0.4%, bottom=0.0%, centerX=0.0%, coverageRatio=12.7%, heightRatio=0.0%, top=0.0%, widthRatio=6.0% | torso: alphaCenterX=0.2%, alphaCenterY=0.3%, bottom=1.9%, centerX=2.5%, coverageRatio=1.7%, heightRatio=1.9%, top=0.0%, widthRatio=5.0% bounds=left=296, top=83, right=784, bottom=890, centerX=0.527, width=0.478, height=0.789
+  - candidate 2: FAIL score=-51.3 structural=core: alphaCenterX=0.1%, alphaCenterY=0.7%, bottom=1.9%, centerX=0.1%, coverageRatio=2.5%, heightRatio=1.9%, top=0.0%, widthRatio=0.3% | head: alphaCenterX=0.0%, alphaCenterY=0.5%, bottom=0.0%, centerX=0.1%, coverageRatio=12.0%, heightRatio=0.0%, top=0.0%, widthRatio=6.3% | torso: alphaCenterX=0.3%, alphaCenterY=0.3%, bottom=1.9%, centerX=2.1%, coverageRatio=0.7%, heightRatio=1.9%, top=0.0%, widthRatio=4.2% bounds=left=304, top=73, right=798, bottom=899, centerX=0.538, width=0.483, height=0.808
+  - candidate 3: FAIL score=39.7 structural=core: alphaCenterX=0.1%, alphaCenterY=1.1%, bottom=1.9%, centerX=0.0%, coverageRatio=4.2%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.2%, alphaCenterY=0.5%, bottom=0.0%, centerX=0.1%, coverageRatio=2.6%, heightRatio=0.0%, top=0.0%, widthRatio=0.8% | torso: alphaCenterX=0.2%, alphaCenterY=0.9%, bottom=1.9%, centerX=0.0%, coverageRatio=6.7%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% bounds=left=268, top=65, right=828, bottom=921, centerX=0.535, width=0.548, height=0.837
+- Attempt 2 (0/3 passed):
+  - candidate 1: FAIL score=-15.3 structural=core: alphaCenterX=0.3%, alphaCenterY=1.2%, bottom=1.9%, centerX=0.0%, coverageRatio=5.3%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.0%, alphaCenterY=0.5%, bottom=0.0%, centerX=0.0%, coverageRatio=1.0%, heightRatio=0.0%, top=0.0%, widthRatio=0.0% | torso: alphaCenterX=0.5%, alphaCenterY=0.5%, bottom=1.9%, centerX=1.1%, coverageRatio=8.6%, heightRatio=1.9%, top=0.0%, widthRatio=2.2% bounds=left=254, top=40, right=843, bottom=932, centerX=0.536, width=0.576, height=0.872
+  - candidate 2: FAIL score=9.8 structural=core: alphaCenterX=0.1%, alphaCenterY=1.2%, bottom=1.9%, centerX=0.0%, coverageRatio=0.6%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.0%, alphaCenterY=0.4%, bottom=0.0%, centerX=0.1%, coverageRatio=10.2%, heightRatio=0.0%, top=0.0%, widthRatio=4.9% | torso: alphaCenterX=0.1%, alphaCenterY=0.9%, bottom=1.9%, centerX=0.8%, coverageRatio=4.0%, heightRatio=1.9%, top=0.0%, widthRatio=1.7% bounds=left=293, top=69, right=807, bottom=902, centerX=0.537, width=0.503, height=0.814
+  - candidate 3: FAIL score=-7.8 structural=core: alphaCenterX=0.0%, alphaCenterY=0.8%, bottom=1.9%, centerX=0.0%, coverageRatio=1.0%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.0%, alphaCenterY=0.5%, bottom=0.0%, centerX=0.2%, coverageRatio=7.8%, heightRatio=0.0%, top=0.0%, widthRatio=2.4% | torso: alphaCenterX=0.0%, alphaCenterY=0.7%, bottom=1.9%, centerX=1.2%, coverageRatio=2.4%, heightRatio=1.9%, top=0.0%, widthRatio=2.4% bounds=left=280, top=89, right=763, bottom=890, centerX=0.509, width=0.473, height=0.783
+- Attempt 3 (0/3 passed):
+  - candidate 1: FAIL score=-41.7 structural=core: alphaCenterX=0.1%, alphaCenterY=0.9%, bottom=1.9%, centerX=0.0%, coverageRatio=1.1%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.1%, alphaCenterY=0.6%, bottom=0.0%, centerX=0.0%, coverageRatio=8.8%, heightRatio=0.0%, top=0.0%, widthRatio=4.7% | torso: alphaCenterX=0.2%, alphaCenterY=0.7%, bottom=1.9%, centerX=2.1%, coverageRatio=3.0%, heightRatio=1.9%, top=0.0%, widthRatio=4.1% bounds=left=291, top=83, right=760, bottom=888, centerX=0.513, width=0.459, height=0.787
+  - candidate 2: FAIL score=15.0 structural=core: alphaCenterX=0.2%, alphaCenterY=0.7%, bottom=1.9%, centerX=0.0%, coverageRatio=0.5%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.1%, alphaCenterY=0.2%, bottom=0.0%, centerX=0.0%, coverageRatio=8.5%, heightRatio=0.0%, top=0.0%, widthRatio=0.6% | torso: alphaCenterX=0.4%, alphaCenterY=0.5%, bottom=1.9%, centerX=1.2%, coverageRatio=2.0%, heightRatio=1.9%, top=0.0%, widthRatio=2.4% bounds=left=266, top=82, right=816, bottom=921, centerX=0.528, width=0.538, height=0.820
+  - candidate 3: FAIL score=21.5 structural=core: alphaCenterX=0.0%, alphaCenterY=1.1%, bottom=1.9%, centerX=0.0%, coverageRatio=4.5%, heightRatio=1.9%, top=0.0%, widthRatio=0.0% | head: alphaCenterX=0.0%, alphaCenterY=0.6%, bottom=0.0%, centerX=0.0%, coverageRatio=1.0%, heightRatio=0.0%, top=0.0%, widthRatio=0.9% | torso: alphaCenterX=0.0%, alphaCenterY=1.0%, bottom=1.9%, centerX=1.2%, coverageRatio=6.4%, heightRatio=1.9%, top=0.0%, widthRatio=2.4% bounds=left=276, top=85, right=774, bottom=899, centerX=0.513, width=0.487, height=0.796
 
 Prompt:
 
 ```text
-Create a production-ready transparent PNG base-body layer for a mobile app pet avatar.
+Generate a production-ready transparent PNG full-body pet avatar for a mobile app.
 
-Reference role:
-- Use the input image only for soft 3D pastel material quality, lighting, polish, and broad species identity.
-- Do not preserve the current pose if it conflicts with the standard-v1 body rig below.
+BODY FRAME CONTRACT — all values are for a 1024×1024 px transparent PNG canvas:
+- Body centerline: x=512 (±10 px). Left-right drift is a hard failure.
+- Full silhouette bounds: left=200–300, right=724–824, top=70–180, bottom=835–950.
+- Body width span: ~520 px (~51% of canvas). Body height span: ~780 px (~76% of canvas).
+- Head center: x=512, y=350. Face area center: x=512, y=410.
+- Eye anchor (left): x=443, y=413. Eye anchor (right): x=614, y=413.
+- Chest center: x=521, y=630. Hands/paws symmetrical around upper torso.
+- Feet bottom: y=870–930, symmetrical left and right.
+- Face must be BLANK: no eyes, no eyebrows, no nose, no mouth, no facial marks of any kind.
+- Full-body, front-facing, upright standing pose. No sitting, tilting, leaning, or cropped parts.
 
-Standard-v1 body rig, non-negotiable:
-- Canvas is exactly square. Generate for 1024x1024 transparent PNG, mapped to a 1254x1254 app asset coordinate system.
-- Full-body centered, front-facing standing pose. No sitting, no rotated body, no leaning, no cropped parts.
-- Overall character silhouette target in 1024 coordinates: left 200-300, right 724-824, top 70-180, bottom 835-950.
-- If the input image already has a good body frame, preserve that frame exactly.
-- For non-reference species, change only species traits while keeping the input body frame and proportions.
-- Keep the body centerline at x=512. The visual center must not drift left or right.
-- Head center target: x=512, y=350. Face area target: x=512, y=410.
-- Eye/expression anchors must remain available at left x=443 y=413 and right x=614 y=413 in 1024 coordinates.
-- Chest center target: x=521, y=630. Hands/paws must sit symmetrically around the upper torso.
-- Feet must end near y=870-930 and remain symmetrical.
-- Keep the face blank: no eyes, no eyebrows, no nose, no mouth, no facial lines.
-- Same body size, face area, torso size, hand position, foot position, and framing for every species.
-- Body width, torso width, arm positions, and foot positions must be visually identical to the reference character.
-- Species traits may change ear shape, tail shape, fur markings, and colors only. They must not move the torso, head, face area, hands, feet, or framing.
-- The result should look like one complete full base-body character, not detached overlay pieces.
+INPUT IMAGE ROLE:
+- The input image defines the EXACT body frame. It is the structural template.
+- Copy the body silhouette (torso width, arm positions, leg positions, paw positions, feet, head position and size) EXACTLY from the input image.
+- Do NOT resize, shrink, widen, raise, or lower the body in any way.
+- Do NOT invent a new body shape for this species. Use the input body shape as-is.
 
-Pet identity: round rabbit mascot.
-Allowed visual traits only: cream white fur, tall rabbit ears with pink inner ears, round cotton tail, pink scarf body accent.
-Species-specific frame lock: Use the input puppy image as the exact body-frame reference. Preserve the alpha silhouette and size from neck down exactly. Keep the same head width, torso width, arm positions, leg positions, foot positions, chest height, body centerline, and bottom baseline. Only convert species traits to rabbit by replacing floppy ears with tall rabbit ears and changing the tail to a small round cotton tail. Do not shrink the body. Do not create a slim rabbit body. Do not move the paws, torso, feet, or head silhouette inward.
-Generation pass: 1. If this is not pass 1, correct framing drift by making the body more centered and closer to the target coordinates.
-Strict visual alignment target: match akkigae's body frame within 2% for center, top, bottom, width, and height.
+WHAT YOU MAY CHANGE:
+- Change ONLY the ears (floppy dog ears → upright cat ears with pink inner), the tail (pink dog tail → striped pink cat tail), and the belly mark (pink scarf body accent → soft pink heart belly mark). Every other pixel — torso, arms, legs, feet, paws, body width, body height, head position, and face area — must be copied exactly from the reference image.
 
-Style:
-- Same quality as the reference: soft premium 3D mascot, smooth rounded forms, gentle pastel shading, polished app icon character.
-- Transparent background.
-- No circular backdrop, no props, no accessories, no text, no watermark.
-- Keep generous transparent padding and do not crop.
+WHAT YOU MUST NOT CHANGE:
+- Torso width and height.
+- Arm positions, hand/paw positions.
+- Leg positions, foot positions, foot width.
+- Head position, head size, and face area location.
+- Body centerline, body framing, or overall silhouette bounds.
+
+Style: soft premium 3D mascot, smooth rounded forms, gentle pastel shading, polished app icon quality.
+Background: fully transparent PNG. No backdrop, no props, no accessories, no text, no watermark.
+Keep generous transparent padding on all sides. Do not crop any part of the body.
 ```

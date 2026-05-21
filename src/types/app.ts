@@ -20,37 +20,13 @@ export type PetPreset = {
   featured?: boolean;
   templateId?: CharacterTemplateId;
   visualLayers?: PetVisualLayers;
-  wearableAnchors?: PetWearableAnchors;
 };
 
-export type CharacterTemplateId = "standard-v1";
+export type CharacterTemplateId = "single-png-v1";
 
 export type PetVisualLayers = {
   baseBodyUrl: string;
   generatedOverlayUrl?: string;
-};
-
-export type PetWearableAnchor = {
-  scale?: number;
-  width?: number;
-  x: number;
-  y: number;
-};
-
-export type PetEyesAnchor = {
-  scale?: number;
-  width: number;
-  x: number;
-  y: number;
-  left?: { x: number; y: number };
-  right?: { x: number; y: number };
-};
-
-export type PetWearableAnchors = {
-  back: PetWearableAnchor;
-  chest: PetWearableAnchor;
-  eyes: PetEyesAnchor;
-  head: PetWearableAnchor;
 };
 
 export type UserPet = {
@@ -64,7 +40,6 @@ export type UserPet = {
   sourcePhotoUrl?: string;
   templateId?: CharacterTemplateId;
   visualLayers?: PetVisualLayers;
-  wearableAnchors?: PetWearableAnchors;
 };
 
 export type PetAnimation = "idle" | "pop" | "shake" | "sparkle";
@@ -130,7 +105,7 @@ export type PremiumBoxResult = {
   itemId: string | null;
   label: string;
   coinsSpent: number;
-  outcome: "item" | "coins" | "sold_out" | "not_enough_coins";
+  outcome: "item" | "coins" | "sold_out" | "not_enough_coins" | "unavailable";
 };
 
 export type AppStats = {
@@ -179,7 +154,9 @@ export type PersistedAppState = {
   equippedItemId: string | null;
   hasCompletedOnboarding: boolean;
   monthlyBudget: number;
+  ownedCustomPets: UserPet[];
   ownedItemIds: string[];
+  ownedPetIds: string[];
   pet: UserPet;
   rewardEvents: RewardEvent[];
 };

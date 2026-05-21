@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>냥비하지말개 표정 파츠 미리보기</title>
+    <title>냥비하지말개 PNG 이펙트 미리보기</title>
     <style>
       * {
         box-sizing: border-box;
@@ -106,9 +106,70 @@
         z-index: 0;
       }
 
-      .face {
+      .effect {
         z-index: 1;
-        transform: translate(-2%, -2.5%);
+        pointer-events: none;
+      }
+
+      .effect::before,
+      .effect::after {
+        position: absolute;
+        content: "";
+      }
+
+      .effect.happy::before,
+      .effect.happy::after {
+        color: #f16f97;
+        content: "♥";
+        filter: drop-shadow(0 5px 8px rgba(213, 76, 112, 0.18));
+      }
+
+      .effect.happy::before {
+        top: 10%;
+        left: 18%;
+        font-size: 34px;
+        transform: rotate(-12deg);
+      }
+
+      .effect.happy::after {
+        top: 3%;
+        right: 15%;
+        font-size: 24px;
+        transform: rotate(16deg);
+      }
+
+      .effect.sweat::before,
+      .effect.sweat::after {
+        width: 28px;
+        height: 40px;
+        background: #54c4ee;
+        border-radius: 70% 70% 74% 74%;
+        filter: drop-shadow(0 3px 4px rgba(54, 151, 199, 0.16));
+        transform: rotate(25deg);
+      }
+
+      .effect.sweat::before {
+        top: 10%;
+        right: 18%;
+      }
+
+      .effect.sweat::after {
+        top: 30%;
+        right: 7%;
+        width: 18px;
+        height: 26px;
+        opacity: 0.82;
+      }
+
+      .effect.angry::before {
+        top: 0%;
+        right: 12%;
+        color: #ff352e;
+        content: "♨";
+        filter: drop-shadow(0 3px 0 rgba(74, 16, 16, 0.18));
+        font-size: 44px;
+        font-weight: 900;
+        transform: rotate(8deg);
       }
 
       .controls {
@@ -194,88 +255,91 @@
   </head>
   <body>
     <main>
-      <h1>표정 파츠 조립 미리보기</h1>
-      <p>standard-v1 PNG base-body 후보 위에 SVG 얼굴 파츠를 얹는 방식입니다.</p>
+      <h1>PNG 캐릭터 + 이펙트 미리보기</h1>
+      <p>고퀄 캐릭터 PNG는 그대로 두고, 기분/포만도/성장 상태를 주변 이펙트와 크기 변화로 표현합니다.</p>
 
-      <section class="grid" aria-label="캐릭터별 표정 미리보기">
+      <section class="grid" aria-label="캐릭터별 이펙트 미리보기">
         <article class="card" data-pet="akkigae">
           <h2>아끼개</h2>
           <div class="stage">
             <div class="character">
-              <img class="body" src="/assets/pets/base-body-standard/akkigae.png" alt="아끼개 얼굴 없는 베이스" />
-              <img class="face" src="/assets/pet-parts/akkigae/neutral.svg" alt="" aria-hidden="true" />
+              <img class="body" src="/assets/pets/akkigae.png?v=2" alt="아끼개" />
+              <span class="effect" aria-hidden="true"></span>
             </div>
           </div>
-          <div class="controls" aria-label="아끼개 표정 선택"></div>
-          <div class="note">neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.</div>
+          <div class="controls" aria-label="아끼개 이펙트 선택"></div>
+          <div class="note">normal: 원본 PNG를 그대로 보여줍니다.</div>
         </article>
 
         <article class="card" data-pet="ttoosseunyang">
           <h2>또쓰냥</h2>
           <div class="stage">
             <div class="character">
-              <img class="body" src="/assets/pets/base-body-standard/ttoosseunyang.png" alt="또쓰냥 얼굴 없는 베이스" />
-              <img class="face" src="/assets/pet-parts/ttoosseunyang/neutral.svg" alt="" aria-hidden="true" />
+              <img class="body" src="/assets/pets/ttoosseunyang.png?v=2" alt="또쓰냥" />
+              <span class="effect" aria-hidden="true"></span>
             </div>
           </div>
-          <div class="controls" aria-label="또쓰냥 표정 선택"></div>
-          <div class="note">neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.</div>
+          <div class="controls" aria-label="또쓰냥 이펙트 선택"></div>
+          <div class="note">normal: 원본 PNG를 그대로 보여줍니다.</div>
         </article>
 
         <article class="card" data-pet="kangchongmu">
           <h2>깡총무</h2>
           <div class="stage">
             <div class="character">
-              <img class="body" src="/assets/pets/base-body-standard/kangchongmu.png" alt="깡총무 얼굴 없는 베이스" />
-              <img class="face" src="/assets/pet-parts/kangchongmu/neutral.svg" alt="" aria-hidden="true" />
+              <img class="body" src="/assets/pets/kangchongmu.png?v=1" alt="깡총무" />
+              <span class="effect" aria-hidden="true"></span>
             </div>
           </div>
-          <div class="controls" aria-label="깡총무 표정 선택"></div>
-          <div class="note">neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.</div>
+          <div class="controls" aria-label="깡총무 이펙트 선택"></div>
+          <div class="note">normal: 원본 PNG를 그대로 보여줍니다.</div>
         </article>
       </section>
     </main>
 
     <script>
-      const expressions = [
-        ["neutral", "기본"],
-        ["happy", "기쁨"],
-        ["sad", "슬픔"],
-        ["wink", "윙크"],
-        ["surprised", "놀람"],
-        ["sleepy", "졸림"],
+      const effects = [
+        ["normal", "기본", 1],
+        ["happy", "하트", 1.16],
+        ["sweat", "땀", 0.88],
+        ["angry", "분노", 0.94],
+        ["small", "작게", 0.78],
+        ["large", "크게", 1.2],
       ];
 
       const notes = {
-        neutral: "neutral: 평상시 얼굴 파츠가 base-body 위에 조립됩니다.",
-        happy: "happy: 보상/기록 완료 순간에 쓰는 닫힌 눈 + 반짝임 파츠입니다.",
-        sad: "sad: 기분/포만도가 낮거나 예산 초과 상태에 쓰는 걱정 표정입니다.",
-        wink: "wink: 옷장 아이템 장착 같은 짧은 상호작용에 쓰는 표정입니다.",
-        surprised: "surprised: 갑작스러운 지출/변동 알림처럼 주의가 필요한 순간에 쓰는 표정입니다.",
-        sleepy: "sleepy: 포만도나 기록 흐름이 낮아졌을 때 쓰는 졸린 표정입니다.",
+        normal: "normal: 원본 PNG를 그대로 보여줍니다.",
+        happy: "happy: 기록/보상 완료, 기분 좋음 상태는 하트 이펙트와 확대감으로 표현합니다.",
+        sweat: "sweat: 포만도/기분이 낮을 때 캐릭터 얼굴을 바꾸지 않고 땀 이펙트만 얹습니다.",
+        angry: "angry: 과소비/주의 상태는 분노 이펙트와 흔들림으로 표현합니다.",
+        small: "small: 성장/재정 상태가 낮을 때 전체 캐릭터 크기를 줄입니다.",
+        large: "large: 성장/기분이 높을 때 전체 캐릭터 크기를 키웁니다.",
       };
 
       document.querySelectorAll(".card").forEach((card) => {
         const petId = card.dataset.pet;
         const controls = card.querySelector(".controls");
-        const face = card.querySelector(".face");
+        const effect = card.querySelector(".effect");
         const note = card.querySelector(".note");
         const character = card.querySelector(".character");
+        const body = card.querySelector(".body");
+        if (petId === "akkigae") body.src = "/assets/pets/akkigae.png?v=2";
 
-        expressions.forEach(([expression, label]) => {
+        effects.forEach(([effectName, label, scale]) => {
           const button = document.createElement("button");
           button.type = "button";
           button.textContent = label;
-          button.className = expression === "neutral" ? "active" : "";
+          button.className = effectName === "normal" ? "active" : "";
           button.addEventListener("click", () => {
-            face.src = `/assets/pet-parts/${petId}/${expression}.svg`;
-            note.textContent = notes[expression];
+            effect.className = `effect ${["happy", "sweat", "angry"].includes(effectName) ? effectName : ""}`;
+            character.style.scale = scale;
+            note.textContent = notes[effectName];
             controls.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
             button.classList.add("active");
 
             character.classList.remove("pop", "shake");
             void character.offsetWidth;
-            character.classList.add(expression === "sad" ? "shake" : "pop");
+            character.classList.add(effectName === "angry" ? "shake" : "pop");
           });
 
           controls.appendChild(button);

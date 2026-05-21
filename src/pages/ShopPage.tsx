@@ -5,12 +5,24 @@ import styled from "styled-components";
 import { SHOP_COPY } from "../constants/copy";
 import { PetItemArt } from "../components/PetItemArt";
 import { PREMIUM_BOX_PRICE } from "../domain/shop";
-import type { CommunityPost, ShopItemState, ShopItemViewModel } from "../types/app";
+import type { CommunityPost, PetPreset, ShopItemState, ShopItemViewModel } from "../types/app";
+
+type ShopTab = "wardrobe" | "snacks" | "characters";
+
+type CharacterShopItem = PetPreset & {
+  active: boolean;
+  canBuy: boolean;
+  owned: boolean;
+  price: number;
+};
 
 type ShopPageProps = {
+  characters: CharacterShopItem[];
   coins: number;
   items: ShopItemViewModel[];
   level: number;
+  onAiCharacterCreate: () => void;
+  onCharacterAction: (petId: string) => void;
   onItemAction: (itemId: string) => void;
   onOpenPremiumBox: () => void;
   onPostComment: (postId: string, message: string) => void;
@@ -20,9 +32,12 @@ type ShopPageProps = {
 };
 
 export function ShopPage({
+  characters,
   coins,
   items,
   level,
+  onAiCharacterCreate,
+  onCharacterAction,
   onItemAction,
   onOpenPremiumBox,
   onPostComment,
@@ -30,7 +45,13 @@ export function ShopPage({
   onShareOutfit,
   posts,
 }: ShopPageProps) {
+  const [activeTab, setActiveTab] = useState<ShopTab>("wardrobe");
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const tabs: Array<{ id: ShopTab; label: string }> = [
+    { id: "wardrobe", label: SHOP_COPY.tabs[0] },
+    { id: "snacks", label: SHOP_COPY.tabs[1] },
+    { id: "characters", label: SHOP_COPY.tabs[2] },
+  ];
 
   return (
     <Page>
@@ -40,33 +61,73 @@ export function ShopPage({
       </Hero>
 
       <Tabs>
-        {SHOP_COPY.tabs.map((tab, index) => (
-          <Tab key={tab} $active={index === 0}>
-            {tab}
+        {tabs.map((tab) => (
+          <Tab key={tab.id} $active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>
+            {tab.label}
           </Tab>
         ))}
       </Tabs>
 
-      <ItemGrid>
-        {items.map((item) => (
-          <ItemCard key={item.id} $locked={item.state === "locked"} onClick={() => onItemAction(item.id)}>
-            <IconCircle>
-              <PetItemArt itemId={item.id} title={item.name} />
-            </IconCircle>
-            {item.state === "locked" && <LockKeyhole size={24} />}
-            <h2>{item.name}</h2>
-            <StateBadge $state={item.state}>{getStateLabel(item)}</StateBadge>
-            <Price $disabled={item.state === "locked"}>🪙 {item.price.toLocaleString()}</Price>
-          </ItemCard>
-        ))}
-      </ItemGrid>
+      {activeTab === "wardrobe" && (
+        <ItemGrid>
+          {items.map((item) => (
+            <ItemCard key={item.id} $locked={item.state === "locked"} onClick={() => onItemAction(item.id)}>
+              <IconCircle>
+                <PetItemArt itemId={item.id} title={item.name} />
+              </IconCircle>
+              {item.state === "locked" && <LockKeyhole size={24} />}
+              <h2>{item.name}</h2>
+              <StateBadge $state={item.state}>{getStateLabel(item)}</StateBadge>
+              <Price $disabled={item.state === "locked"}>🪙 {item.price.toLocaleString()}</Price>
+            </ItemCard>
+          ))}
+        </ItemGrid>
+      )}
+
+      {activeTab === "snacks" && (
+        <EmptyPanel>
+          <h2>간식 상점 준비중</h2>
+          <p>포만도 회복, 기분 상승처럼 캐릭터와 직접 겹치지 않는 소비형 아이템으로 넣을 예정이에요.</p>
+        </EmptyPanel>
+      )}
+
+      {activeTab === "characters" && (
+        <CharacterGrid>
+          <AiCharacterCard onClick={onAiCharacterCreate}>
+            <AiBadge>500원</AiBadge>
+            <h2>AI 캐릭터 생성</h2>
+            <p>사진 기반 프리미엄 캐릭터를 생성하고 컬렉션에 추가해요.</p>
+            <strong>결제 연동 예정</strong>
+          </AiCharacterCard>
+          {characters.map((character) => (
+            <CharacterCard key={character.id} onClick={() => onCharacterAction(character.id)}>
+              <CharacterImageWrap>
+                <CharacterImage src={character.imageUrl} alt={character.name} />
+              </CharacterImageWrap>
+              <h2>{character.name}</h2>
+              <p>{character.trait}</p>
+              <CharacterAction $active={character.active}>
+                {character.active
+                  ? "사용중"
+                  : character.owned
+                    ? "변경하기"
+                    : character.canBuy
+                      ? `🪙 ${character.price.toLocaleString()}`
+                      : "코인 부족"}
+              </CharacterAction>
+            </CharacterCard>
+          ))}
+        </CharacterGrid>
+      )}
 
       <PremiumBox>
         <div>
           <h2>{SHOP_COPY.premiumTitle}</h2>
-          <p>900코인으로 미보유 아이템 중 가장 희귀한 아이템을 확정 획득해요.</p>
+          <p>
+            {PREMIUM_BOX_PRICE.toLocaleString("ko-KR")}코인 · {SHOP_COPY.premiumDescription}
+          </p>
         </div>
-        <button disabled={coins < PREMIUM_BOX_PRICE} onClick={onOpenPremiumBox}>{SHOP_COPY.premiumButton}</button>
+        <button disabled onClick={onOpenPremiumBox}>{SHOP_COPY.premiumButton}</button>
       </PremiumBox>
 
       <CommunityPanel>
@@ -129,7 +190,7 @@ export function ShopPage({
 }
 
 function getStateLabel(item: ShopItemViewModel): string {
-  if (item.state === "equipped") return "착용중";
+  if (item.state === "equipped") return "적용중";
   if (item.state === "owned") return "보유중";
   if (item.state === "locked") return item.unlockLabel ?? "잠김";
   if (!item.canBuy) return "코인 부족";
@@ -186,6 +247,146 @@ const ItemGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const CharacterGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const CharacterCard = styled.button`
+  display: grid;
+  justify-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  min-height: 230px;
+  padding: ${({ theme }) => theme.spacing.lg};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  p {
+    min-height: 36px;
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    line-height: 1.45;
+  }
+`;
+
+const CharacterImageWrap = styled.div`
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+  background: #fff5f9;
+  border-radius: ${({ theme }) => theme.radius.lg};
+`;
+
+const CharacterImage = styled.img`
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+`;
+
+const CharacterAction = styled.strong<{ $active: boolean }>`
+  padding: 5px 12px;
+  color: ${({ $active, theme }) => ($active ? theme.colors.orangeDark : theme.colors.green)};
+  background: ${({ $active, theme }) => ($active ? "#FFF1B5" : theme.colors.greenSoft)};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const AiCharacterCard = styled.button`
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  min-height: 230px;
+  padding: ${({ theme }) => theme.spacing.xl};
+  text-align: left;
+  background: linear-gradient(135deg, #fff5f9 0%, #edf8ff 100%);
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  p {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  strong {
+    justify-self: start;
+    padding: 5px 12px;
+    color: ${({ theme }) => theme.colors.purple};
+    background: ${({ theme }) => theme.colors.surface};
+    border-radius: ${({ theme }) => theme.radius.pill};
+    font-size: 12px;
+  }
+`;
+
+const AiBadge = styled.span`
+  position: absolute;
+  top: ${({ theme }) => theme.spacing.md};
+  right: ${({ theme }) => theme.spacing.md};
+  padding: 4px 10px;
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.colors.purple};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 12px;
+  font-weight: 800;
+`;
+
+const EmptyPanel = styled.section`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.xl};
+  color: ${({ theme }) => theme.colors.muted};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 16px;
+  }
+
+  p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
 `;
 
 const ItemCard = styled.button<{ $locked: boolean }>`

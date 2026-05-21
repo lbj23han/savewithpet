@@ -148,7 +148,7 @@ export function HomePage({
         </NameRow>
         <Speech>{petComment}</Speech>
         <PetPortrait>
-          <PetStage animation={petAnimation} equippedItem={equippedItem} expression={petExpression} pet={pet} />
+          <PetStage animation={petAnimation} equippedItem={equippedItem} expression={petExpression} pet={pet} stats={stats} />
           <WardrobeButton
             aria-label="옷장 열기"
             onClick={() => {
@@ -200,8 +200,8 @@ export function HomePage({
         <WardrobeSheet>
           <SheetHeader>
             <div>
-              <h2>내 옷장</h2>
-              <span>아이템을 누르면 바로 착용해요</span>
+              <h2>내 꾸미기</h2>
+              <span>캐릭터 주변을 바꾸는 아이템이에요</span>
             </div>
             <button aria-label="옷장 닫기" onClick={() => setIsWardrobeOpen(false)}>
               <X size={20} />
@@ -225,7 +225,7 @@ export function HomePage({
             <Store size={18} />
             상점에서 더 보기
           </ShopLink>
-          <ShareButton onClick={onShareOutfit}>오늘 코디 자랑하기</ShareButton>
+          <ShareButton onClick={onShareOutfit}>오늘 모습 자랑하기</ShareButton>
         </WardrobeSheet>
       )}
     </Page>

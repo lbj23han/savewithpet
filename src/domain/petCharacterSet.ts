@@ -1,16 +1,17 @@
 import type { PetExpression, UserPet } from "../types/app";
 
+export const STANDARD_CHARACTER_TEMPLATE_ID = "single-png-v1" as const;
 export const BASE_CHARACTER_IDS = ["akkigae", "ttoosseunyang", "kangchongmu"] as const;
 
 export const PET_EXPRESSIONS: PetExpression[] = ["neutral", "happy", "sad", "wink", "surprised", "sleepy"];
 
-export const STANDARD_PRESET_BASE_BODY_URL = "/assets/pets/base-body-standard/akkigae.png";
+export const STANDARD_PRESET_CHARACTER_URL = "/assets/pets/akkigae.png?v=2";
 
 export function getPresetVisualLayers(petId: string): UserPet["visualLayers"] | undefined {
   if (!hasLayeredCharacterAssets(petId)) return undefined;
 
   return {
-    baseBodyUrl: `/assets/pets/base-body-standard/${petId}.png`,
+    baseBodyUrl: `/assets/pets/${petId}.png?v=2`,
   };
 }
 
@@ -24,7 +25,7 @@ export function getBaseCharacterUrl(pet: Pick<UserPet, "id" | "visualLayers">): 
   const petId = pet.id;
   if (!hasLayeredCharacterAssets(petId)) return null;
 
-  return `/assets/pets/base-body-standard/${petId}.png`;
+  return `/assets/pets/${petId}.png?v=2`;
 }
 
 export function getGeneratedOverlayUrl(pet: Pick<UserPet, "visualLayers">): string | null {

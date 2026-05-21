@@ -4,21 +4,36 @@ import styled from "styled-components";
 
 import { Panel } from "../components/Panel";
 import { formatWon, getCurrentMonthLabel } from "../domain/ledger";
+import { petPresets } from "../mocks/appData";
 import type { AppStats, LedgerEntry, UserPet } from "../types/app";
 
 type SettingsPageProps = {
   coins: number;
   entries: LedgerEntry[];
   monthlyBudget: number;
+  ownedCustomPets: UserPet[];
+  ownedPetIds: string[];
   pet: UserPet;
   stats: AppStats;
   onResetData: () => void;
+  onSelectPet: (petId: string) => void;
   onUpdateBudget: (budget: number) => void;
 };
 
 const BUDGET_PRESETS = [500_000, 800_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000];
 
-export function SettingsPage({ coins, entries, monthlyBudget, pet, stats, onResetData, onUpdateBudget }: SettingsPageProps) {
+export function SettingsPage({
+  coins,
+  entries,
+  monthlyBudget,
+  ownedCustomPets,
+  ownedPetIds,
+  pet,
+  stats,
+  onResetData,
+  onSelectPet,
+  onUpdateBudget,
+}: SettingsPageProps) {
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget));
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const expenseEntries = entries.filter((e) => e.type === "expense");
@@ -89,6 +104,26 @@ export function SettingsPage({ coins, entries, monthlyBudget, pet, stats, onRese
           <BudgetUnit>원</BudgetUnit>
         </BudgetRow>
         <BudgetHint>10,000원 이상 1억원 이하로 설정할 수 있어요</BudgetHint>
+      </Panel>
+
+      <Panel>
+        <SectionLabel>보유 캐릭터</SectionLabel>
+        <OwnedPetGrid>
+          {petPresets
+            .filter((preset) => ownedPetIds.includes(preset.id))
+            .map((preset) => (
+              <OwnedPetButton key={preset.id} $active={pet.id === preset.id} onClick={() => onSelectPet(preset.id)}>
+                <OwnedPetImage src={preset.imageUrl} alt={preset.name} />
+                <span>{preset.name}</span>
+              </OwnedPetButton>
+            ))}
+          {ownedCustomPets.map((customPet) => (
+            <OwnedPetButton key={customPet.id} $active={pet.id === customPet.id} onClick={() => onSelectPet(customPet.id)}>
+              {customPet.imageUrl ? <OwnedPetImage src={customPet.imageUrl} alt={customPet.name} /> : customPet.emoji}
+              <span>{customPet.name}</span>
+            </OwnedPetButton>
+          ))}
+        </OwnedPetGrid>
       </Panel>
 
       <Panel>
@@ -234,6 +269,37 @@ const BudgetPresets = styled.div`
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.sm};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+`;
+
+const OwnedPetGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${({ theme }) => theme.spacing.sm};
+`;
+
+const OwnedPetButton = styled.button<{ $active: boolean }>`
+  display: grid;
+  justify-items: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+  min-height: 104px;
+  padding: ${({ theme }) => theme.spacing.md};
+  color: ${({ $active, theme }) => ($active ? theme.colors.orangeDark : theme.colors.text)};
+  background: ${({ $active, theme }) => ($active ? "#FFF1B5" : theme.colors.surfaceWarm)};
+  border: 1.5px solid ${({ $active, theme }) => ($active ? theme.colors.orange : theme.colors.line)};
+  border-radius: ${({ theme }) => theme.radius.lg};
+
+  span {
+    font-size: 12px;
+    font-weight: 700;
+  }
+`;
+
+const OwnedPetImage = styled.img`
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 `;
 
 const PresetChip = styled.button<{ $active: boolean }>`
