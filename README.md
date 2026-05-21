@@ -58,11 +58,41 @@ npm run check
 npm run build
 ```
 
+## Supabase
+
+초기 DB는 `supabase/initial-schema.sql`을 Supabase SQL Editor에서 실행합니다.
+이미 한 번 실행한 뒤 스키마가 바뀌었다면 같은 파일을 다시 실행해도 됩니다. `add column if not exists`, `create policy/drop policy` 형태로 재실행 가능하게 유지합니다.
+
+로컬 연결값은 `.env.local`에 둡니다.
+
+```bash
+VITE_SUPABASE_URL=https://xiyrggeyckhmxpkesswj.supabase.co
+VITE_SUPABASE_ANON_KEY=
+```
+
+`VITE_SUPABASE_ANON_KEY`를 채우기 전에는 앱이 기존 localStorage 모드로 동작합니다. 값을 채우면 앱이 Supabase anonymous auth 세션을 만들고 `profiles`, `pets`, `ledger_entries`, `reward_events`, `user_owned_items` 등에 로컬 상태를 자동 저장합니다.
+
+Supabase dashboard에서 Anonymous sign-ins를 활성화해야 자동 세션 생성이 동작합니다.
+
+배포 환경에도 같은 값이 필요합니다.
+
+- Vercel: Project Settings -> Environment Variables
+- Apps in Toss/AIT: 배포 환경 변수 설정 위치에 동일하게 등록
+
+서버 전용 AI 생성 값은 프론트에 노출하지 않습니다.
+
+```bash
+OPENAI_API_KEY=
+OPENAI_IMAGE_MODEL=gpt-image-1.5
+AI_CHARACTER_GENERATION_ENABLED=false
+```
+
 ## Folder Structure
 
 ```text
 savewithpet/
   docs/
+    ai-character-generation.md            AI 캐릭터 생성/결제/검수 연결 계약
     character-asset-prompts.md            캐릭터/아이템 생성 프롬프트 기록
     standard-v1-character-generation.md   standard-v1 캐릭터 생성 방향
 
@@ -126,8 +156,11 @@ Onboarding
 - `src/domain/petItems.ts`: 아이템을 backdrop/foreground 레이어로 분류
 - `src/domain/petCharacterSet.ts`: 프리셋 캐릭터 PNG 경로
 - `src/domain/avatarGenerator.ts`: 프리셋/사진 기반 펫 생성
+- `src/domain/aiCharacterPolicy.ts`: AI 캐릭터 생성 가격/비활성 정책
 - `src/domain/shop.ts`: 아이템 구매 상태, 프리미엄 상자 정책
 - `src/lib/persistence.ts`: localStorage 저장/마이그레이션
+- `src/lib/cloudPersistence.ts`: Supabase 자동 저장 동기화
+- `src/lib/supabase.ts`: Supabase client/anonymous auth
 - `src/mocks/appData.ts`: 프리셋, 카테고리, 상점 아이템
 
 ## Character Asset Contract

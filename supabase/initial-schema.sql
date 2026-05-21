@@ -34,6 +34,7 @@ for each row execute function public.set_updated_at();
 create table if not exists public.pets (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
+  client_id text,
   preset_pet_id text,
   name text not null,
   species text not null check (species in ('dog', 'cat', 'rabbit', 'custom')),
@@ -51,7 +52,10 @@ create table if not exists public.pets (
   updated_at timestamptz not null default now()
 );
 
+alter table public.pets add column if not exists client_id text;
+
 create index if not exists pets_user_id_idx on public.pets(user_id);
+create unique index if not exists pets_user_client_id_idx on public.pets(user_id, client_id);
 create unique index if not exists pets_one_active_per_user_idx on public.pets(user_id) where is_active;
 
 drop trigger if exists set_pets_updated_at on public.pets;
@@ -156,6 +160,7 @@ for each row execute function public.set_updated_at();
 create table if not exists public.ledger_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
+  client_id text,
   category_id text not null,
   amount integer not null check (amount >= 0),
   memo text not null default '',
@@ -165,7 +170,10 @@ create table if not exists public.ledger_entries (
   updated_at timestamptz not null default now()
 );
 
+alter table public.ledger_entries add column if not exists client_id text;
+
 create index if not exists ledger_entries_user_date_idx on public.ledger_entries(user_id, entry_date desc);
+create unique index if not exists ledger_entries_user_client_id_idx on public.ledger_entries(user_id, client_id);
 
 drop trigger if exists set_ledger_entries_updated_at on public.ledger_entries;
 create trigger set_ledger_entries_updated_at
@@ -175,10 +183,15 @@ for each row execute function public.set_updated_at();
 create table if not exists public.reward_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
+  client_id text,
   label text not null,
   coins integer not null default 0,
   created_at timestamptz not null default now()
 );
+
+alter table public.reward_events add column if not exists client_id text;
+
+create unique index if not exists reward_events_user_client_id_idx on public.reward_events(user_id, client_id);
 
 create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
@@ -204,12 +217,19 @@ create table if not exists public.ai_character_jobs (
   user_id uuid not null references public.profiles(id) on delete cascade,
   purchase_id uuid references public.purchases(id) on delete set null,
   source_photo_url text not null,
+  prompt_version text not null default 'single-png-v1',
+  input_metadata jsonb not null default '{}'::jsonb,
   status text not null default 'queued' check (status in ('queued', 'processing', 'succeeded', 'failed')),
+  result_image_url text,
   result_pet_id uuid references public.pets(id) on delete set null,
   error_message text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.ai_character_jobs add column if not exists prompt_version text not null default 'single-png-v1';
+alter table public.ai_character_jobs add column if not exists input_metadata jsonb not null default '{}'::jsonb;
+alter table public.ai_character_jobs add column if not exists result_image_url text;
 
 drop trigger if exists set_ai_character_jobs_updated_at on public.ai_character_jobs;
 create trigger set_ai_character_jobs_updated_at
@@ -250,6 +270,15 @@ create table if not exists public.community_likes (
   created_at timestamptz not null default now(),
   primary key (post_id, user_id)
 );
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values
+  ('pet-photos', 'pet-photos', false, 5242880, array['image/jpeg', 'image/png', 'image/webp']),
+  ('pet-characters', 'pet-characters', true, 5242880, array['image/png', 'image/webp'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 alter table public.profiles enable row level security;
 alter table public.pets enable row level security;
@@ -332,3 +361,17 @@ create policy "community_likes_public_read" on public.community_likes
 drop policy if exists "community_likes_own_all" on public.community_likes;
 create policy "community_likes_own_all" on public.community_likes
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "pet_photos_own_all" on storage.objects;
+create policy "pet_photos_own_all" on storage.objects
+  for all
+  using (bucket_id = 'pet-photos' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'pet-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "pet_characters_public_read" on storage.objects;
+create policy "pet_characters_public_read" on storage.objects
+  for select using (bucket_id = 'pet-characters');
+
+drop policy if exists "pet_characters_own_write" on storage.objects;
+create policy "pet_characters_own_write" on storage.objects
+  for insert with check (bucket_id = 'pet-characters' and (storage.foldername(name))[1] = auth.uid()::text);

@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
 import { createPetFromPreset } from "./domain/avatarGenerator";
+import { getAiCharacterDisabledMessage } from "./domain/aiCharacterPolicy";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
 import { createEntryReward } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
+import { saveAppStateToCloud } from "./lib/cloudPersistence";
 import { defaultAppState, loadAppState, saveAppState } from "./lib/persistence";
 import { petPresets, shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
@@ -62,6 +64,18 @@ function App() {
 
   useEffect(() => {
     saveAppState(appState);
+  }, [appState]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void saveAppStateToCloud(appState).then((result) => {
+        if (result.status === "error") {
+          console.warn("Supabase sync failed", result.error);
+        }
+      });
+    }, 700);
+
+    return () => window.clearTimeout(timer);
   }, [appState]);
 
   useEffect(() => {
@@ -240,7 +254,7 @@ function App() {
       return;
     }
 
-    setToastMessage("AI 캐릭터 생성은 결제 연동 후 500원 상품으로 열릴 예정이에요");
+    setToastMessage(getAiCharacterDisabledMessage());
   };
 
   const updateBudget = (budget: number) => {
