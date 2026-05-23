@@ -22,7 +22,7 @@
 - AI 캐릭터 생성도 최종 산출물을 single PNG로 저장하는 방향을 우선한다.
 - 상점은 `옷장`, `간식`, `캐릭터 상점` 3탭으로 운영한다.
 - 기본 3종 캐릭터는 첫 선택 1종만 무료 제공하고, 나머지는 캐릭터 상점에서 200코인으로 구매한다.
-- AI 캐릭터 생성은 결제 연동 후 생성 1회당 500원 프리미엄 상품으로 운영한다.
+- AI 캐릭터 생성은 결제 연동 후 생성 1회당 100원 프리미엄 상품으로 운영한다.
 - 프리미엄 상자는 10,000코인 상품으로 두되, 기간 한정 판매 아이템 풀이 준비될 때까지 열 수 없게 막아둔다.
 
 ## Tech Stack
@@ -68,6 +68,8 @@ npm run build
 ```bash
 VITE_SUPABASE_URL=https://xiyrggeyckhmxpkesswj.supabase.co
 VITE_SUPABASE_ANON_KEY=
+VITE_AD_BANNER_UNIT_ID=
+VITE_AD_REWARD_UNIT_ID=
 ```
 
 `VITE_SUPABASE_ANON_KEY`를 채우기 전에는 앱이 기존 localStorage 모드로 동작합니다. 값을 채우면 앱이 Supabase anonymous auth 세션을 만들고 `profiles`, `pets`, `ledger_entries`, `reward_events`, `user_owned_items` 등에 로컬 상태를 자동 저장합니다.
@@ -93,6 +95,7 @@ AI_CHARACTER_GENERATION_ENABLED=false
 savewithpet/
   docs/
     ai-character-generation.md            AI 캐릭터 생성/결제/검수 연결 계약
+    ads-integration.md                    배너/리워드 광고 연결 계약
     character-asset-prompts.md            캐릭터/아이템 생성 프롬프트 기록
     standard-v1-character-generation.md   standard-v1 캐릭터 생성 방향
 
@@ -157,6 +160,7 @@ Onboarding
 - `src/domain/petCharacterSet.ts`: 프리셋 캐릭터 PNG 경로
 - `src/domain/avatarGenerator.ts`: 프리셋/사진 기반 펫 생성
 - `src/domain/aiCharacterPolicy.ts`: AI 캐릭터 생성 가격/비활성 정책
+- `src/domain/adPolicy.ts`: 배너/리워드 광고 unit id와 보상 정책
 - `src/domain/shop.ts`: 아이템 구매 상태, 프리미엄 상자 정책
 - `src/lib/persistence.ts`: localStorage 저장/마이그레이션
 - `src/lib/cloudPersistence.ts`: Supabase 자동 저장 동기화
@@ -285,7 +289,7 @@ backdrop item layer
 
 - 첫 온보딩에서 고른 기본 캐릭터 1종은 무료입니다.
 - 나머지 기본 캐릭터는 각 200코인으로 구매합니다.
-- AI 캐릭터 생성은 생성 1회당 500원 결제 상품으로 운영 예정입니다.
+- AI 캐릭터 생성은 생성 1회당 100원 결제 상품으로 운영 예정입니다.
 - 프리미엄 상자는 10,000코인이며, 기간 한정 판매 상품 풀을 따로 만든 뒤 랜덤 보상으로 연결합니다.
 - 프리미엄 상자는 현재 코드에서 비활성화되어 있습니다.
 
@@ -375,7 +379,7 @@ backdrop item layer
 - [ ] 생성 실패/재시도/과금 정책 확정
 - [ ] 생성 결과 저장 구조: `imageUrl`, `sourcePhotoUrl`, `templateId` 보존
 - [x] 기본 캐릭터 컬렉션 구조 추가: 첫 선택 무료, 나머지 200코인
-- [x] AI 캐릭터 생성 500원 상품 진입점 추가
+- [x] AI 캐릭터 생성 100원 상품 진입점 추가
 
 ### P0: 출시 필수
 
@@ -398,6 +402,7 @@ backdrop item layer
 - [ ] 비접촉형 아이템 퀄리티 개선: 방석, 배경, 오라, 스티커, 새싹, 코인
 - [ ] 판매용 배경 아이템 PNG 에셋 제작/교체
 - [ ] AI 생성 중 로딩, 실패, 재시도, 결제 실패 UX 정리
+- [x] 배너/리워드 광고 unit id env와 disabled stub 준비
 - [ ] 코디 공유/커뮤니티 MVP 흐름 확인
 - [ ] 이미지 용량 최적화와 캐시 정책 검토
 

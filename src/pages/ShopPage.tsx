@@ -4,6 +4,7 @@ import styled from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
 import { PetItemArt } from "../components/PetItemArt";
+import { AI_CHARACTER_GENERATION_PRICE_KRW } from "../domain/aiCharacterPolicy";
 import { PREMIUM_BOX_PRICE } from "../domain/shop";
 import type { CommunityPost, PetPreset, ShopItemState, ShopItemViewModel } from "../types/app";
 
@@ -94,7 +95,7 @@ export function ShopPage({
       {activeTab === "characters" && (
         <CharacterGrid>
           <AiCharacterCard onClick={onAiCharacterCreate}>
-            <AiBadge>500원</AiBadge>
+            <AiBadge>{AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원</AiBadge>
             <h2>AI 캐릭터 생성</h2>
             <p>사진 기반 프리미엄 캐릭터를 생성하고 컬렉션에 추가해요.</p>
             <strong>결제 연동 예정</strong>

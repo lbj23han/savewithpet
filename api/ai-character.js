@@ -1,4 +1,4 @@
-const AI_GENERATION_PRICE_KRW = 500;
+const AI_GENERATION_PRICE_KRW = 100;
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {

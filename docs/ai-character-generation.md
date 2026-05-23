@@ -4,7 +4,7 @@
 
 ## Price
 
-- 1회 생성: 500원
+- 1회 생성: 100원
 - 결제 성공 후에만 생성 job 생성
 - 실패/환불 정책은 결제 SDK 연결 시 확정
 
@@ -13,7 +13,7 @@
 ```text
 사용자 사진 선택
 -> 사진 업로드: Supabase Storage `pet-photos/{userId}/...`
--> 결제 생성: purchases(product_type = ai_character, price_krw = 500)
+-> 결제 생성: purchases(product_type = ai_character, price_krw = 100)
 -> 결제 성공 확인
 -> ai_character_jobs row 생성
 -> 사진 검수

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
 import { createPetFromPreset } from "./domain/avatarGenerator";
-import { getAiCharacterDisabledMessage } from "./domain/aiCharacterPolicy";
+import { AI_CHARACTER_GENERATION_PRICE_KRW, getAiCharacterDisabledMessage } from "./domain/aiCharacterPolicy";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
 import { createEntryReward } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
@@ -250,7 +250,7 @@ function App() {
   };
 
   const openAiCharacterCreation = () => {
-    if (!confirmAction("AI 캐릭터 생성은 1회 500원 결제 상품으로 제공될 예정이에요. 결제 화면으로 이동할까요?")) {
+    if (!confirmAction(`AI 캐릭터 생성은 1회 ${AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 결제 상품으로 제공될 예정이에요. 결제 화면으로 이동할까요?`)) {
       return;
     }
 

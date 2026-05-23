@@ -1,4 +1,5 @@
 import { petPresets } from "../mocks/appData";
+import { AI_CHARACTER_GENERATION_PRICE_KRW } from "../domain/aiCharacterPolicy";
 import type { Category, LedgerEntry, PersistedAppState, RewardEvent, UserPet } from "../types/app";
 import { ensureSupabaseUserId, isSupabaseConfigured, supabase } from "./supabase";
 
@@ -197,7 +198,7 @@ async function upsertPets(userId: string, state: PersistedAppState): Promise<voi
       name: pet.name,
       preset_pet_id: getPresetPetId(pet),
       purchase_price_coins: pet.source === "preset" ? getPresetPurchasePrice(pet.id, state) : 0,
-      purchase_price_krw: pet.source === "photo" ? 500 : 0,
+      purchase_price_krw: pet.source === "photo" ? AI_CHARACTER_GENERATION_PRICE_KRW : 0,
       source: pet.source,
       source_photo_url: pet.sourcePhotoUrl,
       species: pet.species,
