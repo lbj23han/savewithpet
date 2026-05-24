@@ -85,12 +85,16 @@ export type LedgerEntryDraft = {
   type: LedgerEntryType;
 };
 
+export type ShopItemType = "wardrobe" | "snack";
+
 export type ShopItem = {
   id: string;
   name: string;
   icon: string;
+  itemType?: ShopItemType;
   price: number;
   requiredLevel?: number;
+  intimacyBoost?: number;
   unlockLabel?: string;
 };
 
@@ -153,10 +157,13 @@ export type PersistedAppState = {
   entries: LedgerEntry[];
   equippedItemId: string | null;
   hasCompletedOnboarding: boolean;
+  intimacy: number;
+  lastFedAt: string | null;
   monthlyBudget: number;
   ownedCustomPets: UserPet[];
   ownedItemIds: string[];
   ownedPetIds: string[];
   pet: UserPet;
   rewardEvents: RewardEvent[];
+  snackInventory: Record<string, number>;
 };

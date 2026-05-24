@@ -39,6 +39,8 @@ async function upsertProfile(userId: string, state: PersistedAppState): Promise<
       coins: state.coins,
       has_completed_onboarding: state.hasCompletedOnboarding,
       id: userId,
+      intimacy: state.intimacy,
+      last_fed_at: state.lastFedAt,
       monthly_budget: state.monthlyBudget,
     },
     { onConflict: "id" },
@@ -152,23 +154,32 @@ async function upsertRewardEvents(userId: string, rewardEvents: RewardEvent[]): 
 async function upsertOwnedItems(userId: string, state: PersistedAppState): Promise<void> {
   if (!supabase) return;
 
+  const snackRows = Object.entries(state.snackInventory)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([itemId, quantity]) => ({
+      is_equipped: false,
+      item_id: itemId,
+      quantity,
+      user_id: userId,
+    }));
+  const wardrobeRows = state.ownedItemIds.map((itemId) => ({
+    is_equipped: state.equippedItemId === itemId,
+    item_id: itemId,
+    quantity: 1,
+    user_id: userId,
+  }));
+  const rows = [...wardrobeRows, ...snackRows];
+
   await deleteRowsNotInValues({
     column: "item_id",
     table: "user_owned_items",
     userId,
-    values: state.ownedItemIds,
+    values: rows.map((row) => row.item_id),
   });
 
-  if (state.ownedItemIds.length === 0) return;
+  if (rows.length === 0) return;
 
-  const { error } = await supabase.from("user_owned_items").upsert(
-    state.ownedItemIds.map((itemId) => ({
-      is_equipped: state.equippedItemId === itemId,
-      item_id: itemId,
-      user_id: userId,
-    })),
-    { onConflict: "user_id,item_id" },
-  );
+  const { error } = await supabase.from("user_owned_items").upsert(rows, { onConflict: "user_id,item_id" });
 
   if (error) throw error;
 }

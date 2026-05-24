@@ -19,12 +19,19 @@ create table if not exists public.profiles (
   toss_user_key text unique,
   display_name text,
   coins integer not null default 0 check (coins >= 0),
+  intimacy integer not null default 50 check (intimacy >= 0 and intimacy <= 100),
+  last_fed_at timestamptz,
   monthly_budget integer not null default 1500000 check (monthly_budget >= 0),
   active_pet_id uuid,
   has_completed_onboarding boolean not null default false,
+  toss_login_linked_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists intimacy integer not null default 50 check (intimacy >= 0 and intimacy <= 100);
+alter table public.profiles add column if not exists last_fed_at timestamptz;
+alter table public.profiles add column if not exists toss_login_linked_at timestamptz;
 
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
@@ -82,6 +89,7 @@ create table if not exists public.shop_items (
   item_type text not null check (item_type in ('wardrobe', 'snack', 'character', 'limited')),
   icon text not null default '',
   price_coins integer not null default 0 check (price_coins >= 0),
+  intimacy_boost integer not null default 0 check (intimacy_boost >= 0),
   required_level integer,
   unlock_label text,
   layer text check (layer in ('backdrop', 'foreground')),
@@ -95,24 +103,30 @@ create table if not exists public.shop_items (
   updated_at timestamptz not null default now()
 );
 
+alter table public.shop_items add column if not exists intimacy_boost integer not null default 0 check (intimacy_boost >= 0);
+
 drop trigger if exists set_shop_items_updated_at on public.shop_items;
 create trigger set_shop_items_updated_at
 before update on public.shop_items
 for each row execute function public.set_updated_at();
 
-insert into public.shop_items (id, name, item_type, icon, price_coins, required_level, unlock_label, layer, asset_id)
+insert into public.shop_items (id, name, item_type, icon, price_coins, intimacy_boost, required_level, unlock_label, layer, asset_id)
 values
-  ('canola-garden', '유채꽃 정원', 'wardrobe', 'canola-garden', 1200, null, null, 'backdrop', 'canola-garden'),
-  ('cozy-cushion', '포근 방석', 'wardrobe', 'cushion', 450, null, null, 'backdrop', 'cozy-cushion'),
-  ('heart-aura', '하트 오라', 'wardrobe', 'heart-aura', 600, null, null, 'foreground', 'heart-aura'),
-  ('coin-shower', '코인 링', 'wardrobe', 'coin-shower', 1600, 12, 'Lv.12 해금', 'foreground', 'coin-shower'),
-  ('sparkle-sticker', '반짝 스티커', 'wardrobe', 'sparkle-sticker', 300, null, null, 'foreground', 'sparkle-sticker'),
-  ('saving-sprout', '저축 새싹', 'wardrobe', 'saving-sprout', 900, null, null, 'backdrop', 'saving-sprout')
+  ('canola-garden', '유채꽃 정원', 'wardrobe', 'canola-garden', 1200, 0, null, null, 'backdrop', 'canola-garden'),
+  ('cozy-cushion', '포근 방석', 'wardrobe', 'cushion', 450, 0, null, null, 'backdrop', 'cozy-cushion'),
+  ('heart-aura', '하트 오라', 'wardrobe', 'heart-aura', 600, 0, null, null, 'foreground', 'heart-aura'),
+  ('coin-shower', '코인 링', 'wardrobe', 'coin-shower', 1600, 0, 12, 'Lv.12 해금', 'foreground', 'coin-shower'),
+  ('sparkle-sticker', '반짝 스티커', 'wardrobe', 'sparkle-sticker', 300, 0, null, null, 'foreground', 'sparkle-sticker'),
+  ('saving-sprout', '저축 새싹', 'wardrobe', 'saving-sprout', 900, 0, null, null, 'backdrop', 'saving-sprout'),
+  ('carrot-snack', '아삭 당근', 'snack', 'carrot-snack', 80, 6, null, null, null, 'carrot-snack'),
+  ('churu-snack', '말랑 츄르', 'snack', 'churu-snack', 120, 9, null, null, null, 'churu-snack'),
+  ('bone-snack', '튼튼 뼈다귀', 'snack', 'bone-snack', 100, 8, null, null, null, 'bone-snack')
 on conflict (id) do update set
   name = excluded.name,
   item_type = excluded.item_type,
   icon = excluded.icon,
   price_coins = excluded.price_coins,
+  intimacy_boost = excluded.intimacy_boost,
   required_level = excluded.required_level,
   unlock_label = excluded.unlock_label,
   layer = excluded.layer,
@@ -123,9 +137,12 @@ create table if not exists public.user_owned_items (
   user_id uuid not null references public.profiles(id) on delete cascade,
   item_id text not null references public.shop_items(id) on delete cascade,
   is_equipped boolean not null default false,
+  quantity integer not null default 1 check (quantity >= 0),
   acquired_at timestamptz not null default now(),
   primary key (user_id, item_id)
 );
+
+alter table public.user_owned_items add column if not exists quantity integer not null default 1 check (quantity >= 0);
 
 create table if not exists public.ledger_categories (
   user_id uuid not null references public.profiles(id) on delete cascade,

@@ -70,6 +70,7 @@ VITE_SUPABASE_URL=https://xiyrggeyckhmxpkesswj.supabase.co
 VITE_SUPABASE_ANON_KEY=
 VITE_AD_BANNER_UNIT_ID=
 VITE_AD_REWARD_UNIT_ID=
+VITE_TOSS_LOGIN_CLIENT_ID=
 ```
 
 `VITE_SUPABASE_ANON_KEY`를 채우기 전에는 앱이 기존 localStorage 모드로 동작합니다. 값을 채우면 앱이 Supabase anonymous auth 세션을 만들고 `profiles`, `pets`, `ledger_entries`, `reward_events`, `user_owned_items` 등에 로컬 상태를 자동 저장합니다.
@@ -98,6 +99,7 @@ savewithpet/
     ads-integration.md                    배너/리워드 광고 연결 계약
     character-asset-prompts.md            캐릭터/아이템 생성 프롬프트 기록
     standard-v1-character-generation.md   standard-v1 캐릭터 생성 방향
+    toss-login.md                         Toss Login 최종 연동 계약
 
   public/
     assets/
@@ -161,10 +163,12 @@ Onboarding
 - `src/domain/avatarGenerator.ts`: 프리셋/사진 기반 펫 생성
 - `src/domain/aiCharacterPolicy.ts`: AI 캐릭터 생성 가격/비활성 정책
 - `src/domain/adPolicy.ts`: 배너/리워드 광고 unit id와 보상 정책
+- `src/domain/petCare.ts`: 간식 급여, 친밀도 증가/감소 정책
 - `src/domain/shop.ts`: 아이템 구매 상태, 프리미엄 상자 정책
 - `src/lib/persistence.ts`: localStorage 저장/마이그레이션
 - `src/lib/cloudPersistence.ts`: Supabase 자동 저장 동기화
 - `src/lib/supabase.ts`: Supabase client/anonymous auth
+- `src/lib/tossLogin.ts`: Toss Login client id/stub
 - `src/mocks/appData.ts`: 프리셋, 카테고리, 상점 아이템
 
 ## Character Asset Contract
@@ -393,6 +397,7 @@ backdrop item layer
 - [ ] localStorage 마이그레이션과 fallback 점검
 - [ ] 사진 기반 생성 과금/실패/재시도 정책 확정
 - [x] 상점 탭 구조 변경: 옷장, 간식, 캐릭터 상점
+- [x] 간식 3종, 홈 간식주기, 소모형 재고, 친밀도 기본/감소 정책 추가
 - [x] 프리미엄 상자 10,000코인으로 변경 및 오픈 비활성화
 - [ ] Toss WebView 실제 환경에서 build/deploy 확인
 
@@ -403,6 +408,7 @@ backdrop item layer
 - [ ] 판매용 배경 아이템 PNG 에셋 제작/교체
 - [ ] AI 생성 중 로딩, 실패, 재시도, 결제 실패 UX 정리
 - [x] 배너/리워드 광고 unit id env와 disabled stub 준비
+- [x] Toss Login env/schema/stub 준비
 - [ ] 코디 공유/커뮤니티 MVP 흐름 확인
 - [ ] 이미지 용량 최적화와 캐시 정책 검토
 

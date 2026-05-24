@@ -58,19 +58,23 @@ export const ledgerCategories: Category[] = [
 ];
 
 export const shopItems: ShopItem[] = [
-  { id: "canola-garden", name: "유채꽃 정원", icon: "canola-garden", price: 1200 },
-  { id: "cozy-cushion", name: "포근 방석", icon: "cushion", price: 450 },
-  { id: "heart-aura", name: "하트 오라", icon: "heart-aura", price: 600 },
+  { id: "canola-garden", name: "유채꽃 정원", icon: "canola-garden", itemType: "wardrobe", price: 1200 },
+  { id: "cozy-cushion", name: "포근 방석", icon: "cushion", itemType: "wardrobe", price: 450 },
+  { id: "heart-aura", name: "하트 오라", icon: "heart-aura", itemType: "wardrobe", price: 600 },
   {
     id: "coin-shower",
     name: "코인 링",
     icon: "coin-shower",
+    itemType: "wardrobe",
     price: 1600,
     requiredLevel: 12,
     unlockLabel: "Lv.12 해금",
   },
-  { id: "sparkle-sticker", name: "반짝 스티커", icon: "sparkle-sticker", price: 300 },
-  { id: "saving-sprout", name: "저축 새싹", icon: "saving-sprout", price: 900 },
+  { id: "sparkle-sticker", name: "반짝 스티커", icon: "sparkle-sticker", itemType: "wardrobe", price: 300 },
+  { id: "saving-sprout", name: "저축 새싹", icon: "saving-sprout", itemType: "wardrobe", price: 900 },
+  { id: "carrot-snack", name: "아삭 당근", icon: "carrot-snack", itemType: "snack", price: 80, intimacyBoost: 6 },
+  { id: "churu-snack", name: "말랑 츄르", icon: "churu-snack", itemType: "snack", price: 120, intimacyBoost: 9 },
+  { id: "bone-snack", name: "튼튼 뼈다귀", icon: "bone-snack", itemType: "snack", price: 100, intimacyBoost: 8 },
 ];
 
 export const initialCategoryBudgets: Record<string, number> = {

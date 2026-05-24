@@ -5,6 +5,7 @@ import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./doma
 import { createPetFromPreset } from "./domain/avatarGenerator";
 import { AI_CHARACTER_GENERATION_PRICE_KRW, getAiCharacterDisabledMessage } from "./domain/aiCharacterPolicy";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
+import { calculateEffectiveIntimacy, feedPet } from "./domain/petCare";
 import { createEntryReward } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
 import { saveAppStateToCloud } from "./lib/cloudPersistence";
@@ -38,7 +39,10 @@ function App() {
         mood: 100,
       }
     : stats;
-  const ownedItemIds = import.meta.env.DEV ? shopItems.map((item) => item.id) : appState.ownedItemIds;
+  const snackItems = shopItems.filter((item) => item.itemType === "snack");
+  const wardrobeCatalogItems = shopItems.filter((item) => item.itemType !== "snack");
+  const ownedItemIds = import.meta.env.DEV ? wardrobeCatalogItems.map((item) => item.id) : appState.ownedItemIds;
+  const effectiveIntimacy = calculateEffectiveIntimacy(appState.intimacy, appState.lastFedAt);
   const ownedPetIds = appState.ownedPetIds.includes(appState.pet.id)
     ? appState.ownedPetIds
     : [...appState.ownedPetIds, appState.pet.id];
@@ -166,7 +170,7 @@ function App() {
 
   const buyOrEquipItem = (itemId: string) => {
     const item = shopItemViews.find((candidate) => candidate.id === itemId);
-    if (!item || item.state === "locked") return;
+    if (!item || item.itemType === "snack" || item.state === "locked") return;
 
     if (item.state === "equipped") {
       setAppState((prev) => ({ ...prev, equippedItemId: null }));
@@ -192,8 +196,54 @@ function App() {
     setToastMessage(`${item.name} 구매 완료`);
   };
 
+  const buySnack = (itemId: string) => {
+    const item = snackItems.find((candidate) => candidate.id === itemId);
+    if (!item) return;
+
+    if (appCoins < item.price) {
+      setToastMessage("코인이 부족해요");
+      return;
+    }
+
+    if (!confirmAction(`${item.name}을 ${item.price.toLocaleString("ko-KR")}코인으로 구매할까요?`)) return;
+
+    setAppState((prev) => ({
+      ...prev,
+      coins: spendCoins(prev.coins, item.price),
+      snackInventory: {
+        ...prev.snackInventory,
+        [item.id]: (prev.snackInventory[item.id] ?? 0) + 1,
+      },
+    }));
+    setToastMessage(`${item.name} 1개 구매 완료`);
+  };
+
+  const giveSnack = (itemId: string) => {
+    const item = snackItems.find((candidate) => candidate.id === itemId);
+    const result = feedPet({
+      inventory: appState.snackInventory,
+      intimacy: appState.intimacy,
+      lastFedAt: appState.lastFedAt,
+      snack: item,
+    });
+
+    if (result.status !== "fed") {
+      setToastMessage(result.message);
+      return false;
+    }
+
+    setAppState((prev) => ({
+      ...prev,
+      intimacy: result.nextIntimacy,
+      lastFedAt: result.nextLastFedAt,
+      snackInventory: result.nextInventory,
+    }));
+    setToastMessage(`${item?.name ?? "간식"}을 줬어요 · 친밀도 ${result.nextIntimacy}%`);
+    return true;
+  };
+
   const openPremiumBox = () => {
-    const result = resolvePremiumBox(shopItemViews, appCoins);
+    const result = resolvePremiumBox(shopItemViews.filter((item) => item.itemType !== "snack"), appCoins);
     if (result.outcome !== "item" || !result.itemId) {
       setToastMessage(result.label);
       return;
@@ -341,12 +391,18 @@ function App() {
           categories={appState.categories}
           entries={appState.entries}
           equippedItem={equippedItem}
+          intimacy={effectiveIntimacy}
           monthlyBudget={appState.monthlyBudget}
           pet={appState.pet}
           rewardEvents={appState.rewardEvents}
+          snackInventory={appState.snackInventory}
+          snackItems={snackItems}
           stats={appStats}
-          wardrobeItems={shopItemViews.filter((item) => item.state === "owned" || item.state === "equipped")}
+          wardrobeItems={shopItemViews.filter(
+            (item) => item.itemType !== "snack" && (item.state === "owned" || item.state === "equipped"),
+          )}
           onEquipItem={buyOrEquipItem}
+          onFeedSnack={giveSnack}
           onOpenShop={() => setPage("shop")}
           onShareOutfit={shareOutfit}
           onUpdatePetName={updatePetName}
@@ -389,7 +445,9 @@ function App() {
           onPostComment={addComment}
           onPostLike={likePost}
           onShareOutfit={shareOutfit}
+          onSnackAction={buySnack}
           posts={appState.communityPosts}
+          snackInventory={appState.snackInventory}
         />
       )}
       {activePage === "settings" && (

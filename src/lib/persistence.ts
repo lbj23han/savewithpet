@@ -4,6 +4,7 @@ import {
   petPresets,
   shopItems,
 } from "../mocks/appData";
+import { INITIAL_INTIMACY } from "../domain/petCare";
 import { STANDARD_CHARACTER_TEMPLATE_ID, getPresetVisualLayers } from "../domain/petCharacterSet";
 import type { PersistedAppState, UserPet } from "../types/app";
 
@@ -33,12 +34,15 @@ export const defaultAppState: PersistedAppState = {
   entries: [],
   equippedItemId: null,
   hasCompletedOnboarding: false,
+  intimacy: INITIAL_INTIMACY,
+  lastFedAt: new Date().toISOString(),
   monthlyBudget: 1_500_000,
   ownedCustomPets: [],
   ownedItemIds: [],
   ownedPetIds: [createDefaultPet().id],
   pet: createDefaultPet(),
   rewardEvents: [],
+  snackInventory: {},
 };
 
 export function loadAppState(): PersistedAppState {
@@ -57,10 +61,13 @@ export function loadAppState(): PersistedAppState {
       categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
       communityPosts: normalizeCommunityPosts(parsed.communityPosts),
       equippedItemId: normalizeEquippedItemId(parsed.equippedItemId),
+      intimacy: normalizeIntimacy(parsed.intimacy),
+      lastFedAt: normalizeLastFedAt(parsed.lastFedAt),
       ownedCustomPets: normalizeOwnedCustomPets(parsed.ownedCustomPets, parsed.pet),
       ownedItemIds: normalizeOwnedItemIds(parsed.ownedItemIds),
       pet: normalizePet(parsed.pet),
       ownedPetIds: normalizeOwnedPetIds(parsed.ownedPetIds, parsed.pet),
+      snackInventory: normalizeSnackInventory(parsed.snackInventory),
     };
   } catch {
     return defaultAppState;
@@ -70,14 +77,36 @@ export function loadAppState(): PersistedAppState {
 function normalizeEquippedItemId(itemId: unknown): PersistedAppState["equippedItemId"] {
   if (typeof itemId !== "string") return null;
 
-  return shopItems.some((item) => item.id === itemId) ? itemId : null;
+  return shopItems.some((item) => item.id === itemId && item.itemType !== "snack") ? itemId : null;
 }
 
 function normalizeOwnedItemIds(itemIds: unknown): PersistedAppState["ownedItemIds"] {
   if (!Array.isArray(itemIds)) return [];
 
-  const validIds = new Set(shopItems.map((item) => item.id));
+  const validIds = new Set(shopItems.filter((item) => item.itemType !== "snack").map((item) => item.id));
   return itemIds.filter((itemId): itemId is string => typeof itemId === "string" && validIds.has(itemId));
+}
+
+function normalizeSnackInventory(inventory: unknown): PersistedAppState["snackInventory"] {
+  if (!inventory || typeof inventory !== "object") return {};
+
+  const snackIds = new Set(shopItems.filter((item) => item.itemType === "snack").map((item) => item.id));
+  return Object.fromEntries(
+    Object.entries(inventory)
+      .filter(([itemId, count]) => snackIds.has(itemId) && typeof count === "number" && count > 0)
+      .map(([itemId, count]) => [itemId, Math.floor(count as number)]),
+  );
+}
+
+function normalizeIntimacy(intimacy: unknown): number {
+  if (typeof intimacy !== "number" || !Number.isFinite(intimacy)) return INITIAL_INTIMACY;
+  return Math.max(0, Math.min(100, Math.round(intimacy)));
+}
+
+function normalizeLastFedAt(lastFedAt: unknown): string | null {
+  if (typeof lastFedAt !== "string") return defaultAppState.lastFedAt;
+
+  return Number.isNaN(new Date(lastFedAt).getTime()) ? defaultAppState.lastFedAt : lastFedAt;
 }
 
 function normalizeOwnedPetIds(petIds: unknown, pet: unknown): PersistedAppState["ownedPetIds"] {

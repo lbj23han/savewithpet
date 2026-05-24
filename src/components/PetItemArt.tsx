@@ -27,6 +27,9 @@ function renderItemPaths(itemId: string) {
   if (itemId === "coin-shower") return <CoinShowerPaths />;
   if (itemId === "sparkle-sticker") return <SparkleStickerPaths />;
   if (itemId === "saving-sprout") return <SavingSproutPaths />;
+  if (itemId === "carrot-snack") return <CarrotSnackPaths />;
+  if (itemId === "churu-snack") return <ChuruSnackPaths />;
+  if (itemId === "bone-snack") return <BoneSnackPaths />;
 
   return <SparkleStickerPaths />;
 }
@@ -136,6 +139,52 @@ function SavingSproutPaths() {
       <path d="M1014 829C960 787 912 793 876 847C930 881 978 871 1014 829Z" fill="#6bcf95" />
       <circle cx="1040" cy="711" r="48" fill="#ffd35d" />
       <path d="M1026 727V695H1054" stroke="#d99422" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+  );
+}
+
+function CarrotSnackPaths() {
+  return (
+    <g>
+      <ellipse cx="630" cy="740" rx="236" ry="114" fill="#fff1da" />
+      <path
+        d="M410 610C558 528 768 532 910 612C830 774 650 898 488 942C438 838 400 724 410 610Z"
+        fill="#ff9a3d"
+      />
+      <path d="M492 676C604 620 736 618 844 670" fill="none" stroke="#ffbd72" strokeWidth="28" strokeLinecap="round" />
+      <path d="M520 790C640 722 744 724 804 762" fill="none" stroke="#e8792e" strokeWidth="18" strokeLinecap="round" opacity="0.55" />
+      <path d="M678 520C620 428 606 344 654 276C704 354 714 428 678 520Z" fill="#68c37e" />
+      <path d="M724 538C754 420 816 354 904 338C902 448 834 514 724 538Z" fill="#87d78e" />
+      <path d="M628 542C522 496 468 424 464 326C560 354 616 426 628 542Z" fill="#72cf86" />
+    </g>
+  );
+}
+
+function ChuruSnackPaths() {
+  return (
+    <g>
+      <path d="M360 432H894L820 926H434Z" fill="#ffdce9" />
+      <path d="M404 482H850L792 876H462Z" fill="#fff8fb" opacity="0.72" />
+      <path d="M360 432L426 330H828L894 432Z" fill="#f4769b" />
+      <path d="M520 586C580 538 684 538 738 586C706 644 558 644 520 586Z" fill="#f4769b" opacity="0.9" />
+      <path d="M512 720H742" stroke="#f6a6bc" strokeWidth="28" strokeLinecap="round" />
+      <path d="M548 804H706" stroke="#f6a6bc" strokeWidth="20" strokeLinecap="round" opacity="0.75" />
+    </g>
+  );
+}
+
+function BoneSnackPaths() {
+  return (
+    <g>
+      <path
+        d="M332 558C294 510 308 436 368 406C418 380 476 400 504 444L750 444C778 400 836 380 886 406C946 436 960 510 922 558C976 598 974 682 916 718C860 754 790 730 762 674H492C464 730 394 754 338 718C280 682 278 598 332 558Z"
+        fill="#fff4dd"
+      />
+      <path
+        d="M508 514H746C786 514 818 546 818 586C818 626 786 658 746 658H508C468 658 436 626 436 586C436 546 468 514 508 514Z"
+        fill="#ffe3ae"
+      />
+      <path d="M510 586H744" stroke="#fff9ec" strokeWidth="32" strokeLinecap="round" opacity="0.78" />
     </g>
   );
 }

@@ -1,4 +1,4 @@
-import { Calendar, Check, Pencil, PlusCircle, Shirt, Store, X } from "lucide-react";
+import { Calendar, Check, Cookie, Pencil, PlusCircle, Shirt, Store, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -17,6 +17,7 @@ import type {
   PetAnimation,
   PetExpression,
   RewardEvent,
+  ShopItem,
   ShopItemViewModel,
   UserPet,
 } from "../types/app";
@@ -26,13 +27,17 @@ type HomePageProps = {
   entries: LedgerEntry[];
   equippedItem?: ShopItemViewModel;
   monthlyBudget: number;
+  intimacy: number;
   onRecord: () => void;
   onEquipItem: (itemId: string) => void;
+  onFeedSnack: (itemId: string) => boolean;
   onOpenShop: () => void;
   onShareOutfit: () => void;
   onUpdatePetName: (name: string) => void;
   pet: UserPet;
   rewardEvents: RewardEvent[];
+  snackInventory: Record<string, number>;
+  snackItems: ShopItem[];
   stats: AppStats;
   wardrobeItems: ShopItemViewModel[];
 };
@@ -41,18 +46,23 @@ export function HomePage({
   categories,
   entries,
   equippedItem,
+  intimacy,
   monthlyBudget,
   onEquipItem,
+  onFeedSnack,
   onOpenShop,
   onShareOutfit,
   onUpdatePetName,
   onRecord,
   pet,
   rewardEvents,
+  snackInventory,
+  snackItems,
   stats,
   wardrobeItems,
 }: HomePageProps) {
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
+  const [isSnackTrayOpen, setIsSnackTrayOpen] = useState(false);
   const [isNameEditing, setIsNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(pet.name);
   const [petAnimation, setPetAnimation] = useState<PetAnimation>("idle");
@@ -103,6 +113,17 @@ export function HomePage({
       setPetAnimation("idle");
       setTemporaryExpression("neutral");
     }, 700);
+  };
+
+  const handleFeedSnack = (itemId: string) => {
+    if (!onFeedSnack(itemId)) return;
+
+    setPetAnimation("pop");
+    setTemporaryExpression("happy");
+    window.setTimeout(() => {
+      setPetAnimation("idle");
+      setTemporaryExpression("neutral");
+    }, 850);
   };
 
   return (
@@ -170,6 +191,13 @@ export function HomePage({
             <StatusValue $tone={status.tone}>{status.percentLabel}</StatusValue>
           </StatusRow>
         ))}
+        <StatusRow>
+          <StatusLabel>친밀도</StatusLabel>
+          <Track>
+            <Fill $value={intimacy} $tone="purple" />
+          </Track>
+          <StatusValue $tone="purple">{intimacy}%</StatusValue>
+        </StatusRow>
       </StatusPanel>
 
       <Panel>
@@ -195,6 +223,17 @@ export function HomePage({
         <PlusCircle size={20} />
         지금 기록하기
       </PrimaryButton>
+
+      <QuickActions>
+        <QuickActionButton onClick={() => setIsSnackTrayOpen(true)}>
+          <Cookie size={18} />
+          간식주기
+        </QuickActionButton>
+        <QuickActionButton onClick={onOpenShop}>
+          <Store size={18} />
+          상점가기
+        </QuickActionButton>
+      </QuickActions>
 
       {isWardrobeOpen && (
         <WardrobeSheet>
@@ -226,6 +265,43 @@ export function HomePage({
             상점에서 더 보기
           </ShopLink>
           <ShareButton onClick={onShareOutfit}>오늘 모습 자랑하기</ShareButton>
+        </WardrobeSheet>
+      )}
+
+      {isSnackTrayOpen && (
+        <WardrobeSheet>
+          <SheetHeader>
+            <div>
+              <h2>간식주기</h2>
+              <span>간식은 한 번 주면 1개씩 줄어들어요</span>
+            </div>
+            <button aria-label="간식 트레이 닫기" onClick={() => setIsSnackTrayOpen(false)}>
+              <X size={20} />
+            </button>
+          </SheetHeader>
+          <WardrobeGrid>
+            {snackItems.length === 0 ? (
+              <EmptyState icon="🍪" message="간식이 아직 없어요" sub="상점에서 간식을 준비해보세요" />
+            ) : (
+              snackItems.map((item) => {
+                const count = snackInventory[item.id] ?? 0;
+
+                return (
+                  <WardrobeItem key={item.id} $active={count > 0} disabled={count <= 0} onClick={() => handleFeedSnack(item.id)}>
+                    <span>
+                      <PetItemArt itemId={item.id} title={item.name} />
+                    </span>
+                    <strong>{item.name}</strong>
+                    <CountBadge>{count}개</CountBadge>
+                  </WardrobeItem>
+                );
+              })
+            )}
+          </WardrobeGrid>
+          <ShopLink onClick={onOpenShop}>
+            <Store size={18} />
+            간식 사러가기
+          </ShopLink>
         </WardrobeSheet>
       )}
     </Page>
@@ -452,6 +528,10 @@ const WardrobeItem = styled.button<{ $active: boolean }>`
     font-weight: 500;
     color: ${({ theme }) => theme.colors.muted};
   }
+
+  &:disabled {
+    opacity: 0.48;
+  }
 `;
 
 const ShopLink = styled.button`
@@ -474,6 +554,37 @@ const ShareButton = styled.button`
   border: 1px solid ${({ theme }) => theme.colors.line};
   border-radius: ${({ theme }) => theme.radius.md};
   font-weight: 700;
+`;
+
+const QuickActions = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const QuickActionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  min-height: 48px;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+  font-size: 15px;
+  font-weight: 700;
+`;
+
+const CountBadge = styled.em`
+  padding: 2px 8px;
+  color: ${({ theme }) => theme.colors.green};
+  background: ${({ theme }) => theme.colors.greenSoft};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
 `;
 
 const StatusRow = styled.div`

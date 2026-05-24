@@ -6,6 +6,7 @@ import { SHOP_COPY } from "../constants/copy";
 import { PetItemArt } from "../components/PetItemArt";
 import { AI_CHARACTER_GENERATION_PRICE_KRW } from "../domain/aiCharacterPolicy";
 import { PREMIUM_BOX_PRICE } from "../domain/shop";
+import { getSnackBoostLabel } from "../domain/petCare";
 import type { CommunityPost, PetPreset, ShopItemState, ShopItemViewModel } from "../types/app";
 
 type ShopTab = "wardrobe" | "snacks" | "characters";
@@ -29,7 +30,9 @@ type ShopPageProps = {
   onPostComment: (postId: string, message: string) => void;
   onPostLike: (postId: string) => void;
   onShareOutfit: () => void;
+  onSnackAction: (itemId: string) => void;
   posts: CommunityPost[];
+  snackInventory: Record<string, number>;
 };
 
 export function ShopPage({
@@ -44,10 +47,14 @@ export function ShopPage({
   onPostComment,
   onPostLike,
   onShareOutfit,
+  onSnackAction,
   posts,
+  snackInventory,
 }: ShopPageProps) {
   const [activeTab, setActiveTab] = useState<ShopTab>("wardrobe");
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const wardrobeItems = items.filter((item) => item.itemType !== "snack");
+  const snackItems = items.filter((item) => item.itemType === "snack");
   const tabs: Array<{ id: ShopTab; label: string }> = [
     { id: "wardrobe", label: SHOP_COPY.tabs[0] },
     { id: "snacks", label: SHOP_COPY.tabs[1] },
@@ -71,7 +78,7 @@ export function ShopPage({
 
       {activeTab === "wardrobe" && (
         <ItemGrid>
-          {items.map((item) => (
+          {wardrobeItems.map((item) => (
             <ItemCard key={item.id} $locked={item.state === "locked"} onClick={() => onItemAction(item.id)}>
               <IconCircle>
                 <PetItemArt itemId={item.id} title={item.name} />
@@ -86,10 +93,25 @@ export function ShopPage({
       )}
 
       {activeTab === "snacks" && (
-        <EmptyPanel>
-          <h2>간식 상점 준비중</h2>
-          <p>포만도 회복, 기분 상승처럼 캐릭터와 직접 겹치지 않는 소비형 아이템으로 넣을 예정이에요.</p>
-        </EmptyPanel>
+        <ItemGrid>
+          {snackItems.map((item) => {
+            const count = snackInventory[item.id] ?? 0;
+
+            return (
+              <ItemCard key={item.id} $locked={!item.canBuy} onClick={() => onSnackAction(item.id)}>
+                <IconCircle>
+                  <PetItemArt itemId={item.id} title={item.name} />
+                </IconCircle>
+                {count > 0 && <InventoryBadge>{count}개 보유</InventoryBadge>}
+                <h2>{item.name}</h2>
+                <StateBadge $state={item.canBuy ? "available" : "locked"}>
+                  {item.canBuy ? getSnackBoostLabel(item) : "코인 부족"}
+                </StateBadge>
+                <Price $disabled={!item.canBuy}>🪙 {item.price.toLocaleString()}</Price>
+              </ItemCard>
+            );
+          })}
+        </ItemGrid>
       )}
 
       {activeTab === "characters" && (
@@ -364,32 +386,6 @@ const AiBadge = styled.span`
   font-weight: 800;
 `;
 
-const EmptyPanel = styled.section`
-  display: grid;
-  gap: ${({ theme }) => theme.spacing.sm};
-  padding: ${({ theme }) => theme.spacing.xl};
-  color: ${({ theme }) => theme.colors.muted};
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.line};
-  border-radius: ${({ theme }) => theme.radius.xl};
-  box-shadow: ${({ theme }) => theme.shadow.card};
-
-  h2,
-  p {
-    margin: 0;
-  }
-
-  h2 {
-    color: ${({ theme }) => theme.colors.text};
-    font-size: 16px;
-  }
-
-  p {
-    font-size: 13px;
-    line-height: 1.5;
-  }
-`;
-
 const ItemCard = styled.button<{ $locked: boolean }>`
   position: relative;
   display: grid;
@@ -449,6 +445,18 @@ const Price = styled.strong<{ $disabled: boolean }>`
   color: ${({ $disabled, theme }) => ($disabled ? theme.colors.muted : theme.colors.orangeDark)};
   font-size: 15px;
   font-weight: 600;
+`;
+
+const InventoryBadge = styled.span`
+  position: absolute;
+  top: ${({ theme }) => theme.spacing.md};
+  right: ${({ theme }) => theme.spacing.md};
+  padding: 4px 9px;
+  color: ${({ theme }) => theme.colors.green};
+  background: ${({ theme }) => theme.colors.greenSoft};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 11px;
+  font-weight: 800;
 `;
 
 const PremiumBox = styled.section`
