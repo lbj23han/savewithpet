@@ -30,7 +30,11 @@ export async function requestTossLogin(): Promise<TossLoginResult> {
 
   let appLoginResult: { authorizationCode: string; referrer: string };
   try {
-    const framework = await import("@apps-in-toss/web-framework");
+    // web-framework re-exports from web-bridge via wildcard; TS dynamic import
+    // narrows on direct exports only, so we assert the runtime shape here.
+    const framework = (await import("@apps-in-toss/web-framework")) as unknown as {
+      appLogin?: () => Promise<{ authorizationCode: string; referrer: string }>;
+    };
     if (typeof framework.appLogin !== "function") {
       return { status: "unsupported_environment" };
     }

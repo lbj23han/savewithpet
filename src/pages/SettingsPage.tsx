@@ -252,7 +252,7 @@ export function SettingsPage({
         <SectionLabel>앱 정보</SectionLabel>
         <InfoRow>
           <span>버전</span>
-          <InfoValue>MVP 0.1</InfoValue>
+          <InfoValue>1.0.0</InfoValue>
         </InfoRow>
         <InfoRow>
           <span>캐릭터 타입</span>
