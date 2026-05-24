@@ -474,6 +474,14 @@ AIT 배포:
 - 생성 실패 시 재시도 정책, 과금 취소 처리 확정
 - 생성된 이미지를 Supabase Storage 또는 외부 URL에 저장하는 구조 결정
 
+### 4-B. Toss Login 실 환경 검증 (코드는 완료)
+
+- Vercel/AIT 환경 변수에 `TOSS_DECRYPT_KEY`, `TOSS_DECRYPT_AAD`, `TOSS_MTLS_CERT_BASE64`, `TOSS_MTLS_KEY_BASE64`, `SUPABASE_SERVICE_ROLE_KEY` 세팅
+- AIT 콘솔에서 클라이언트 ID 발급, mTLS 인증서 발급 받기
+- AIT 콘솔의 연동 해제 webhook URL을 `https://<vercel-domain>/api/auth/toss-disconnect` 로 설정
+- 실기기에서 설정 → "Toss로 연동하기" 동작 확인 → `profiles.toss_user_key` 채워지는지 확인
+- 두 번째 기기에서 동일 Toss 계정으로 시도 → HTTP 409 처리 확인
+
 ### 5. Supabase 실 환경 검증
 
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 실 값으로 anonymous auth 세션 생성 확인
@@ -580,7 +588,7 @@ AIT 배포:
 - [ ] 판매용 배경 아이템 PNG 에셋 제작/교체
 - [ ] AI 생성 중 로딩, 실패, 재시도, 결제 실패 UX 정리
 - [x] 배너/리워드 광고 unit id env와 disabled stub 준비
-- [x] Toss Login env/schema/stub 준비
+- [x] Toss Login 실 연동: `appLogin()` SDK + `/api/auth/toss-login` + profiles 연결 ([docs/toss-login.md](docs/toss-login.md))
 - [ ] 코디 공유/커뮤니티 MVP 흐름 확인
 - [ ] 이미지 용량 최적화와 캐시 정책 검토
 

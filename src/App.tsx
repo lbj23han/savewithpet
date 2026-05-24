@@ -24,6 +24,12 @@ import {
   requestAiCharacterPayment,
   restorePendingAiCharacterPayments,
 } from "./lib/tossPayments";
+import {
+  type TossLoginInfo,
+  getTossLoginReady,
+  loadTossLoginInfo,
+  requestTossLogin,
+} from "./lib/tossLogin";
 import { petPresets, shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { HomePage } from "./pages/HomePage";
@@ -52,6 +58,8 @@ function App() {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isAiCharacterGenerating, setIsAiCharacterGenerating] = useState(false);
+  const [tossLoginInfo, setTossLoginInfo] = useState<TossLoginInfo | null>(null);
+  const [isTossLoginRequesting, setIsTossLoginRequesting] = useState(false);
   const [selectedAiPaymentProduct, setSelectedAiPaymentProduct] = useState<AiCharacterPaymentProduct | null>(null);
   const [snackPurchaseItemId, setSnackPurchaseItemId] = useState<string | null>(null);
   const [snackPurchaseQuantity, setSnackPurchaseQuantity] = useState(1);
@@ -152,6 +160,17 @@ function App() {
       })
       .catch((error) => {
         console.info("Pending IAP restore skipped", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!getTossLoginReady()) return;
+    void loadTossLoginInfo()
+      .then((info) => {
+        if (info) setTossLoginInfo(info);
+      })
+      .catch((error) => {
+        console.info("Toss login info load skipped", error);
       });
   }, []);
 
@@ -602,7 +621,44 @@ function App() {
 
   const resetLocalData = () => {
     setAppState(defaultAppState);
+    setTossLoginInfo(null);
     setPage("onboarding");
+  };
+
+  const handleTossLogin = () => {
+    if (isTossLoginRequesting) return;
+    if (!getTossLoginReady()) {
+      setToastMessage("Toss Login은 인증 설정 완료 후 사용할 수 있어요");
+      return;
+    }
+
+    setIsTossLoginRequesting(true);
+    void requestTossLogin()
+      .then((result) => {
+        if (result.status === "linked") {
+          setTossLoginInfo(result.info);
+          setToastMessage(
+            result.info.displayName
+              ? `${result.info.displayName}님으로 Toss 연동을 완료했어요`
+              : "Toss 계정을 연동했어요",
+          );
+          return;
+        }
+        if (result.status === "cancelled") {
+          setToastMessage("Toss Login을 취소했어요");
+          return;
+        }
+        if (result.status === "unsupported_environment") {
+          setToastMessage("Toss Login은 토스앱 또는 샌드박스앱에서만 사용할 수 있어요");
+          return;
+        }
+        if (result.status === "already_linked_to_other_account") {
+          setToastMessage("이 Toss 계정은 다른 사용자와 연동되어 있어요");
+          return;
+        }
+        setToastMessage(result.message);
+      })
+      .finally(() => setIsTossLoginRequesting(false));
   };
 
   const deleteCustomPet = (petId: string) => {
@@ -742,15 +798,19 @@ function App() {
           entries={appState.entries}
           aiCharacterCredits={appState.aiCharacterCredits}
           isAiCharacterGenerating={isAiCharacterGenerating}
+          isTossLoginRequesting={isTossLoginRequesting}
           monthlyBudget={appState.monthlyBudget}
           ownedCustomPets={appState.ownedCustomPets}
           pet={appState.pet}
           ownedPetIds={ownedPetIds}
           petLevels={appState.petLevels}
           stats={appStats}
+          tossLoginInfo={tossLoginInfo}
+          tossLoginReady={getTossLoginReady()}
           onDeleteCustomPet={deleteCustomPet}
           onSelectPet={buyOrSelectCharacter}
           onResetData={resetLocalData}
+          onTossLogin={handleTossLogin}
           onUpdateCustomPetProfile={updateCustomPetProfile}
           onUpdateBudget={updateBudget}
         />

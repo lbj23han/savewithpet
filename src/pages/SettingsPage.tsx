@@ -1,9 +1,10 @@
-import { ChevronRight, RotateCcw, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 import { Panel } from "../components/Panel";
 import { formatWon, getCurrentMonthLabel } from "../domain/ledger";
+import type { TossLoginInfo } from "../lib/tossLogin";
 import { petPresets } from "../mocks/appData";
 import type { AppStats, LedgerEntry, UserPet } from "../types/app";
 
@@ -12,15 +13,19 @@ type SettingsPageProps = {
   coins: number;
   entries: LedgerEntry[];
   isAiCharacterGenerating: boolean;
+  isTossLoginRequesting: boolean;
   monthlyBudget: number;
   ownedCustomPets: UserPet[];
   ownedPetIds: string[];
   pet: UserPet;
   petLevels: Record<string, number>;
   stats: AppStats;
+  tossLoginInfo: TossLoginInfo | null;
+  tossLoginReady: boolean;
   onDeleteCustomPet: (petId: string) => void;
   onResetData: () => void;
   onSelectPet: (petId: string) => void;
+  onTossLogin: () => void;
   onUpdateCustomPetProfile: (petId: string, profile: { name: string; trait: string }) => void;
   onUpdateBudget: (budget: number) => void;
 };
@@ -32,15 +37,19 @@ export function SettingsPage({
   coins,
   entries,
   isAiCharacterGenerating,
+  isTossLoginRequesting,
   monthlyBudget,
   ownedCustomPets,
   ownedPetIds,
   pet,
   petLevels,
   stats,
+  tossLoginInfo,
+  tossLoginReady,
   onDeleteCustomPet,
   onResetData,
   onSelectPet,
+  onTossLogin,
   onUpdateCustomPetProfile,
   onUpdateBudget,
 }: SettingsPageProps) {
@@ -64,6 +73,18 @@ export function SettingsPage({
     }
   };
 
+  const formatLinkedAt = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return iso.slice(0, 10);
+    }
+  };
+
   return (
     <Page>
       <PetCard>
@@ -74,6 +95,37 @@ export function SettingsPage({
           <LevelBadge>Lv. {stats.level}</LevelBadge>
         </PetInfo>
       </PetCard>
+
+      <Panel>
+        <SectionLabel>Toss 계정 연동</SectionLabel>
+        {tossLoginInfo ? (
+          <TossLinkedRow>
+            <CheckCircle2 size={18} />
+            <TossLinkedInfo>
+              <strong>
+                {tossLoginInfo.displayName ? `${tossLoginInfo.displayName}님` : "Toss 계정 연동됨"}
+              </strong>
+              <span>연동일 {formatLinkedAt(tossLoginInfo.linkedAt)}</span>
+            </TossLinkedInfo>
+          </TossLinkedRow>
+        ) : (
+          <TossLoginDescription>
+            Toss 계정과 연동하면 기록과 캐릭터를 다른 기기에서도 이어서 쓸 수 있어요.
+          </TossLoginDescription>
+        )}
+        <TossLoginButton
+          disabled={!tossLoginReady || isTossLoginRequesting}
+          onClick={onTossLogin}
+        >
+          {isTossLoginRequesting
+            ? "연동 중..."
+            : tossLoginInfo
+              ? "다시 연동"
+              : tossLoginReady
+                ? "Toss로 연동하기"
+                : "연동 준비 중"}
+        </TossLoginButton>
+      </Panel>
 
       <Panel>
         <SectionLabel>이번 달 현황</SectionLabel>
@@ -356,6 +408,57 @@ const BudgetPresets = styled.div`
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.sm};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+`;
+
+const TossLoginDescription = styled.p`
+  margin: 0 0 ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 13px;
+  line-height: 1.5;
+`;
+
+const TossLinkedRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.greenSoft};
+  border-radius: ${({ theme }) => theme.radius.md};
+  color: ${({ theme }) => theme.colors.green};
+`;
+
+const TossLinkedInfo = styled.div`
+  display: grid;
+  gap: 2px;
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 500;
+  }
+`;
+
+const TossLoginButton = styled.button`
+  width: 100%;
+  min-height: 44px;
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 14px;
+  font-weight: 700;
+
+  &:disabled {
+    color: ${({ theme }) => theme.colors.muted};
+    background: ${({ theme }) => theme.colors.surfaceWarm};
+    border: 1px solid ${({ theme }) => theme.colors.line};
+  }
 `;
 
 const OwnedPetGrid = styled.div`
