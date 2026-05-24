@@ -477,7 +477,7 @@ function App() {
       confirmLabel: "생성권 사용",
       onConfirm: () => {
         setIsAiCharacterGenerating(true);
-        setToastMessage("AI 캐릭터를 생성하고 있어요");
+        setToastMessage("AI 캐릭터를 만들고 있어요 (약 30초)");
         void readFileAsDataUrl(file)
           .then(async (sourcePhotoUrl) => {
             const generated = await generateAiCharacter({
@@ -720,6 +720,7 @@ function App() {
           aiCharacterCredits={appState.aiCharacterCredits}
           coins={appCoins}
           characters={characterShopItems}
+          isAiCharacterGenerating={isAiCharacterGenerating}
           items={shopItemViews}
           level={appStats.level}
           onAiCharacterBuy={openAiCharacterPayment}
@@ -740,6 +741,7 @@ function App() {
           coins={appCoins}
           entries={appState.entries}
           aiCharacterCredits={appState.aiCharacterCredits}
+          isAiCharacterGenerating={isAiCharacterGenerating}
           monthlyBudget={appState.monthlyBudget}
           ownedCustomPets={appState.ownedCustomPets}
           pet={appState.pet}
@@ -1055,8 +1057,8 @@ function getAiCharacterGenerationErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
   if (message.includes("missing_openai_api_key")) return "OpenAI API 키가 필요해요";
   if (message.includes("disabled")) return "AI 캐릭터 생성이 아직 비활성화되어 있어요";
-  if (message) return message;
-  return "AI 캐릭터 생성에 실패했어요";
+  if (message) return `${message} 생성권은 차감되지 않았어요`;
+  return "AI 캐릭터 생성에 실패했어요. 생성권은 차감되지 않았어요. 다시 시도해주세요.";
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {

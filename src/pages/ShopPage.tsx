@@ -1,6 +1,6 @@
 import { Heart, LockKeyhole, MessageCircle, Send } from "lucide-react";
 import { useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
 import { PetItemArt } from "../components/PetItemArt";
@@ -29,6 +29,7 @@ type ShopPageProps = {
   aiCharacterCredits: number;
   characters: CharacterShopItem[];
   coins: number;
+  isAiCharacterGenerating: boolean;
   items: ShopItemViewModel[];
   level: number;
   onAiCharacterBuy: () => void;
@@ -48,6 +49,7 @@ export function ShopPage({
   aiCharacterCredits,
   characters,
   coins,
+  isAiCharacterGenerating,
   items,
   level,
   onAiCharacterBuy,
@@ -139,18 +141,31 @@ export function ShopPage({
               {AI_CHARACTER_MAX_OWNED_COUNT}개 보유
             </p>
             <p>{getAiCharacterNoEditMessage()}</p>
+            {isAiCharacterGenerating && (
+              <AiCharacterProgressNote>
+                <Spinner aria-hidden="true" />
+                <span>AI 캐릭터를 만들고 있어요. 보통 30초 정도 걸려요.</span>
+              </AiCharacterProgressNote>
+            )}
             <AiCharacterActions>
               <AiCharacterPrimaryButton
-                disabled={aiCharacterCredits <= 0}
+                disabled={aiCharacterCredits <= 0 || isAiCharacterGenerating}
                 onClick={() => aiCharacterFileInputRef.current?.click()}
               >
-                {aiCharacterCredits > 0 ? "사진 선택해서 생성" : "생성권 없음"}
+                {isAiCharacterGenerating
+                  ? "생성 중..."
+                  : aiCharacterCredits > 0
+                    ? "사진 선택해서 생성"
+                    : "생성권 없음"}
               </AiCharacterPrimaryButton>
-              <AiCharacterSecondaryButton onClick={onAiCharacterBuy}>생성권 구매</AiCharacterSecondaryButton>
+              <AiCharacterSecondaryButton disabled={isAiCharacterGenerating} onClick={onAiCharacterBuy}>
+                생성권 구매
+              </AiCharacterSecondaryButton>
             </AiCharacterActions>
             <HiddenFileInput
               ref={aiCharacterFileInputRef}
               accept="image/png,image/jpeg,image/webp"
+              disabled={isAiCharacterGenerating}
               type="file"
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
@@ -444,6 +459,45 @@ const AiCharacterSecondaryButton = styled.button`
   border-radius: ${({ theme }) => theme.radius.md};
   font-size: 12px;
   font-weight: 800;
+
+  &:disabled {
+    color: ${({ theme }) => theme.colors.muted};
+    opacity: 0.5;
+  }
+`;
+
+const spinnerRotate = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const AiCharacterProgressNote = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px dashed ${({ theme }) => theme.colors.purple};
+  border-radius: ${({ theme }) => theme.radius.md};
+
+  span {
+    color: ${({ theme }) => theme.colors.purple};
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+`;
+
+const Spinner = styled.span`
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid ${({ theme }) => theme.colors.line};
+  border-top-color: ${({ theme }) => theme.colors.purple};
+  border-radius: 50%;
+  animation: ${spinnerRotate} 700ms linear infinite;
 `;
 
 const HiddenFileInput = styled.input`

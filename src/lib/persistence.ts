@@ -222,16 +222,22 @@ function normalizePet(pet: unknown): UserPet {
 
   if ("source" in pet && pet.source === "photo") {
     const photoPet = pet as UserPet;
+    const resolvedImageUrl = photoPet.imageUrl ?? photoPet.sourcePhotoUrl;
+    // Photo-generated pets must render the generated imageUrl, not a preset baseBodyUrl.
+    // Older localStorage entries may carry preset visualLayers from a previous build — re-bind to imageUrl.
+    const resolvedVisualLayers = resolvedImageUrl
+      ? { baseBodyUrl: resolvedImageUrl, generatedOverlayUrl: photoPet.visualLayers?.generatedOverlayUrl }
+      : photoPet.visualLayers;
 
     return {
       ...createDefaultPet(),
       ...photoPet,
-      imageUrl: photoPet.imageUrl ?? photoPet.sourcePhotoUrl,
+      imageUrl: resolvedImageUrl,
       species: "custom",
       source: "photo",
       sourcePhotoUrl: photoPet.sourcePhotoUrl ?? photoPet.imageUrl,
       templateId: photoPet.templateId ?? STANDARD_CHARACTER_TEMPLATE_ID,
-      visualLayers: photoPet.visualLayers,
+      visualLayers: resolvedVisualLayers,
     };
   }
 

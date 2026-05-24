@@ -51,14 +51,18 @@ export function createPetFromPhoto(
   generated?: { imageUrl?: string; name?: string; trait?: string },
 ): UserPet {
   const profile = getPhotoCharacterProfile(file.name);
-  const visualLayers = getPresetVisualLayers(profile.presetId) ?? { baseBodyUrl: STANDARD_PRESET_CHARACTER_URL };
+  const fallbackVisualLayers = getPresetVisualLayers(profile.presetId) ?? { baseBodyUrl: STANDARD_PRESET_CHARACTER_URL };
+  const generatedImageUrl = generated?.imageUrl;
+  const visualLayers = generatedImageUrl
+    ? { baseBodyUrl: generatedImageUrl }
+    : fallbackVisualLayers;
 
   return {
     id: `photo-${Date.now()}`,
     name: sanitizePetName(generated?.name) || profile.name,
     trait: sanitizePetTrait(generated?.trait) || profile.trait,
     emoji: profile.presetId === "ttoosseunyang" ? "🐱" : profile.presetId === "kangchongmu" ? "🐰" : "🐶",
-    imageUrl: generated?.imageUrl || visualLayers.baseBodyUrl,
+    imageUrl: generatedImageUrl || fallbackVisualLayers.baseBodyUrl,
     species: "custom",
     source: "photo",
     sourcePhotoUrl,

@@ -344,6 +344,102 @@ backdrop item layer
 
 P0 잔여 항목을 우선순위 순으로 정리한 실행 리스트입니다.
 
+### 0. Claude 인수인계: 현재 필수 수정 사항
+
+2026-05-24 기준, 출시 전 마지막으로 확인해야 하는 blocking 항목입니다.
+
+#### A. AI 캐릭터 생성 중 진행 상태 UI — [x] 완료 (2026-05-24)
+
+코드 변경:
+
+- `src/App.tsx`: `isAiCharacterGenerating` state를 `ShopPage`와 `SettingsPage` 양쪽에 prop으로 전달. 시작 토스트를 `AI 캐릭터를 만들고 있어요 (약 30초)` 로 변경. 실패 토스트는 `getAiCharacterGenerationErrorMessage()`에서 항상 `생성권은 차감되지 않았어요` 안내 포함.
+- `src/pages/ShopPage.tsx`: 생성 중 카드 안에 dashed border + spinner + 안내 문구 표시. `사진 선택해서 생성` 버튼 disabled, label을 `생성 중...`으로 변경. file input도 disabled. 생성권 구매 버튼도 disabled.
+- `src/pages/SettingsPage.tsx`: 캐릭터 컬렉션 그리드 마지막에 dashed placeholder card 추가 (spinner + `만드는 중...` + `약 30초`). 생성 완료 시 실제 컬렉션 카드로 자연스럽게 교체됨.
+
+후속 확인 (실기기 QA):
+
+- 생성 중 다른 탭으로 이동해도 다시 settings로 돌아오면 placeholder가 보이는지
+- 생성 실패 시 토스트에 `생성권은 차감되지 않았어요` 문구가 보이는지
+
+#### B. 생성 성공 후 홈에서 default character가 보이는 버그 — [x] 완료 (2026-05-24)
+
+근본 원인:
+
+- `createPetFromPhoto`가 `visualLayers.baseBodyUrl = getPresetVisualLayers(profile.presetId)` 로 프리셋 PNG URL을 세팅했음.
+- `PetStage`의 `getBaseCharacterUrl(pet)`이 `visualLayers.baseBodyUrl`을 먼저 반환 → 생성된 `pet.imageUrl`이 가려졌음.
+- 결과적으로 컬렉션 카드는 `customPet.imageUrl`을 직접 쓰니까 생성 이미지가 보였지만, 홈은 `PetStage`를 거쳐서 프리셋 PNG가 떴음.
+
+수정 내용:
+
+- `src/domain/avatarGenerator.ts`: `createPetFromPhoto`에서 `generated.imageUrl`이 있으면 `visualLayers = { baseBodyUrl: generated.imageUrl }` 로 일관되게 세팅. 없을 때만 프리셋 fallback 사용.
+- `src/lib/persistence.ts`: `normalizePet`에서 `source === "photo"` 인 펫을 로드할 때 `visualLayers.baseBodyUrl`을 항상 `imageUrl`로 재바인딩. 이전 빌드에서 저장된 stale visualLayers 자동 마이그레이션.
+
+완료 기준 충족 여부:
+
+- [x] 생성 직후 홈 캐릭터 이미지 = 컬렉션 카드 이미지 (코드상 동일 URL 사용)
+- [x] 앱 새로고침/localStorage 복원 후에도 동일 (normalizePet 마이그레이션)
+- [ ] Supabase sync 이후 `pets.image_url`에 생성 결과 저장 — cloudPersistence 흐름은 그대로지만 실 환경 QA 필요
+
+#### C. AI 생성 결과 문구 수정/편집
+
+코드 상태 (확인됨):
+
+- [x] `sanitizePetName` / `sanitizePetTrait`에서 `\bPNG\b` 정규식으로 제거 ([src/domain/avatarGenerator.ts](src/domain/avatarGenerator.ts))
+- [x] SettingsPage 편집 UI 존재 ([src/pages/SettingsPage.tsx](src/pages/SettingsPage.tsx) line 159-185, `CustomPetEditor` 폼). 활성 pet이 photo일 때만 표시
+- [x] `updateCustomPetProfile()`이 `ownedCustomPets`와 `appState.pet`을 동시에 업데이트 → 홈 PetStage가 즉시 반영
+- [x] localStorage `appState` 저장 useEffect로 자동 영속화
+
+남은 작업 (실기기 QA):
+
+- 사진 기반 캐릭터 선택 → 설정에서 이름/소개 수정 → 홈으로 가서 이름 반영 확인
+- 새로고침 후에도 수정 내용 유지 확인
+
+#### D. AIT build/deploy 필수 체크리스트
+
+로컬 검증 — 2026-05-24 기준 모두 통과:
+
+```bash
+npm run typecheck   # [x] 통과
+npm run lint        # [x] 통과
+npm run test:unit   # [x] 19 tests passed
+npm run build       # [x] Vite + AIT artifact 생성 완료
+```
+
+배포 전 확인:
+
+- Vercel 최신 배포에 `api/ai-character.js` CORS/OPTIONS 수정이 반영되어야 함.
+- 로컬에서 Vercel API 테스트 시 `.env.local`:
+
+```bash
+VITE_API_BASE=https://savewithpet.vercel.app
+```
+
+- Vercel 환경 변수:
+
+```bash
+VITE_API_BASE=https://savewithpet.vercel.app
+VITE_AUTH_ENABLED=true
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+OPENAI_IMAGE_MODEL=gpt-image-1
+AI_CHARACTER_GENERATION_ENABLED=true
+```
+
+참고:
+
+- `VITE_IAP_AI_CHARACTER_SKU`, `VITE_IAP_AI_CHARACTER_PACK_SKU`는 updown-brief와 같은 구조로 갈 경우 필수 아님.
+- 코드 기본값은 `ai_character`, `ai_character_pack`임.
+- Toss 콘솔 상품 ID가 기본값과 다르면 그때만 env로 지정.
+
+AIT 배포:
+
+- Vercel 배포가 끝난 뒤 `/api/ai-character`가 살아있는지 먼저 확인한다.
+- Apps in Toss/AIT 환경 변수도 Vercel과 같은 값으로 맞춘다.
+- `npm run build`가 통과한 뒤 AIT 배포 명령(`npm run deploy`) 또는 콘솔 배포를 진행한다.
+- Toss WebView에서 사진 선택, 생성 중 placeholder, 생성 결과 홈 반영까지 직접 확인한다.
+
 ### 1. 캐릭터 PNG 확정 (선행 조건)
 
 아끼개/또쓰냥/깡총무 3종의 `public/assets/pets/*.png`를 출시 품질로 확정해야 그 다음 QA가 의미 있습니다.

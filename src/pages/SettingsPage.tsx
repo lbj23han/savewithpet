@@ -1,6 +1,6 @@
 import { ChevronRight, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 import { Panel } from "../components/Panel";
 import { formatWon, getCurrentMonthLabel } from "../domain/ledger";
@@ -11,6 +11,7 @@ type SettingsPageProps = {
   aiCharacterCredits: number;
   coins: number;
   entries: LedgerEntry[];
+  isAiCharacterGenerating: boolean;
   monthlyBudget: number;
   ownedCustomPets: UserPet[];
   ownedPetIds: string[];
@@ -30,6 +31,7 @@ export function SettingsPage({
   aiCharacterCredits,
   coins,
   entries,
+  isAiCharacterGenerating,
   monthlyBudget,
   ownedCustomPets,
   ownedPetIds,
@@ -155,6 +157,15 @@ export function SettingsPage({
               </DeletePetButton>
             </OwnedCustomPetCard>
           ))}
+          {isAiCharacterGenerating && (
+            <GeneratingPetCard aria-label="AI 캐릭터 생성 중">
+              <GeneratingSpinner aria-hidden="true" />
+              <GeneratingPetLabel>
+                <strong>만드는 중...</strong>
+                <span>약 30초</span>
+              </GeneratingPetLabel>
+            </GeneratingPetCard>
+          )}
         </OwnedPetGrid>
         {selectedCustomPet && (
           <CustomPetEditor
@@ -356,6 +367,52 @@ const OwnedPetGrid = styled.div`
 const OwnedCustomPetCard = styled.div`
   position: relative;
   display: grid;
+`;
+
+const settingsSpinnerRotate = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const GeneratingPetCard = styled.div`
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: ${({ theme }) => theme.spacing.xs};
+  min-height: 104px;
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1.5px dashed ${({ theme }) => theme.colors.purple};
+  border-radius: ${({ theme }) => theme.radius.lg};
+`;
+
+const GeneratingSpinner = styled.span`
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid ${({ theme }) => theme.colors.line};
+  border-top-color: ${({ theme }) => theme.colors.purple};
+  border-radius: 50%;
+  animation: ${settingsSpinnerRotate} 700ms linear infinite;
+`;
+
+const GeneratingPetLabel = styled.div`
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+
+  strong {
+    color: ${({ theme }) => theme.colors.purple};
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 10px;
+    font-weight: 500;
+  }
 `;
 
 const OwnedPetButton = styled.button<{ $active: boolean }>`
