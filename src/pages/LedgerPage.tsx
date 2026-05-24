@@ -89,15 +89,28 @@ export function LedgerPage({
   const selectedCategoryBudget = categoryBudgets[selectedCategoryId] ?? 0;
   const remainingBudget = Math.max(budget - totalExpense - (numericAmount || 0), 0);
   const budgetableCategories = categories.filter((category) => category.id !== "income" && category.id !== "saving");
+  const isExpenseEntry = entryType === "expense";
+
+  const selectEntryType = (type: LedgerEntryType) => {
+    setEntryType(type);
+    if (type === "expense" && (selectedCategoryId === "saving" || selectedCategoryId === "income")) {
+      setSelectedCategoryId(budgetableCategories[0]?.id ?? "etc");
+      return;
+    }
+    if (type === "saving" || type === "income") {
+      setSelectedCategoryId(type);
+    }
+  };
 
   const submitEntry = () => {
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) return;
 
+    const normalizedCategoryId = entryType === "expense" ? selectedCategoryId : entryType;
     const draft = {
       amount: numericAmount,
-      categoryId: selectedCategoryId,
+      categoryId: normalizedCategoryId,
       date,
-      memo: memo.trim() || selectedCategory?.label || "기록",
+      memo: memo.trim() || (entryType === "expense" ? selectedCategory?.label || "기록" : getTypeLabel(entryType)),
       type: entryType,
     };
 
@@ -295,39 +308,47 @@ export function LedgerPage({
 
       <TypeTabs>
         {entryTypes.map((type) => (
-          <TypeButton key={type.value} $active={entryType === type.value} onClick={() => setEntryType(type.value)}>
+          <TypeButton key={type.value} $active={entryType === type.value} onClick={() => selectEntryType(type.value)}>
             {type.label}
           </TypeButton>
         ))}
       </TypeTabs>
 
-      <CategoryGrid>
-        {categories.map((category) => (
-          <CategoryButton key={category.id} $selected={selectedCategoryId === category.id} onClick={() => setSelectedCategoryId(category.id)}>
-            <span>{category.icon}</span>
-            <strong>{category.label}</strong>
-          </CategoryButton>
-        ))}
-      </CategoryGrid>
+      {isExpenseEntry && (
+        <>
+          <CategoryGrid>
+            {budgetableCategories.map((category) => (
+              <CategoryButton key={category.id} $selected={selectedCategoryId === category.id} onClick={() => setSelectedCategoryId(category.id)}>
+                <span>{category.icon}</span>
+                <strong>{category.label}</strong>
+              </CategoryButton>
+            ))}
+          </CategoryGrid>
 
-      <CategoryBudgetCard>
-        <div>
-          <span>{selectedCategory?.icon} {selectedCategory?.label ?? "카테고리"} 예산</span>
-          <strong>{selectedCategoryBudget > 0 ? `${formatWon(selectedCategoryBudget)}원` : "미설정"}</strong>
-        </div>
-        <BudgetBar>
-          <BudgetFill $value={selectedCategoryBudget > 0 ? Math.min(100, Math.round((selectedCategoryExpense / selectedCategoryBudget) * 100)) : 0} />
-        </BudgetBar>
-        <CategoryBudgetMeta>
-          <small>사용 ₩ {formatWon(selectedCategoryExpense)}</small>
-          <button onClick={openBudgetEditor}>전체 예산에서 조정</button>
-        </CategoryBudgetMeta>
-      </CategoryBudgetCard>
+          <CategoryBudgetCard>
+            <div>
+              <span>{selectedCategory?.icon} {selectedCategory?.label ?? "카테고리"} 예산</span>
+              <strong>{selectedCategoryBudget > 0 ? `${formatWon(selectedCategoryBudget)}원` : "미설정"}</strong>
+            </div>
+            <BudgetBar>
+              <BudgetFill $value={selectedCategoryBudget > 0 ? Math.min(100, Math.round((selectedCategoryExpense / selectedCategoryBudget) * 100)) : 0} />
+            </BudgetBar>
+            <CategoryBudgetMeta>
+              <small>사용 ₩ {formatWon(selectedCategoryExpense)}</small>
+              <button onClick={openBudgetEditor}>전체 예산에서 조정</button>
+            </CategoryBudgetMeta>
+          </CategoryBudgetCard>
+        </>
+      )}
 
       <AmountField>
         <AmountCopy>
           <AmountLabel>{getTypeLabel(entryType)} 금액</AmountLabel>
-          <AmountHint>남은 예산 ₩ {formatWon(remainingBudget)}</AmountHint>
+          <AmountHint>
+            {entryType === "expense"
+              ? `남은 예산 ₩ ${formatWon(remainingBudget)}`
+              : `${getTypeLabel(entryType)}은 카테고리 예산과 별도로 기록돼요`}
+          </AmountHint>
         </AmountCopy>
         <AmountInput
           aria-label={`${getTypeLabel(entryType)} 금액`}
@@ -338,7 +359,11 @@ export function LedgerPage({
         />
       </AmountField>
 
-      <MemoInput placeholder="어디에 쓰셨나요? (선택)" value={memo} onChange={(event) => setMemo(event.target.value)} />
+      <MemoInput
+        placeholder={entryType === "expense" ? "어디에 쓰셨나요? (선택)" : "메모를 기록하세요 (선택)"}
+        value={memo}
+        onChange={(event) => setMemo(event.target.value)}
+      />
 
       <DateSection>
         <DateHeader>
@@ -376,7 +401,7 @@ export function LedgerPage({
           <RecentItem key={entry.id}>
             <RecentCopy>
               <span>
-                {getCategoryIcon(entry.categoryId, categories)} {entry.memo || getCategoryLabel(entry.categoryId, categories)}
+                {getEntryIcon(entry, categories)} {getEntryTitle(entry, categories)}
               </span>
               <small>{entry.date} · {getTypeLabel(entry.type)}</small>
             </RecentCopy>
@@ -540,6 +565,17 @@ function getTypeLabel(type: LedgerEntryType): string {
   if (type === "saving") return "저축";
   if (type === "income") return "수입";
   return "지출";
+}
+
+function getEntryIcon(entry: LedgerEntry, categories: Category[]): string {
+  if (entry.type === "saving") return "🌱";
+  if (entry.type === "income") return "💰";
+  return getCategoryIcon(entry.categoryId, categories);
+}
+
+function getEntryTitle(entry: LedgerEntry, categories: Category[]): string {
+  if (entry.type === "saving" || entry.type === "income") return entry.memo || getTypeLabel(entry.type);
+  return entry.memo || getCategoryLabel(entry.categoryId, categories);
 }
 
 function createLedgerAdvice(type: LedgerEntryType, category?: Category): string {

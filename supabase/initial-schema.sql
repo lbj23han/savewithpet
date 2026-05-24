@@ -20,6 +20,7 @@ create table if not exists public.profiles (
   display_name text,
   coins integer not null default 0 check (coins >= 0),
   ai_character_credits integer not null default 0 check (ai_character_credits >= 0),
+  free_snack_claimed_at jsonb not null default '[]'::jsonb,
   intimacy integer not null default 50 check (intimacy >= 0 and intimacy <= 100),
   last_fed_at timestamptz,
   monthly_budget integer not null default 1500000 check (monthly_budget >= 0),
@@ -32,6 +33,7 @@ create table if not exists public.profiles (
 
 alter table public.profiles add column if not exists intimacy integer not null default 50 check (intimacy >= 0 and intimacy <= 100);
 alter table public.profiles add column if not exists ai_character_credits integer not null default 0 check (ai_character_credits >= 0);
+alter table public.profiles add column if not exists free_snack_claimed_at jsonb not null default '[]'::jsonb;
 alter table public.profiles add column if not exists last_fed_at timestamptz;
 alter table public.profiles add column if not exists toss_login_linked_at timestamptz;
 

@@ -157,6 +157,7 @@ export type PersistedAppState = {
   coins: number;
   entries: LedgerEntry[];
   equippedItemId: string | null;
+  freeSnackClaimedAt: string[];
   hasCompletedOnboarding: boolean;
   intimacy: number;
   lastFedAt: string | null;
@@ -165,6 +166,7 @@ export type PersistedAppState = {
   ownedItemIds: string[];
   ownedPetIds: string[];
   pet: UserPet;
+  petLevels: Record<string, number>;
   rewardEvents: RewardEvent[];
   snackInventory: Record<string, number>;
 };

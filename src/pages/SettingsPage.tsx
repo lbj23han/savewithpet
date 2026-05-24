@@ -1,5 +1,5 @@
 import { ChevronRight, RotateCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 import { Panel } from "../components/Panel";
@@ -15,10 +15,12 @@ type SettingsPageProps = {
   ownedCustomPets: UserPet[];
   ownedPetIds: string[];
   pet: UserPet;
+  petLevels: Record<string, number>;
   stats: AppStats;
   onDeleteCustomPet: (petId: string) => void;
   onResetData: () => void;
   onSelectPet: (petId: string) => void;
+  onUpdateCustomPetProfile: (petId: string, profile: { name: string; trait: string }) => void;
   onUpdateBudget: (budget: number) => void;
 };
 
@@ -32,16 +34,26 @@ export function SettingsPage({
   ownedCustomPets,
   ownedPetIds,
   pet,
+  petLevels,
   stats,
   onDeleteCustomPet,
   onResetData,
   onSelectPet,
+  onUpdateCustomPetProfile,
   onUpdateBudget,
 }: SettingsPageProps) {
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget));
   const [resetPhrase, setResetPhrase] = useState("");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [petNameInput, setPetNameInput] = useState(pet.name);
+  const [petTraitInput, setPetTraitInput] = useState(pet.trait);
   const expenseEntries = entries.filter((e) => e.type === "expense");
+  const selectedCustomPet = pet.source === "photo" ? pet : undefined;
+
+  useEffect(() => {
+    setPetNameInput(pet.name);
+    setPetTraitInput(pet.trait);
+  }, [pet.id, pet.name, pet.trait]);
 
   const handleBudgetSave = () => {
     const parsed = Number(budgetInput.replace(/,/g, "").replace(/[^0-9]/g, ""));
@@ -123,14 +135,20 @@ export function SettingsPage({
             .map((preset) => (
               <OwnedPetButton key={preset.id} $active={pet.id === preset.id} onClick={() => onSelectPet(preset.id)}>
                 <OwnedPetImage src={preset.imageUrl} alt={preset.name} />
-                <span>{preset.name}</span>
+                <PetNameRow>
+                  <span>{preset.name}</span>
+                  <PetLevelLabel>Lv.{petLevels[preset.id] ?? 1}</PetLevelLabel>
+                </PetNameRow>
               </OwnedPetButton>
             ))}
           {ownedCustomPets.map((customPet) => (
             <OwnedCustomPetCard key={customPet.id}>
               <OwnedPetButton $active={pet.id === customPet.id} onClick={() => onSelectPet(customPet.id)}>
                 {customPet.imageUrl ? <OwnedPetImage src={customPet.imageUrl} alt={customPet.name} /> : customPet.emoji}
-                <span>{customPet.name}</span>
+                <PetNameRow>
+                  <span>{customPet.name}</span>
+                  <PetLevelLabel>Lv.{petLevels[customPet.id] ?? 1}</PetLevelLabel>
+                </PetNameRow>
               </OwnedPetButton>
               <DeletePetButton aria-label={`${customPet.name} 삭제`} onClick={() => onDeleteCustomPet(customPet.id)}>
                 <Trash2 size={14} />
@@ -138,6 +156,33 @@ export function SettingsPage({
             </OwnedCustomPetCard>
           ))}
         </OwnedPetGrid>
+        {selectedCustomPet && (
+          <CustomPetEditor
+            onSubmit={(event) => {
+              event.preventDefault();
+              onUpdateCustomPetProfile(selectedCustomPet.id, {
+                name: petNameInput,
+                trait: petTraitInput,
+              });
+            }}
+          >
+            <label htmlFor="custom-pet-name">이름</label>
+            <CustomPetInput
+              id="custom-pet-name"
+              maxLength={12}
+              value={petNameInput}
+              onChange={(event) => setPetNameInput(event.target.value)}
+            />
+            <label htmlFor="custom-pet-trait">소개 문구</label>
+            <CustomPetTextarea
+              id="custom-pet-trait"
+              maxLength={60}
+              value={petTraitInput}
+              onChange={(event) => setPetTraitInput(event.target.value)}
+            />
+            <SaveCustomPetButton type="submit">캐릭터 정보 저장</SaveCustomPetButton>
+          </CustomPetEditor>
+        )}
       </Panel>
 
       <Panel>
@@ -330,6 +375,18 @@ const OwnedPetButton = styled.button<{ $active: boolean }>`
   }
 `;
 
+const PetNameRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const PetLevelLabel = styled.span`
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  color: ${({ theme }) => theme.colors.muted};
+`;
+
 const DeletePetButton = styled.button`
   position: absolute;
   top: 6px;
@@ -350,6 +407,51 @@ const OwnedPetImage = styled.img`
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+`;
+
+const CustomPetEditor = styled.form`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-top: ${({ theme }) => theme.spacing.lg};
+
+  label {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 12px;
+    font-weight: 800;
+  }
+`;
+
+const CustomPetInput = styled.input`
+  min-height: 44px;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 15px;
+  font-weight: 700;
+`;
+
+const CustomPetTextarea = styled.textarea`
+  min-height: 76px;
+  resize: vertical;
+  padding: ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+`;
+
+const SaveCustomPetButton = styled.button`
+  min-height: 44px;
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 14px;
+  font-weight: 800;
 `;
 
 const PresetChip = styled.button<{ $active: boolean }>`

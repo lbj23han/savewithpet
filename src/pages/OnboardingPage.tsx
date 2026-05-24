@@ -3,7 +3,7 @@ import { useState } from "react";
 import styled from "styled-components";
 
 import { ONBOARDING_COPY } from "../constants/copy";
-import { AI_CHARACTER_GENERATION_PRICE_KRW } from "../domain/aiCharacterPolicy";
+import { AI_CHARACTER_GENERATION_COUNT, AI_CHARACTER_GENERATION_PRICE_KRW } from "../domain/aiCharacterPolicy";
 import { createPetFromPreset, createSkippedPet } from "../domain/avatarGenerator";
 import { petPresets } from "../mocks/appData";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -38,7 +38,10 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
         <Camera size={20} />
         <div>
           <strong>내 반려동물 사진으로 캐릭터를 만들 수 있어요!</strong>
-          <span>사진 기반 AI 캐릭터 생성은 시작 후 캐릭터 상점에서 {AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 상품으로 이용할 수 있어요.</span>
+          <span>
+            사진 기반 AI 캐릭터 생성은 시작 후 캐릭터 상점에서 {AI_CHARACTER_GENERATION_COUNT}회{" "}
+            {AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 상품으로 이용할 수 있어요.
+          </span>
         </div>
       </PhotoInfo>
 

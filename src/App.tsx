@@ -4,19 +4,25 @@ import styled from "styled-components";
 
 import { AppShell } from "./components/AppShell";
 import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
-import { createPetFromPreset } from "./domain/avatarGenerator";
-import { AI_CHARACTER_MAX_OWNED_COUNT, getAiCharacterLimitMessage } from "./domain/aiCharacterPolicy";
+import { createPetFromPhoto, createPetFromPreset } from "./domain/avatarGenerator";
+import { AI_CHARACTER_MAX_OWNED_COUNT, getAiCharacterLimitMessage, getAiCharacterNoEditMessage } from "./domain/aiCharacterPolicy";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
-import { calculateEffectiveIntimacy, feedPet } from "./domain/petCare";
-import { createEntryReward } from "./domain/rewards";
+import { calculateEffectiveIntimacy, createNextFreeSnackClaims, feedPet, getFreeSnackClaimState } from "./domain/petCare";
+import {
+  ATTENDANCE_REWARD_COINS,
+  createAttendanceReward,
+  createEntryReward,
+  hasClaimedAttendanceReward,
+} from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
 import { saveAppStateToCloud } from "./lib/cloudPersistence";
 import { defaultAppState, loadAppState, saveAppState } from "./lib/persistence";
+import { generateAiCharacter } from "./lib/aiCharacterGeneration";
 import {
   AI_CHARACTER_PAYMENT_OPTIONS,
   type AiCharacterPaymentProduct,
-  confirmAiCharacterPayment,
   requestAiCharacterPayment,
+  restorePendingAiCharacterPayments,
 } from "./lib/tossPayments";
 import { petPresets, shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
@@ -29,6 +35,7 @@ import type { AppPage, Category, LedgerEntryDraft, PersistedAppState } from "./t
 
 const DEV_UNLOCKED_COINS = 999_999;
 const DEV_UNLOCKED_LEVEL = 99;
+const DEV_AI_CHARACTER_CREDITS = 5;
 const BASE_CHARACTER_PRICE = 200;
 
 type ConfirmDialog = {
@@ -44,6 +51,7 @@ function App() {
   const [page, setPage] = useState<AppPage>(() => (loadAppState().hasCompletedOnboarding ? "home" : "onboarding"));
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [isAiCharacterGenerating, setIsAiCharacterGenerating] = useState(false);
   const [selectedAiPaymentProduct, setSelectedAiPaymentProduct] = useState<AiCharacterPaymentProduct | null>(null);
   const [snackPurchaseItemId, setSnackPurchaseItemId] = useState<string | null>(null);
   const [snackPurchaseQuantity, setSnackPurchaseQuantity] = useState(1);
@@ -77,6 +85,7 @@ function App() {
   const equippedItem = shopItemViews.find((item) => item.id === appState.equippedItemId);
   const selectedAiPaymentOption = AI_CHARACTER_PAYMENT_OPTIONS.find((option) => option.id === selectedAiPaymentProduct);
   const snackPurchaseItem = snackItems.find((item) => item.id === snackPurchaseItemId);
+  const freeSnackClaimState = getFreeSnackClaimState(appState.freeSnackClaimedAt);
   const snackMaxQuantity = snackPurchaseItem
     ? import.meta.env.DEV
       ? 20
@@ -94,10 +103,21 @@ function App() {
       price: BASE_CHARACTER_PRICE,
     };
   });
+  const hasClaimedAttendance = hasClaimedAttendanceReward(appState.rewardEvents);
 
   useEffect(() => {
     saveAppState(appState);
   }, [appState]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || appState.aiCharacterCredits >= DEV_AI_CHARACTER_CREDITS) return;
+
+    setAppState((prev) =>
+      prev.aiCharacterCredits >= DEV_AI_CHARACTER_CREDITS
+        ? prev
+        : { ...prev, aiCharacterCredits: DEV_AI_CHARACTER_CREDITS },
+    );
+  }, [appState.aiCharacterCredits]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -119,35 +139,20 @@ function App() {
   }, [toastMessage]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const paymentResult = params.get("paymentResult");
+    void restorePendingAiCharacterPayments()
+      .then((results) => {
+        const creditCount = results.reduce((sum, result) => sum + result.creditCount, 0);
+        if (creditCount <= 0) return;
 
-    if (paymentResult === "fail") {
-      setToastMessage(params.get("message") ?? "결제가 취소되었어요");
-      window.history.replaceState({}, "", window.location.pathname);
-      return;
-    }
-
-    const paymentKey = params.get("paymentKey");
-    const orderId = params.get("orderId");
-    const amount = params.get("amount");
-    if (paymentResult !== "success" || !paymentKey || !orderId || !amount) return;
-
-    window.history.replaceState({}, "", window.location.pathname);
-    setIsPaymentProcessing(true);
-    void confirmAiCharacterPayment({ amount, orderId, paymentKey })
-      .then((result) => {
         setAppState((prev) => ({
           ...prev,
-          aiCharacterCredits: prev.aiCharacterCredits + result.creditCount,
+          aiCharacterCredits: prev.aiCharacterCredits + creditCount,
         }));
-        setToastMessage(`결제가 완료됐어요 · AI 생성권 ${result.creditCount}회 충전`);
+        setToastMessage(`미지급 생성권 ${creditCount}회를 복구했어요`);
       })
       .catch((error) => {
-        console.error("Payment confirm failed", error);
-        setToastMessage("결제 승인에 실패했어요. 잠시 후 다시 확인해주세요");
-      })
-      .finally(() => setIsPaymentProcessing(false));
+        console.info("Pending IAP restore skipped", error);
+      });
   }, []);
 
   useEffect(() => {
@@ -183,9 +188,28 @@ function App() {
       coins: prev.coins + reward.coins,
       entries: [nextEntry, ...prev.entries],
       rewardEvents: [reward, ...prev.rewardEvents].slice(0, 20),
+      petLevels: {
+        ...prev.petLevels,
+        [prev.pet.id]: Math.min(99, (prev.petLevels[prev.pet.id] ?? 1) + 1),
+      },
     }));
     setToastMessage(`${reward.label} +${reward.coins}코인`);
     setPage("home");
+  };
+
+  const claimAttendanceReward = () => {
+    if (hasClaimedAttendanceReward(appState.rewardEvents)) {
+      setToastMessage("오늘 출석 보상은 이미 받았어요");
+      return;
+    }
+
+    const reward = createAttendanceReward();
+    setAppState((prev) => ({
+      ...prev,
+      coins: prev.coins + reward.coins,
+      rewardEvents: [reward, ...prev.rewardEvents].slice(0, 20),
+    }));
+    setToastMessage(`${reward.label} +${reward.coins}코인`);
   };
 
   const updateLedgerEntry = (entryId: string, draft: LedgerEntryDraft) => {
@@ -336,6 +360,30 @@ function App() {
     return true;
   };
 
+  const claimFreeSnack = () => {
+    const claimState = getFreeSnackClaimState(appState.freeSnackClaimedAt);
+    if (!claimState.canClaim) {
+      setToastMessage(claimState.nextClaimLabel);
+      return;
+    }
+
+    const item = snackItems[claimState.claimedToday % snackItems.length];
+    if (!item) {
+      setToastMessage("받을 수 있는 간식이 아직 없어요");
+      return;
+    }
+
+    setAppState((prev) => ({
+      ...prev,
+      freeSnackClaimedAt: createNextFreeSnackClaims(prev.freeSnackClaimedAt),
+      snackInventory: {
+        ...prev.snackInventory,
+        [item.id]: (prev.snackInventory[item.id] ?? 0) + 1,
+      },
+    }));
+    setToastMessage(`무료 간식 ${item.name} 1개를 받았어요`);
+  };
+
   const openPremiumBox = () => {
     const result = resolvePremiumBox(shopItemViews.filter((item) => item.itemType !== "snack"), appCoins);
     if (result.outcome !== "item" || !result.itemId) {
@@ -396,14 +444,68 @@ function App() {
     });
   };
 
-  const openAiCharacterCreation = () => {
+  const openAiCharacterPayment = () => {
+    setSelectedAiPaymentProduct("ai_character");
+  };
+
+  const useAiCharacterCredit = (file: File) => {
+    if (appState.aiCharacterCredits <= 0) {
+      setToastMessage("AI 생성권을 먼저 구매해주세요");
+      setSelectedAiPaymentProduct("ai_character");
+      return;
+    }
+
     if (appState.ownedCustomPets.length >= AI_CHARACTER_MAX_OWNED_COUNT) {
       setToastMessage(getAiCharacterLimitMessage());
       setPage("settings");
       return;
     }
 
-    setSelectedAiPaymentProduct("ai_character");
+    if (!file.type.startsWith("image/")) {
+      setToastMessage("이미지 파일만 선택할 수 있어요");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setToastMessage("사진은 5MB 이하로 올려주세요");
+      return;
+    }
+
+    openConfirm({
+      title: "AI 캐릭터 생성",
+      message: `생성권 1회를 사용해 이 사진으로 캐릭터를 만들까요? ${getAiCharacterNoEditMessage()} 마음에 들지 않으면 삭제 후 다시 생성해야 해요.`,
+      confirmLabel: "생성권 사용",
+      onConfirm: () => {
+        setIsAiCharacterGenerating(true);
+        setToastMessage("AI 캐릭터를 생성하고 있어요");
+        void readFileAsDataUrl(file)
+          .then(async (sourcePhotoUrl) => {
+            const generated = await generateAiCharacter({
+              fileName: file.name,
+              imageDataUrl: sourcePhotoUrl,
+              mimeType: file.type,
+            });
+            const nextPet = createPetFromPhoto(file, sourcePhotoUrl, generated);
+            setAppState((prev) => ({
+              ...prev,
+              aiCharacterCredits: Math.max(0, prev.aiCharacterCredits - 1),
+              ownedCustomPets: [...prev.ownedCustomPets, nextPet],
+              pet: nextPet,
+              petLevels: {
+                ...prev.petLevels,
+                [nextPet.id]: 1,
+              },
+            }));
+            setPage("settings");
+            setToastMessage("AI 캐릭터를 컬렉션에 추가했어요");
+          })
+          .catch((error) => {
+            console.error("AI character generation failed", error);
+            setToastMessage(getAiCharacterGenerationErrorMessage(error));
+          })
+          .finally(() => setIsAiCharacterGenerating(false));
+      },
+    });
   };
 
   const startAiCharacterPayment = () => {
@@ -411,11 +513,23 @@ function App() {
 
     setIsPaymentProcessing(true);
     void requestAiCharacterPayment(selectedAiPaymentProduct)
+      .then((result) => {
+        if (result.creditCount > 0) {
+          setAppState((prev) => ({
+            ...prev,
+            aiCharacterCredits: prev.aiCharacterCredits + result.creditCount,
+          }));
+          setToastMessage(`결제가 완료됐어요 · AI 생성권 ${result.creditCount}회 충전`);
+        } else {
+          setToastMessage("이미 지급된 생성권이에요");
+        }
+        setSelectedAiPaymentProduct(null);
+      })
       .catch((error) => {
         console.error("Payment request failed", error);
         setToastMessage(getPaymentErrorMessage(error));
-        setIsPaymentProcessing(false);
-      });
+      })
+      .finally(() => setIsPaymentProcessing(false));
   };
 
   const updateBudget = (budget: number) => {
@@ -427,8 +541,28 @@ function App() {
     const trimmed = name.trim().slice(0, 12);
     if (!trimmed) return;
 
-    setAppState((prev) => ({ ...prev, pet: { ...prev.pet, name: trimmed } }));
+    setAppState((prev) => ({
+      ...prev,
+      ownedCustomPets: prev.ownedCustomPets.map((customPet) =>
+        customPet.id === prev.pet.id ? { ...customPet, name: trimmed } : customPet,
+      ),
+      pet: { ...prev.pet, name: trimmed },
+    }));
     setToastMessage("이름을 저장했어요");
+  };
+
+  const updateCustomPetProfile = (petId: string, profile: { name: string; trait: string }) => {
+    const name = profile.name.trim().slice(0, 12) || "몽글친구";
+    const trait = profile.trait.trim().replace(/\bPNG\b/gi, "").replace(/\s+/g, " ").slice(0, 60) || "사진 속 분위기를 귀엽게 담은 친구예요";
+
+    setAppState((prev) => ({
+      ...prev,
+      ownedCustomPets: prev.ownedCustomPets.map((customPet) =>
+        customPet.id === petId ? { ...customPet, name, trait } : customPet,
+      ),
+      pet: prev.pet.id === petId ? { ...prev.pet, name, trait } : prev.pet,
+    }));
+    setToastMessage("캐릭터 정보를 저장했어요");
   };
 
   const updateCategoryBudget = (categoryId: string, budget: number) => {
@@ -485,11 +619,14 @@ function App() {
           const nextCustomPets = prev.ownedCustomPets.filter((candidate) => candidate.id !== petId);
           const shouldSwitchActivePet = prev.pet.id === petId;
           const fallbackPreset = petPresets.find((preset) => prev.ownedPetIds.includes(preset.id)) ?? petPresets[0];
+          const nextPetLevels = { ...prev.petLevels };
+          delete nextPetLevels[petId];
 
           return {
             ...prev,
             ownedCustomPets: nextCustomPets,
             pet: shouldSwitchActivePet && fallbackPreset ? createPetFromPreset(fallbackPreset) : prev.pet,
+            petLevels: nextPetLevels,
           };
         });
         setToastMessage(`${customPet.name}을 삭제했어요`);
@@ -508,10 +645,8 @@ function App() {
               nextPet.source === "photo" && !prev.ownedCustomPets.some((customPet) => customPet.id === nextPet.id)
                 ? [...prev.ownedCustomPets, nextPet]
                 : prev.ownedCustomPets,
-            ownedPetIds:
-              nextPet.source === "preset" && !prev.ownedPetIds.includes(nextPet.id)
-                ? [...prev.ownedPetIds, nextPet.id]
-                : prev.ownedPetIds,
+            ownedPetIds: nextPet.source === "preset" ? [nextPet.id] : prev.ownedPetIds,
+            petLevels: nextPet.source === "preset" ? { [nextPet.id]: 1 } : prev.petLevels,
             pet: nextPet,
           }));
           setPage("home");
@@ -543,6 +678,12 @@ function App() {
           wardrobeItems={shopItemViews.filter(
             (item) => item.itemType !== "snack" && (item.state === "owned" || item.state === "equipped"),
           )}
+          attendanceRewardCoins={ATTENDANCE_REWARD_COINS}
+          canClaimFreeSnack={freeSnackClaimState.canClaim}
+          freeSnackClaimLabel={freeSnackClaimState.nextClaimLabel}
+          hasClaimedAttendance={hasClaimedAttendance}
+          onClaimAttendance={claimAttendanceReward}
+          onClaimFreeSnack={claimFreeSnack}
           onEquipItem={buyOrEquipItem}
           onFeedSnack={giveSnack}
           onOpenShop={() => setPage("shop")}
@@ -581,7 +722,8 @@ function App() {
           characters={characterShopItems}
           items={shopItemViews}
           level={appStats.level}
-          onAiCharacterCreate={openAiCharacterCreation}
+          onAiCharacterBuy={openAiCharacterPayment}
+          onAiCharacterGenerate={isAiCharacterGenerating ? () => undefined : useAiCharacterCredit}
           onCharacterAction={buyOrSelectCharacter}
           onItemAction={buyOrEquipItem}
           onOpenPremiumBox={openPremiumBox}
@@ -602,10 +744,12 @@ function App() {
           ownedCustomPets={appState.ownedCustomPets}
           pet={appState.pet}
           ownedPetIds={ownedPetIds}
+          petLevels={appState.petLevels}
           stats={appStats}
           onDeleteCustomPet={deleteCustomPet}
           onSelectPet={buyOrSelectCharacter}
           onResetData={resetLocalData}
+          onUpdateCustomPetProfile={updateCustomPetProfile}
           onUpdateBudget={updateBudget}
         />
       )}
@@ -656,7 +800,9 @@ function App() {
               <X size={18} />
             </DialogCloseButton>
             <DialogTitle>AI 캐릭터 생성권</DialogTitle>
-            <DialogText>사진 기반 캐릭터 생성권을 결제하면 캐릭터 컬렉션에서 사용할 수 있어요.</DialogText>
+            <DialogText>
+              사진 기반 캐릭터 생성권을 결제하면 캐릭터 컬렉션에서 사용할 수 있어요. {getAiCharacterNoEditMessage()}.
+            </DialogText>
             <PaymentOptionList>
               {AI_CHARACTER_PAYMENT_OPTIONS.map((option) => (
                 <PaymentOptionButton
@@ -899,10 +1045,34 @@ const DialogConfirmButton = styled.button<{ $danger?: boolean }>`
 
 function getPaymentErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
-  if (message === "missing_toss_payments_client_key") return "Toss Payments 클라이언트 키가 필요해요";
+  if (message === "iap_unsupported_environment") return "인앱결제는 토스앱 또는 샌드박스앱에서만 사용할 수 있어요";
   if (message === "missing_supabase_session") return "결제를 위해 사용자 세션을 준비하지 못했어요";
-  if (message === "payment_create_failed") return "결제 준비에 실패했어요";
+  if (message === "iap_grant_failed") return "결제 지급 처리에 실패했어요";
   return "결제창을 열지 못했어요";
+}
+
+function getAiCharacterGenerationErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("missing_openai_api_key")) return "OpenAI API 키가 필요해요";
+  if (message.includes("disabled")) return "AI 캐릭터 생성이 아직 비활성화되어 있어요";
+  if (message) return message;
+  return "AI 캐릭터 생성에 실패했어요";
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("invalid_file_result"));
+    });
+    reader.addEventListener("error", () => reject(reader.error ?? new Error("file_read_failed")));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default App;

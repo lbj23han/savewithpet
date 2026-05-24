@@ -1,14 +1,16 @@
 import { Heart, LockKeyhole, MessageCircle, Send } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styled from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
 import { PetItemArt } from "../components/PetItemArt";
 import {
+  AI_CHARACTER_GENERATION_COUNT,
   AI_CHARACTER_GENERATION_PRICE_KRW,
   AI_CHARACTER_MAX_OWNED_COUNT,
   AI_CHARACTER_PACK_GENERATION_COUNT,
   AI_CHARACTER_PACK_PRICE_KRW,
+  getAiCharacterNoEditMessage,
 } from "../domain/aiCharacterPolicy";
 import { PREMIUM_BOX_PRICE } from "../domain/shop";
 import { getSnackBoostLabel } from "../domain/petCare";
@@ -29,7 +31,8 @@ type ShopPageProps = {
   coins: number;
   items: ShopItemViewModel[];
   level: number;
-  onAiCharacterCreate: () => void;
+  onAiCharacterBuy: () => void;
+  onAiCharacterGenerate: (file: File) => void;
   onCharacterAction: (petId: string) => void;
   onItemAction: (itemId: string) => void;
   onOpenPremiumBox: () => void;
@@ -47,7 +50,8 @@ export function ShopPage({
   coins,
   items,
   level,
-  onAiCharacterCreate,
+  onAiCharacterBuy,
+  onAiCharacterGenerate,
   onCharacterAction,
   onItemAction,
   onOpenPremiumBox,
@@ -60,6 +64,7 @@ export function ShopPage({
 }: ShopPageProps) {
   const [activeTab, setActiveTab] = useState<ShopTab>("wardrobe");
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const aiCharacterFileInputRef = useRef<HTMLInputElement>(null);
   const wardrobeItems = items.filter((item) => item.itemType !== "snack");
   const snackItems = items.filter((item) => item.itemType === "snack");
   const tabs: Array<{ id: ShopTab; label: string }> = [
@@ -125,15 +130,34 @@ export function ShopPage({
 
       {activeTab === "characters" && (
         <CharacterGrid>
-          <AiCharacterCard onClick={onAiCharacterCreate}>
+          <AiCharacterCard>
             <AiBadge>{AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원</AiBadge>
             <h2>AI 캐릭터 생성</h2>
             <p>
-              1회 {AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 · {AI_CHARACTER_PACK_GENERATION_COUNT}회권{" "}
+              {AI_CHARACTER_GENERATION_COUNT}회 {AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 · {AI_CHARACTER_PACK_GENERATION_COUNT}회권{" "}
               {AI_CHARACTER_PACK_PRICE_KRW.toLocaleString("ko-KR")}원 · 생성권 {aiCharacterCredits.toLocaleString("ko-KR")}개 보유 · 최대{" "}
               {AI_CHARACTER_MAX_OWNED_COUNT}개 보유
             </p>
-            <strong>{aiCharacterCredits > 0 ? `생성권 ${aiCharacterCredits.toLocaleString("ko-KR")}개 보유` : "생성권 구매"}</strong>
+            <p>{getAiCharacterNoEditMessage()}</p>
+            <AiCharacterActions>
+              <AiCharacterPrimaryButton
+                disabled={aiCharacterCredits <= 0}
+                onClick={() => aiCharacterFileInputRef.current?.click()}
+              >
+                {aiCharacterCredits > 0 ? "사진 선택해서 생성" : "생성권 없음"}
+              </AiCharacterPrimaryButton>
+              <AiCharacterSecondaryButton onClick={onAiCharacterBuy}>생성권 구매</AiCharacterSecondaryButton>
+            </AiCharacterActions>
+            <HiddenFileInput
+              ref={aiCharacterFileInputRef}
+              accept="image/png,image/jpeg,image/webp"
+              type="file"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file) onAiCharacterGenerate(file);
+              }}
+            />
           </AiCharacterCard>
           {characters.map((character) => (
             <CharacterCard key={character.id} onClick={() => onCharacterAction(character.id)}>
@@ -347,7 +371,7 @@ const CharacterAction = styled.strong<{ $active: boolean }>`
   font-weight: 700;
 `;
 
-const AiCharacterCard = styled.button`
+const AiCharacterCard = styled.div`
   position: relative;
   display: grid;
   align-content: center;
@@ -377,14 +401,6 @@ const AiCharacterCard = styled.button`
     line-height: 1.45;
   }
 
-  strong {
-    justify-self: start;
-    padding: 5px 12px;
-    color: ${({ theme }) => theme.colors.purple};
-    background: ${({ theme }) => theme.colors.surface};
-    border-radius: ${({ theme }) => theme.radius.pill};
-    font-size: 12px;
-  }
 `;
 
 const AiBadge = styled.span`
@@ -397,6 +413,41 @@ const AiBadge = styled.span`
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 12px;
   font-weight: 800;
+`;
+
+const AiCharacterActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.xs};
+`;
+
+const AiCharacterPrimaryButton = styled.button`
+  min-height: 38px;
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.colors.purple};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 12px;
+  font-weight: 800;
+
+  &:disabled {
+    color: ${({ theme }) => theme.colors.muted};
+    background: ${({ theme }) => theme.colors.surface};
+    border: 1px solid ${({ theme }) => theme.colors.line};
+  }
+`;
+
+const AiCharacterSecondaryButton = styled.button`
+  min-height: 36px;
+  color: ${({ theme }) => theme.colors.purple};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 12px;
+  font-weight: 800;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 const ItemCard = styled.button<{ $locked: boolean }>`

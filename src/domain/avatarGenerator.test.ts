@@ -18,7 +18,7 @@ describe("avatarGenerator", () => {
     expect(pet.visualLayers).toEqual(getPresetVisualLayers(preset.id));
   });
 
-  it("keeps uploaded photos as the current single PNG source", () => {
+  it("uses uploaded photos as source references while showing a character asset", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-17T09:00:00+09:00"));
     const file = new File(["photo"], "my-pet.png", { type: "image/png" });
@@ -26,10 +26,12 @@ describe("avatarGenerator", () => {
 
     expect(pet.id).toBe("photo-1778976000000");
     expect(pet.source).toBe("photo");
+    expect(pet.name).not.toBe("사진 속 친구");
+    expect(pet.trait).toContain("캐릭터");
     expect(pet.sourcePhotoUrl).toBe("blob:local-photo");
-    expect(pet.imageUrl).toBe("blob:local-photo");
+    expect(pet.imageUrl).toContain("/assets/pets/");
     expect(pet.templateId).toBe(STANDARD_CHARACTER_TEMPLATE_ID);
-    expect(pet.visualLayers).toBeUndefined();
+    expect(pet.visualLayers?.baseBodyUrl).toContain("/assets/pets/");
   });
 
   it("creates skipped pets with the default standard-v1 preset", () => {

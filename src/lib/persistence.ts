@@ -34,14 +34,16 @@ export const defaultAppState: PersistedAppState = {
   coins: 0,
   entries: [],
   equippedItemId: null,
+  freeSnackClaimedAt: [],
   hasCompletedOnboarding: false,
   intimacy: INITIAL_INTIMACY,
   lastFedAt: new Date().toISOString(),
   monthlyBudget: 1_500_000,
   ownedCustomPets: [],
   ownedItemIds: [],
-  ownedPetIds: [createDefaultPet().id],
+  ownedPetIds: [],
   pet: createDefaultPet(),
+  petLevels: {},
   rewardEvents: [],
   snackInventory: {},
 };
@@ -63,12 +65,14 @@ export function loadAppState(): PersistedAppState {
       aiCharacterCredits: normalizePositiveInteger(parsed.aiCharacterCredits),
       communityPosts: normalizeCommunityPosts(parsed.communityPosts),
       equippedItemId: normalizeEquippedItemId(parsed.equippedItemId),
+      freeSnackClaimedAt: normalizeDateList(parsed.freeSnackClaimedAt),
       intimacy: normalizeIntimacy(parsed.intimacy),
       lastFedAt: normalizeLastFedAt(parsed.lastFedAt),
       ownedCustomPets: normalizeOwnedCustomPets(parsed.ownedCustomPets, parsed.pet),
       ownedItemIds: normalizeOwnedItemIds(parsed.ownedItemIds),
       pet: normalizePet(parsed.pet),
       ownedPetIds: normalizeOwnedPetIds(parsed.ownedPetIds, parsed.pet),
+      petLevels: normalizePetLevels(parsed.petLevels),
       snackInventory: normalizeSnackInventory(parsed.snackInventory),
     };
   } catch {
@@ -79,6 +83,14 @@ export function loadAppState(): PersistedAppState {
 function normalizePositiveInteger(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.floor(value));
+}
+
+function normalizeDateList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter(
+    (item): item is string => typeof item === "string" && !Number.isNaN(new Date(item).getTime()),
+  );
 }
 
 function normalizeEquippedItemId(itemId: unknown): PersistedAppState["equippedItemId"] {
@@ -116,6 +128,15 @@ function normalizeLastFedAt(lastFedAt: unknown): string | null {
   return Number.isNaN(new Date(lastFedAt).getTime()) ? defaultAppState.lastFedAt : lastFedAt;
 }
 
+function normalizePetLevels(petLevels: unknown): PersistedAppState["petLevels"] {
+  if (!petLevels || typeof petLevels !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(petLevels)
+      .filter(([, v]) => typeof v === "number" && Number.isFinite(v) && v >= 1)
+      .map(([k, v]) => [k, Math.floor(v as number)]),
+  );
+}
+
 function normalizeOwnedPetIds(petIds: unknown, pet: unknown): PersistedAppState["ownedPetIds"] {
   const validIds = new Set(petPresets.map((preset) => preset.id));
   const owned = new Set<string>();
@@ -129,8 +150,6 @@ function normalizeOwnedPetIds(petIds: unknown, pet: unknown): PersistedAppState[
   if (pet && typeof pet === "object" && "id" in pet && typeof pet.id === "string" && validIds.has(pet.id)) {
     owned.add(pet.id);
   }
-
-  if (owned.size === 0) owned.add(createDefaultPet().id);
 
   return Array.from(owned);
 }

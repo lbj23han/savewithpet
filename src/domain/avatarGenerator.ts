@@ -1,5 +1,5 @@
 import type { PetPreset, UserPet } from "../types/app";
-import { STANDARD_CHARACTER_TEMPLATE_ID, getPresetVisualLayers } from "./petCharacterSet";
+import { STANDARD_CHARACTER_TEMPLATE_ID, STANDARD_PRESET_CHARACTER_URL, getPresetVisualLayers } from "./petCharacterSet";
 
 const defaultPet = {
   emoji: "🐶",
@@ -10,7 +10,26 @@ const defaultPet = {
   visualLayers: getPresetVisualLayers("akkigae"),
 };
 
-const photoEmojis = ["🐶", "🐱", "🐰", "🐹"];
+const photoCharacterProfiles = [
+  {
+    keywords: ["cat", "kitten", "neko", "nyang", "고양", "냥"],
+    name: "몽글냥",
+    presetId: "ttoosseunyang",
+    trait: "사진 속 또렷한 눈빛을 귀여운 친구로 옮겼어요",
+  },
+  {
+    keywords: ["rabbit", "bunny", "tokki", "토끼", "깡총"],
+    name: "방긋토끼",
+    presetId: "kangchongmu",
+    trait: "사진 속 말랑한 분위기를 깡총한 캐릭터로 담은 친구예요",
+  },
+  {
+    keywords: ["dog", "puppy", "pupp", "강아", "개", "멍"],
+    name: "포근개",
+    presetId: "akkigae",
+    trait: "사진 속 다정한 표정을 포근하게 담은 친구예요",
+  },
+] as const;
 
 export function createPetFromPreset(preset: PetPreset): UserPet {
   return {
@@ -26,20 +45,42 @@ export function createPetFromPreset(preset: PetPreset): UserPet {
   };
 }
 
-export function createPetFromPhoto(file: File, imageUrl: string): UserPet {
-  const emoji = photoEmojis[file.name.length % photoEmojis.length];
+export function createPetFromPhoto(
+  file: File,
+  sourcePhotoUrl: string,
+  generated?: { imageUrl?: string; name?: string; trait?: string },
+): UserPet {
+  const profile = getPhotoCharacterProfile(file.name);
+  const visualLayers = getPresetVisualLayers(profile.presetId) ?? { baseBodyUrl: STANDARD_PRESET_CHARACTER_URL };
 
   return {
     id: `photo-${Date.now()}`,
-    name: "사진 속 친구",
-    trait: "사진 특징을 고퀄 PNG 캐릭터로 반영할 친구예요",
-    emoji,
-    imageUrl,
+    name: sanitizePetName(generated?.name) || profile.name,
+    trait: sanitizePetTrait(generated?.trait) || profile.trait,
+    emoji: profile.presetId === "ttoosseunyang" ? "🐱" : profile.presetId === "kangchongmu" ? "🐰" : "🐶",
+    imageUrl: generated?.imageUrl || visualLayers.baseBodyUrl,
     species: "custom",
     source: "photo",
-    sourcePhotoUrl: imageUrl,
+    sourcePhotoUrl,
     templateId: STANDARD_CHARACTER_TEMPLATE_ID,
+    visualLayers,
   };
+}
+
+function sanitizePetName(name: string | undefined): string {
+  return name?.replace(/\bPNG\b/gi, "").trim().slice(0, 12) ?? "";
+}
+
+function sanitizePetTrait(trait: string | undefined): string {
+  return trait?.replace(/\bPNG\b/gi, "").replace(/\s+/g, " ").trim().slice(0, 60) ?? "";
+}
+
+function getPhotoCharacterProfile(fileName: string): (typeof photoCharacterProfiles)[number] {
+  const lowerFileName = fileName.toLowerCase();
+  return (
+    photoCharacterProfiles.find((profile) => profile.keywords.some((keyword) => lowerFileName.includes(keyword))) ??
+    photoCharacterProfiles[fileName.length % photoCharacterProfiles.length]
+  );
 }
 
 export function createSkippedPet(): UserPet {

@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { ShopItem } from "../types/app";
-import { calculateEffectiveIntimacy, feedPet } from "./petCare";
+import {
+  FREE_SNACK_COOLDOWN_HOURS,
+  FREE_SNACK_DAILY_LIMIT,
+  calculateEffectiveIntimacy,
+  createNextFreeSnackClaims,
+  feedPet,
+  getFreeSnackClaimState,
+} from "./petCare";
 
 const carrot: ShopItem = {
   id: "carrot-snack",
@@ -33,5 +40,25 @@ describe("pet care domain", () => {
       expect(result.nextIntimacy).toBe(56);
       expect(result.nextInventory["carrot-snack"]).toBe(1);
     }
+  });
+
+  it("allows two free snack claims per day with a 12 hour cooldown", () => {
+    const first = new Date("2026-05-24T09:00:00+09:00");
+    const firstClaims = createNextFreeSnackClaims([], first);
+    expect(firstClaims).toHaveLength(1);
+
+    expect(getFreeSnackClaimState(firstClaims, new Date("2026-05-24T10:00:00+09:00"))).toMatchObject({
+      canClaim: false,
+      claimedToday: 1,
+    });
+
+    const second = new Date(first.getTime() + FREE_SNACK_COOLDOWN_HOURS * 60 * 60 * 1000);
+    expect(getFreeSnackClaimState(firstClaims, second).canClaim).toBe(true);
+
+    const secondClaims = createNextFreeSnackClaims(firstClaims, second);
+    expect(getFreeSnackClaimState(secondClaims, new Date("2026-05-24T22:00:00+09:00"))).toMatchObject({
+      canClaim: false,
+      claimedToday: FREE_SNACK_DAILY_LIMIT,
+    });
   });
 });

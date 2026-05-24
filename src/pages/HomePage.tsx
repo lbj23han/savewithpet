@@ -1,4 +1,4 @@
-import { Calendar, Check, Cookie, Pencil, PlusCircle, Shirt, Store, X } from "lucide-react";
+import { Calendar, Check, Cookie, Gift, Pencil, PlusCircle, Shirt, Store, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -23,11 +23,17 @@ import type {
 } from "../types/app";
 
 type HomePageProps = {
+  attendanceRewardCoins: number;
+  canClaimFreeSnack: boolean;
   categories: Category[];
   entries: LedgerEntry[];
   equippedItem?: ShopItemViewModel;
+  freeSnackClaimLabel: string;
+  hasClaimedAttendance: boolean;
   monthlyBudget: number;
   intimacy: number;
+  onClaimAttendance: () => void;
+  onClaimFreeSnack: () => void;
   onRecord: () => void;
   onEquipItem: (itemId: string) => void;
   onFeedSnack: (itemId: string) => boolean;
@@ -43,11 +49,17 @@ type HomePageProps = {
 };
 
 export function HomePage({
+  attendanceRewardCoins,
+  canClaimFreeSnack,
   categories,
   entries,
   equippedItem,
+  freeSnackClaimLabel,
+  hasClaimedAttendance,
   intimacy,
   monthlyBudget,
+  onClaimAttendance,
+  onClaimFreeSnack,
   onEquipItem,
   onFeedSnack,
   onOpenShop,
@@ -219,6 +231,11 @@ export function HomePage({
         </TodayReward>
       </Panel>
 
+      <AttendanceButton disabled={hasClaimedAttendance} onClick={onClaimAttendance}>
+        <Gift size={19} />
+        <span>{hasClaimedAttendance ? "오늘 출석 완료" : `출석체크 +${attendanceRewardCoins}코인`}</span>
+      </AttendanceButton>
+
       <PrimaryButton onClick={onRecord}>
         <PlusCircle size={20} />
         지금 기록하기
@@ -273,12 +290,17 @@ export function HomePage({
           <SheetHeader>
             <div>
               <h2>간식주기</h2>
-              <span>간식은 한 번 주면 1개씩 줄어들어요</span>
+              <span>무료 간식은 접속해서 직접 받아야 해요</span>
             </div>
             <button aria-label="간식 트레이 닫기" onClick={() => setIsSnackTrayOpen(false)}>
               <X size={20} />
             </button>
           </SheetHeader>
+          <FreeSnackButton disabled={!canClaimFreeSnack} onClick={onClaimFreeSnack}>
+            <Cookie size={18} />
+            <strong>{canClaimFreeSnack ? "무료 간식 받기" : "무료 간식 대기"}</strong>
+            <span>{freeSnackClaimLabel}</span>
+          </FreeSnackButton>
           <WardrobeGrid>
             {snackItems.length === 0 ? (
               <EmptyState icon="🍪" message="간식이 아직 없어요" sub="상점에서 간식을 준비해보세요" />
@@ -556,6 +578,40 @@ const ShareButton = styled.button`
   font-weight: 700;
 `;
 
+const FreeSnackButton = styled.button`
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: 2px ${({ theme }) => theme.spacing.sm};
+  min-height: 58px;
+  padding: ${({ theme }) => theme.spacing.md};
+  text-align: left;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.lg};
+
+  svg {
+    grid-row: span 2;
+  }
+
+  strong {
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  &:disabled {
+    color: ${({ theme }) => theme.colors.muted};
+    background: ${({ theme }) => theme.colors.surface};
+  }
+`;
+
 const QuickActions = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -666,6 +722,34 @@ const TodayReward = styled.div`
     color: ${({ theme }) => theme.colors.muted};
     font-size: 13px;
     font-weight: 500;
+  }
+`;
+
+const AttendanceButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  width: 100%;
+  min-height: 50px;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.md};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+  font-size: 15px;
+  font-weight: 800;
+
+  svg {
+    flex: 0 0 auto;
+  }
+
+  &:disabled {
+    color: ${({ theme }) => theme.colors.muted};
+    background: ${({ theme }) => theme.colors.surface};
+    border-color: ${({ theme }) => theme.colors.line};
+    box-shadow: none;
+    cursor: default;
   }
 `;
 

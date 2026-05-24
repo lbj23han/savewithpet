@@ -4,10 +4,11 @@
 
 ## Price
 
-- 1회 생성: 330원
+- 2회 생성권: 550원
 - 5회권: 1,100원
 - 사용자 1명당 AI 생성 캐릭터 최대 보유 수: 5개
 - 5개를 모두 보유 중이면 새 생성 전에 캐릭터 컬렉션에서 1개 삭제
+- 생성 결과는 수정할 수 없고, 마음에 들지 않으면 컬렉션에서 삭제 후 생성권으로 다시 생성
 - 결제 성공 후에만 생성 job 생성
 - 실패/환불 정책은 결제 SDK 연결 시 확정
 
@@ -16,10 +17,11 @@
 ```text
 사용자 사진 선택
 -> 사진 업로드: Supabase Storage `pet-photos/{userId}/...`
--> 결제 생성: purchases(product_type = ai_character, price_krw = 330)
+-> 결제 생성: purchases(product_type = ai_character, price_krw = 550)
    또는 5회권 purchases(product_type = ai_character_pack, price_krw = 1100)
 -> 결제 성공 확인
 -> 현재 AI 생성 캐릭터 보유 수 5개 미만 확인
+-> 생성 후 수정 불가/삭제 후 재생성 안내 확인
 -> ai_character_jobs row 생성
 -> 사진 검수
 -> OpenAI image generation
@@ -48,8 +50,8 @@
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-VITE_TOSS_PAYMENTS_CLIENT_KEY=
-TOSS_PAYMENTS_SECRET_KEY=
+VITE_IAP_AI_CHARACTER_SKU=
+VITE_IAP_AI_CHARACTER_PACK_SKU=
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 AI_CHARACTER_GENERATION_ENABLED=false
@@ -58,8 +60,7 @@ AI_CHARACTER_GENERATION_ENABLED=false
 ## Payment Implementation
 
 - Client: `src/lib/tossPayments.ts`
-- Create order: `api/payments/create.js`
-- Confirm payment: `api/payments/confirm.js`
-- Purchase rows are stored as `pending` before the Toss payment window opens.
-- Only the server confirm API calls Toss Payments with `TOSS_PAYMENTS_SECRET_KEY`.
-- On successful confirm, `profiles.ai_character_credits` is incremented by the purchased credit count.
+- Grant order: `api/iap/grant.js`
+- Purchase rows are stored as `paid` after Apps in Toss IAP calls `processProductGrant`.
+- The server grant API updates `profiles.ai_character_credits` after receiving `orderId` and `sku`.
+- On successful grant, the client also increments local `aiCharacterCredits` so the UI reflects the purchase immediately.

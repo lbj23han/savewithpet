@@ -22,8 +22,9 @@
 - AI 캐릭터 생성도 최종 산출물을 single PNG로 저장하는 방향을 우선한다.
 - 상점은 `옷장`, `간식`, `캐릭터 상점` 3탭으로 운영한다.
 - 기본 3종 캐릭터는 첫 선택 1종만 무료 제공하고, 나머지는 캐릭터 상점에서 200코인으로 구매한다.
-- AI 캐릭터 생성은 결제 연동 후 1회 330원, 5회권 1,100원 프리미엄 상품으로 운영한다.
+- AI 캐릭터 생성은 결제 연동 후 2회 550원, 5회권 1,100원 프리미엄 상품으로 운영한다.
 - 사용자 1명당 AI 생성 캐릭터는 최대 5개까지 보유할 수 있고, 추가 생성 전에는 컬렉션에서 1개를 삭제해야 한다.
+- AI 생성 결과는 수정할 수 없고, 마음에 들지 않으면 컬렉션에서 삭제 후 생성권으로 다시 생성한다.
 - 프리미엄 상자는 10,000코인 상품으로 두되, 기간 한정 판매 아이템 풀이 준비될 때까지 열 수 없게 막아둔다.
 
 ## Tech Stack
@@ -67,13 +68,16 @@ npm run build
 로컬 연결값은 `.env.local`에 둡니다.
 
 ```bash
+VITE_API_BASE=
+VITE_AUTH_ENABLED=true
 VITE_SUPABASE_URL=https://xiyrggeyckhmxpkesswj.supabase.co
 VITE_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 VITE_AD_BANNER_UNIT_ID=
 VITE_AD_REWARD_UNIT_ID=
 VITE_TOSS_LOGIN_CLIENT_ID=
-VITE_TOSS_PAYMENTS_CLIENT_KEY=
+VITE_IAP_AI_CHARACTER_SKU=
+VITE_IAP_AI_CHARACTER_PACK_SKU=
 ```
 
 `VITE_SUPABASE_ANON_KEY`를 채우기 전에는 앱이 기존 localStorage 모드로 동작합니다. 값을 채우면 앱이 Supabase anonymous auth 세션을 만들고 `profiles`, `pets`, `ledger_entries`, `reward_events`, `user_owned_items` 등에 로컬 상태를 자동 저장합니다.
@@ -88,8 +92,14 @@ Supabase dashboard에서 Anonymous sign-ins를 활성화해야 자동 세션 생
 서버 전용 AI 생성 값은 프론트에 노출하지 않습니다.
 
 ```bash
+TOSS_DECRYPT_KEY=
+TOSS_DECRYPT_AAD=TOSS
+# Optional: OAuth code exchange 방식으로 Toss Login을 붙일 때만 사용
 TOSS_LOGIN_CLIENT_SECRET=
-TOSS_PAYMENTS_SECRET_KEY=
+TOSS_MTLS_CERT_BASE64=
+TOSS_MTLS_KEY_BASE64=
+MTLS_CERT_PATH=server/certs/savewithpet_public.crt
+MTLS_KEY_PATH=server/certs/savewithpet_private.key
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 AI_CHARACTER_GENERATION_ENABLED=false
@@ -174,10 +184,9 @@ Onboarding
 - `src/lib/cloudPersistence.ts`: Supabase 자동 저장 동기화
 - `src/lib/supabase.ts`: Supabase client/anonymous auth
 - `src/lib/tossLogin.ts`: Toss Login client id/stub
-- `src/lib/tossPayments.ts`: Toss Payments SDK 로딩, 결제 요청/승인 클라이언트
+- `src/lib/tossPayments.ts`: Apps in Toss IAP 결제 요청, 미지급 주문 복구
 - `src/mocks/appData.ts`: 프리셋, 카테고리, 상점 아이템
-- `api/payments/create.js`: 결제 주문 생성과 pending purchase 저장
-- `api/payments/confirm.js`: Toss Payments 승인 API 호출과 AI 생성권 충전
+- `api/iap/grant.js`: Apps in Toss IAP 주문 지급과 AI 생성권 충전
 
 ## Character Asset Contract
 
@@ -301,8 +310,9 @@ backdrop item layer
 
 - 첫 온보딩에서 고른 기본 캐릭터 1종은 무료입니다.
 - 나머지 기본 캐릭터는 각 200코인으로 구매합니다.
-- AI 캐릭터 생성은 1회 330원, 5회권 1,100원 결제 상품으로 운영 예정입니다.
+- AI 캐릭터 생성은 2회 550원, 5회권 1,100원 결제 상품으로 운영 예정입니다.
 - AI 생성 캐릭터는 사용자 1명당 최대 5개까지 보유할 수 있으며, 추가 생성 전에는 캐릭터 컬렉션에서 하나를 삭제해야 합니다.
+- AI 생성 캐릭터는 생성 후 수정할 수 없으며, 결과가 마음에 들지 않으면 삭제 후 다시 생성해야 합니다.
 - 프리미엄 상자는 10,000코인이며, 기간 한정 판매 상품 풀을 따로 만든 뒤 랜덤 보상으로 연결합니다.
 - 프리미엄 상자는 현재 코드에서 비활성화되어 있습니다.
 
@@ -320,6 +330,7 @@ backdrop item layer
 - ownedPetIds
 - ownedCustomPets
 - pet
+- petLevels (캐릭터 ID별 독립 레벨)
 - communityPosts
 - rewardEvents
 
@@ -328,6 +339,57 @@ backdrop item layer
 - `templateId`
 - `visualLayers`
 - `sourcePhotoUrl`
+
+## Next Actions (출시 순서)
+
+P0 잔여 항목을 우선순위 순으로 정리한 실행 리스트입니다.
+
+### 1. 캐릭터 PNG 확정 (선행 조건)
+
+아끼개/또쓰냥/깡총무 3종의 `public/assets/pets/*.png`를 출시 품질로 확정해야 그 다음 QA가 의미 있습니다.
+
+- 배경 제거, 여백 균형, 해상도(권장 1024px), 파스텔 톤 통일 확인
+- `public/interaction-preview.html`에서 3종 x 비접촉형 아이템 6개 착용이 자연스러운지 육안 검수
+- 상태 이펙트(하트/땀/분노/반짝임)가 캐릭터 얼굴을 과하게 가리지 않는지 확인
+
+### 2. 핵심 루프 실기기 QA
+
+실기기(iPhone) + Toss WebView 환경에서 직접 돌려야 합니다. 에뮬레이터나 로컬 브라우저로는 대체 불가.
+
+- 온보딩 → 홈 → 장부 기록 → 코인 획득 → 상점 → 설정 → 초기화 → 재온보딩
+- 초기화 후 이전 캐릭터가 남지 않는지 확인 (방금 수정한 버그)
+- 캐릭터별 Lv. 표시, 장부 기록 시 레벨 증가 확인
+- localStorage 저장/복원, 앱 재시작 후 상태 유지 확인
+
+### 3. Apps in Toss IAP 실결제 테스트
+
+현재 결제 API는 연결됐지만 실 결제 테스트가 없습니다.
+
+- `VITE_IAP_AI_CHARACTER_SKU`, `VITE_IAP_AI_CHARACTER_PACK_SKU` 실 값 세팅
+- 2회 생성권(550원), 5회권(1,100원) 결제 완료 후 `aiCharacterCredits` 충전 확인
+- 결제 실패/취소 시 토스트 메시지 동작 확인
+- mTLS 인증서(`TOSS_MTLS_CERT_BASE64` / `TOSS_MTLS_KEY_BASE64`) 배포 환경에서 유효한지 확인
+
+### 4. AI 캐릭터 생성 파이프라인 연결
+
+`AI_CHARACTER_GENERATION_ENABLED=false` → `true` 로 전환하기 위한 조건:
+
+- `api/ai-character.js` 에서 사진 → OpenAI 생성 → imageUrl 반환 흐름 실 테스트
+- 생성 실패 시 재시도 정책, 과금 취소 처리 확정
+- 생성된 이미지를 Supabase Storage 또는 외부 URL에 저장하는 구조 결정
+
+### 5. Supabase 실 환경 검증
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 실 값으로 anonymous auth 세션 생성 확인
+- `cloudPersistence.ts`의 자동 동기화(profiles/pets/ledger_entries 등) 실 DB 저장 확인
+- `supabase/initial-schema.sql` 실행 후 RLS 정책이 앱에서 정상 동작하는지 확인
+
+### 6. Toss WebView build/deploy 확인
+
+- `npm run build` 후 AIT 배포 환경에서 실제 앱 진입 확인
+- 배포 환경 변수(Vercel 또는 AIT) 전체 세팅 확인
+
+---
 
 ## Release Priority
 
@@ -392,7 +454,8 @@ backdrop item layer
 - [ ] 생성 실패/재시도/과금 정책 확정
 - [ ] 생성 결과 저장 구조: `imageUrl`, `sourcePhotoUrl`, `templateId` 보존
 - [x] 기본 캐릭터 컬렉션 구조 추가: 첫 선택 무료, 나머지 200코인
-- [x] AI 캐릭터 생성 330원/5회권 1,100원 상품 정책 반영
+- [x] AI 캐릭터 생성 2회 550원/5회권 1,100원 상품 정책 반영
+- [x] AI 캐릭터 생성 후 수정 불가 안내 추가 (다이얼로그 + 온보딩)
 
 ### P0: 출시 필수
 
@@ -401,13 +464,17 @@ backdrop item layer
 - [x] Supabase 초기 schema/query 준비: `supabase/initial-schema.sql`
 - [ ] 상태 이펙트 QA: normal, happy, sweat, angry, small, large
 - [x] 사진 기반 생성용 로컬 계약 단순화: `imageUrl`, `sourcePhotoUrl`, `templateId`
-- [ ] 사진 기반 single PNG 생성 테스트
+- [ ] 사진 기반 single PNG 생성 테스트 (`AI_CHARACTER_GENERATION_ENABLED=true` 후 검증)
 - [ ] 온보딩, 홈, 장부, 분석, 상점, 설정 핵심 루프 실기기 QA
+- [ ] Apps in Toss IAP 실결제 테스트: 2회권/5회권 결제 → 크레딧 충전 확인
+- [ ] Supabase anonymous auth + cloudPersistence 실 환경 검증
 - [ ] localStorage 마이그레이션과 fallback 점검
 - [ ] 사진 기반 생성 과금/실패/재시도 정책 확정
 - [x] 상점 탭 구조 변경: 옷장, 간식, 캐릭터 상점
 - [x] 간식 3종, 홈 간식주기, 소모형 재고, 친밀도 기본/감소 정책 추가
 - [x] 프리미엄 상자 10,000코인으로 변경 및 오픈 비활성화
+- [x] 초기화 후 이전 프리셋 캐릭터 잔존 버그 수정 (`ownedPetIds` 온보딩 완료 시 교체)
+- [x] 캐릭터별 독립 레벨 시스템: `petLevels` 저장, 장부 기록 시 +1, 설정 컬렉션에 `Lv.` 표시
 - [ ] Toss WebView 실제 환경에서 build/deploy 확인
 
 ### P1: 출시 전 품질
@@ -436,12 +503,13 @@ backdrop item layer
 
 ## Current MVP Features
 
-- 온보딩: 프리셋 선택, 사진 업로드 진입점
+- 온보딩: 프리셋 선택(첫 1종 무료), 사진 업로드 진입점
 - 홈: 캐릭터 상태, 오늘 요약, 기록 CTA
 - 장부: 지출/수입/저축 기록, 카테고리, 메모, 수정/삭제
 - 분석: 월간 소비 분석, 카테고리별 요약, 예산 상태
-- 상점: 옷장/간식/캐릭터 상점, 비접촉형 꾸미기 아이템 구매, 프리미엄 상자 비활성 상태
-- 설정: 예산/데이터 관리, 보유 캐릭터 전환
+- 상점: 옷장/간식/캐릭터 상점, 비접촉형 꾸미기 아이템 구매, AI 생성권 결제(2회 550원/5회 1,100원), 프리미엄 상자 비활성
+- 설정: 예산/데이터 관리, 캐릭터 컬렉션(이름 옆 `Lv.` 표시), 전환
+- 캐릭터 레벨: 캐릭터별 독립 레벨, 장부 기록 시 현재 캐릭터 +1, 최대 Lv.99
 - 커뮤니티 MVP: `우리 애 좀 보세요` 게시판, 좋아요, 댓글
 - 품질: 타입체크, 린트, 도메인 단위 테스트, AIT build
 
@@ -457,8 +525,11 @@ OPENAI_IMAGE_MODEL=gpt-image-1.5
 OPENAI_IMAGE_SIZE=1024x1024
 OPENAI_IMAGE_QUALITY=low
 OPENAI_IMAGE_BACKGROUND=transparent
-OPENAI_IMAGE_MAX_ATTEMPTS=2
+OPENAI_IMAGE_MAX_ATTEMPTS=3
+STANDARD_CANDIDATES_PER_ATTEMPT=3
 ```
+
+생성 스크립트는 시도당 `STANDARD_CANDIDATES_PER_ATTEMPT`장을 병렬 생성해서 QA 점수가 가장 높은 후보를 선택합니다. 실패 시 어떤 region이 얼마나 drift 났는지 다음 시도 프롬프트에 자동 주입합니다.
 
 ## Repository
 

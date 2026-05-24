@@ -38,6 +38,7 @@ async function upsertProfile(userId: string, state: PersistedAppState): Promise<
     {
       ai_character_credits: state.aiCharacterCredits,
       coins: state.coins,
+      free_snack_claimed_at: state.freeSnackClaimedAt,
       has_completed_onboarding: state.hasCompletedOnboarding,
       id: userId,
       intimacy: state.intimacy,
