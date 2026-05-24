@@ -1,4 +1,4 @@
-import { ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronRight, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -15,6 +15,7 @@ type SettingsPageProps = {
   ownedPetIds: string[];
   pet: UserPet;
   stats: AppStats;
+  onDeleteCustomPet: (petId: string) => void;
   onResetData: () => void;
   onSelectPet: (petId: string) => void;
   onUpdateBudget: (budget: number) => void;
@@ -30,6 +31,7 @@ export function SettingsPage({
   ownedPetIds,
   pet,
   stats,
+  onDeleteCustomPet,
   onResetData,
   onSelectPet,
   onUpdateBudget,
@@ -107,7 +109,7 @@ export function SettingsPage({
       </Panel>
 
       <Panel>
-        <SectionLabel>보유 캐릭터</SectionLabel>
+        <SectionLabel>캐릭터 컬렉션 · AI {ownedCustomPets.length}/5</SectionLabel>
         <OwnedPetGrid>
           {petPresets
             .filter((preset) => ownedPetIds.includes(preset.id))
@@ -118,10 +120,15 @@ export function SettingsPage({
               </OwnedPetButton>
             ))}
           {ownedCustomPets.map((customPet) => (
-            <OwnedPetButton key={customPet.id} $active={pet.id === customPet.id} onClick={() => onSelectPet(customPet.id)}>
-              {customPet.imageUrl ? <OwnedPetImage src={customPet.imageUrl} alt={customPet.name} /> : customPet.emoji}
-              <span>{customPet.name}</span>
-            </OwnedPetButton>
+            <OwnedCustomPetCard key={customPet.id}>
+              <OwnedPetButton $active={pet.id === customPet.id} onClick={() => onSelectPet(customPet.id)}>
+                {customPet.imageUrl ? <OwnedPetImage src={customPet.imageUrl} alt={customPet.name} /> : customPet.emoji}
+                <span>{customPet.name}</span>
+              </OwnedPetButton>
+              <DeletePetButton aria-label={`${customPet.name} 삭제`} onClick={() => onDeleteCustomPet(customPet.id)}>
+                <Trash2 size={14} />
+              </DeletePetButton>
+            </OwnedCustomPetCard>
           ))}
         </OwnedPetGrid>
       </Panel>
@@ -277,6 +284,11 @@ const OwnedPetGrid = styled.div`
   gap: ${({ theme }) => theme.spacing.sm};
 `;
 
+const OwnedCustomPetCard = styled.div`
+  position: relative;
+  display: grid;
+`;
+
 const OwnedPetButton = styled.button<{ $active: boolean }>`
   display: grid;
   justify-items: center;
@@ -292,6 +304,20 @@ const OwnedPetButton = styled.button<{ $active: boolean }>`
     font-size: 12px;
     font-weight: 700;
   }
+`;
+
+const DeletePetButton = styled.button`
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.red};
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: 50%;
 `;
 
 const OwnedPetImage = styled.img`

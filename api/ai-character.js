@@ -1,4 +1,7 @@
-const AI_GENERATION_PRICE_KRW = 100;
+const AI_GENERATION_PRICE_KRW = 330;
+const AI_GENERATION_PACK_PRICE_KRW = 1100;
+const AI_GENERATION_PACK_COUNT = 5;
+const AI_GENERATION_MAX_OWNED_COUNT = 5;
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {
@@ -11,6 +14,9 @@ export default async function handler(request, response) {
     response.status(503).json({
       error: "ai_character_generation_disabled",
       message: "AI character generation is wired but disabled until payment and photo review are approved.",
+      maxOwnedCount: AI_GENERATION_MAX_OWNED_COUNT,
+      packCount: AI_GENERATION_PACK_COUNT,
+      packPriceKrw: AI_GENERATION_PACK_PRICE_KRW,
       priceKrw: AI_GENERATION_PRICE_KRW,
     });
     return;
@@ -24,6 +30,9 @@ export default async function handler(request, response) {
   response.status(501).json({
     error: "not_implemented",
     message: "Connect paid payment verification, photo review, then call the image generation pipeline here.",
+    maxOwnedCount: AI_GENERATION_MAX_OWNED_COUNT,
+    packCount: AI_GENERATION_PACK_COUNT,
+    packPriceKrw: AI_GENERATION_PACK_PRICE_KRW,
     priceKrw: AI_GENERATION_PRICE_KRW,
   });
 }

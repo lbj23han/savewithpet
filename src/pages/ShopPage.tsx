@@ -4,7 +4,12 @@ import styled from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
 import { PetItemArt } from "../components/PetItemArt";
-import { AI_CHARACTER_GENERATION_PRICE_KRW } from "../domain/aiCharacterPolicy";
+import {
+  AI_CHARACTER_GENERATION_PRICE_KRW,
+  AI_CHARACTER_MAX_OWNED_COUNT,
+  AI_CHARACTER_PACK_GENERATION_COUNT,
+  AI_CHARACTER_PACK_PRICE_KRW,
+} from "../domain/aiCharacterPolicy";
 import { PREMIUM_BOX_PRICE } from "../domain/shop";
 import { getSnackBoostLabel } from "../domain/petCare";
 import type { CommunityPost, PetPreset, ShopItemState, ShopItemViewModel } from "../types/app";
@@ -119,7 +124,10 @@ export function ShopPage({
           <AiCharacterCard onClick={onAiCharacterCreate}>
             <AiBadge>{AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원</AiBadge>
             <h2>AI 캐릭터 생성</h2>
-            <p>사진 기반 프리미엄 캐릭터를 생성하고 컬렉션에 추가해요.</p>
+            <p>
+              1회 {AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 · {AI_CHARACTER_PACK_GENERATION_COUNT}회권{" "}
+              {AI_CHARACTER_PACK_PRICE_KRW.toLocaleString("ko-KR")}원 · 최대 {AI_CHARACTER_MAX_OWNED_COUNT}개 보유
+            </p>
             <strong>결제 연동 예정</strong>
           </AiCharacterCard>
           {characters.map((character) => (

@@ -6,6 +6,7 @@ Toss Login은 최종 Toss/AIT 연동 시 붙입니다. 현재는 Supabase anonym
 
 ```bash
 VITE_TOSS_LOGIN_CLIENT_ID=
+TOSS_LOGIN_CLIENT_SECRET=
 ```
 
 ## Flow

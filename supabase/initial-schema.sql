@@ -19,6 +19,7 @@ create table if not exists public.profiles (
   toss_user_key text unique,
   display_name text,
   coins integer not null default 0 check (coins >= 0),
+  ai_character_credits integer not null default 0 check (ai_character_credits >= 0),
   intimacy integer not null default 50 check (intimacy >= 0 and intimacy <= 100),
   last_fed_at timestamptz,
   monthly_budget integer not null default 1500000 check (monthly_budget >= 0),
@@ -30,6 +31,7 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles add column if not exists intimacy integer not null default 50 check (intimacy >= 0 and intimacy <= 100);
+alter table public.profiles add column if not exists ai_character_credits integer not null default 0 check (ai_character_credits >= 0);
 alter table public.profiles add column if not exists last_fed_at timestamptz;
 alter table public.profiles add column if not exists toss_login_linked_at timestamptz;
 
@@ -213,7 +215,7 @@ create unique index if not exists reward_events_user_client_id_idx on public.rew
 create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-  product_type text not null check (product_type in ('ai_character', 'premium_box', 'coin_item', 'character_coin')),
+  product_type text not null check (product_type in ('ai_character', 'ai_character_pack', 'premium_box', 'coin_item', 'character_coin')),
   product_id text,
   price_coins integer not null default 0 check (price_coins >= 0),
   price_krw integer not null default 0 check (price_krw >= 0),

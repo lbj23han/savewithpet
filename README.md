@@ -22,7 +22,8 @@
 - AI 캐릭터 생성도 최종 산출물을 single PNG로 저장하는 방향을 우선한다.
 - 상점은 `옷장`, `간식`, `캐릭터 상점` 3탭으로 운영한다.
 - 기본 3종 캐릭터는 첫 선택 1종만 무료 제공하고, 나머지는 캐릭터 상점에서 200코인으로 구매한다.
-- AI 캐릭터 생성은 결제 연동 후 생성 1회당 100원 프리미엄 상품으로 운영한다.
+- AI 캐릭터 생성은 결제 연동 후 1회 330원, 5회권 1,100원 프리미엄 상품으로 운영한다.
+- 사용자 1명당 AI 생성 캐릭터는 최대 5개까지 보유할 수 있고, 추가 생성 전에는 컬렉션에서 1개를 삭제해야 한다.
 - 프리미엄 상자는 10,000코인 상품으로 두되, 기간 한정 판매 아이템 풀이 준비될 때까지 열 수 없게 막아둔다.
 
 ## Tech Stack
@@ -71,6 +72,7 @@ VITE_SUPABASE_ANON_KEY=
 VITE_AD_BANNER_UNIT_ID=
 VITE_AD_REWARD_UNIT_ID=
 VITE_TOSS_LOGIN_CLIENT_ID=
+VITE_TOSS_PAYMENTS_CLIENT_KEY=
 ```
 
 `VITE_SUPABASE_ANON_KEY`를 채우기 전에는 앱이 기존 localStorage 모드로 동작합니다. 값을 채우면 앱이 Supabase anonymous auth 세션을 만들고 `profiles`, `pets`, `ledger_entries`, `reward_events`, `user_owned_items` 등에 로컬 상태를 자동 저장합니다.
@@ -85,6 +87,8 @@ Supabase dashboard에서 Anonymous sign-ins를 활성화해야 자동 세션 생
 서버 전용 AI 생성 값은 프론트에 노출하지 않습니다.
 
 ```bash
+TOSS_LOGIN_CLIENT_SECRET=
+TOSS_PAYMENTS_SECRET_KEY=
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 AI_CHARACTER_GENERATION_ENABLED=false
@@ -293,7 +297,8 @@ backdrop item layer
 
 - 첫 온보딩에서 고른 기본 캐릭터 1종은 무료입니다.
 - 나머지 기본 캐릭터는 각 200코인으로 구매합니다.
-- AI 캐릭터 생성은 생성 1회당 100원 결제 상품으로 운영 예정입니다.
+- AI 캐릭터 생성은 1회 330원, 5회권 1,100원 결제 상품으로 운영 예정입니다.
+- AI 생성 캐릭터는 사용자 1명당 최대 5개까지 보유할 수 있으며, 추가 생성 전에는 캐릭터 컬렉션에서 하나를 삭제해야 합니다.
 - 프리미엄 상자는 10,000코인이며, 기간 한정 판매 상품 풀을 따로 만든 뒤 랜덤 보상으로 연결합니다.
 - 프리미엄 상자는 현재 코드에서 비활성화되어 있습니다.
 
@@ -383,7 +388,7 @@ backdrop item layer
 - [ ] 생성 실패/재시도/과금 정책 확정
 - [ ] 생성 결과 저장 구조: `imageUrl`, `sourcePhotoUrl`, `templateId` 보존
 - [x] 기본 캐릭터 컬렉션 구조 추가: 첫 선택 무료, 나머지 200코인
-- [x] AI 캐릭터 생성 100원 상품 진입점 추가
+- [x] AI 캐릭터 생성 330원/5회권 1,100원 상품 정책 반영
 
 ### P0: 출시 필수
 

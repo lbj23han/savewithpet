@@ -4,7 +4,10 @@
 
 ## Price
 
-- 1회 생성: 100원
+- 1회 생성: 330원
+- 5회권: 1,100원
+- 사용자 1명당 AI 생성 캐릭터 최대 보유 수: 5개
+- 5개를 모두 보유 중이면 새 생성 전에 캐릭터 컬렉션에서 1개 삭제
 - 결제 성공 후에만 생성 job 생성
 - 실패/환불 정책은 결제 SDK 연결 시 확정
 
@@ -13,14 +16,16 @@
 ```text
 사용자 사진 선택
 -> 사진 업로드: Supabase Storage `pet-photos/{userId}/...`
--> 결제 생성: purchases(product_type = ai_character, price_krw = 100)
+-> 결제 생성: purchases(product_type = ai_character, price_krw = 330)
+   또는 5회권 purchases(product_type = ai_character_pack, price_krw = 1100)
 -> 결제 성공 확인
+-> 현재 AI 생성 캐릭터 보유 수 5개 미만 확인
 -> ai_character_jobs row 생성
 -> 사진 검수
 -> OpenAI image generation
 -> 결과 PNG 저장: Supabase Storage `pet-characters/{userId}/...`
 -> pets row 생성(source = photo)
--> active_pet_id 전환 또는 컬렉션에 추가
+-> 캐릭터 컬렉션에 추가
 ```
 
 ## OpenAI Call Boundary

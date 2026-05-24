@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
 import { createPetFromPreset } from "./domain/avatarGenerator";
-import { AI_CHARACTER_GENERATION_PRICE_KRW, getAiCharacterDisabledMessage } from "./domain/aiCharacterPolicy";
+import {
+  AI_CHARACTER_GENERATION_PRICE_KRW,
+  AI_CHARACTER_MAX_OWNED_COUNT,
+  getAiCharacterDisabledMessage,
+  getAiCharacterLimitMessage,
+} from "./domain/aiCharacterPolicy";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
 import { calculateEffectiveIntimacy, feedPet } from "./domain/petCare";
 import { createEntryReward } from "./domain/rewards";
@@ -300,6 +305,12 @@ function App() {
   };
 
   const openAiCharacterCreation = () => {
+    if (appState.ownedCustomPets.length >= AI_CHARACTER_MAX_OWNED_COUNT) {
+      setToastMessage(getAiCharacterLimitMessage());
+      setPage("settings");
+      return;
+    }
+
     if (!confirmAction(`AI 캐릭터 생성은 1회 ${AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 결제 상품으로 제공될 예정이에요. 결제 화면으로 이동할까요?`)) {
       return;
     }
@@ -353,6 +364,25 @@ function App() {
   const resetLocalData = () => {
     setAppState(defaultAppState);
     setPage("onboarding");
+  };
+
+  const deleteCustomPet = (petId: string) => {
+    const customPet = appState.ownedCustomPets.find((candidate) => candidate.id === petId);
+    if (!customPet) return;
+    if (!confirmAction(`${customPet.name} 캐릭터를 삭제할까요? 삭제한 캐릭터는 되돌릴 수 없어요.`)) return;
+
+    setAppState((prev) => {
+      const nextCustomPets = prev.ownedCustomPets.filter((candidate) => candidate.id !== petId);
+      const shouldSwitchActivePet = prev.pet.id === petId;
+      const fallbackPreset = petPresets.find((preset) => prev.ownedPetIds.includes(preset.id)) ?? petPresets[0];
+
+      return {
+        ...prev,
+        ownedCustomPets: nextCustomPets,
+        pet: shouldSwitchActivePet && fallbackPreset ? createPetFromPreset(fallbackPreset) : prev.pet,
+      };
+    });
+    setToastMessage(`${customPet.name}을 삭제했어요`);
   };
 
   if (page === "onboarding") {
@@ -459,6 +489,7 @@ function App() {
           pet={appState.pet}
           ownedPetIds={ownedPetIds}
           stats={appStats}
+          onDeleteCustomPet={deleteCustomPet}
           onSelectPet={buyOrSelectCharacter}
           onResetData={resetLocalData}
           onUpdateBudget={updateBudget}
