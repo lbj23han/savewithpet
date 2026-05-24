@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 
-export type AppPage = "onboarding" | "home" | "ledger" | "analysis" | "shop" | "settings";
+export type AppPage = "login" | "onboarding" | "home" | "ledger" | "analysis" | "shop" | "settings";
 
 export type NavItem = {
-  page: Exclude<AppPage, "onboarding">;
+  page: Exclude<AppPage, "login" | "onboarding">;
   label: string;
   Icon: LucideIcon;
 };

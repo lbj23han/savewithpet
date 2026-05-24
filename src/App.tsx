@@ -34,6 +34,7 @@ import { petPresets, shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { HomePage } from "./pages/HomePage";
 import { LedgerPage } from "./pages/LedgerPage";
+import { LoginPage } from "./pages/LoginPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ShopPage } from "./pages/ShopPage";
@@ -54,7 +55,10 @@ type ConfirmDialog = {
 
 function App() {
   const [appState, setAppState] = useState<PersistedAppState>(() => loadAppState());
-  const [page, setPage] = useState<AppPage>(() => (loadAppState().hasCompletedOnboarding ? "home" : "onboarding"));
+  const [page, setPage] = useState<AppPage>(() => {
+    if (getTossLoginReady()) return "login";
+    return loadAppState().hasCompletedOnboarding ? "home" : "onboarding";
+  });
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isAiCharacterGenerating, setIsAiCharacterGenerating] = useState(false);
@@ -64,7 +68,7 @@ function App() {
   const [snackPurchaseItemId, setSnackPurchaseItemId] = useState<string | null>(null);
   const [snackPurchaseQuantity, setSnackPurchaseQuantity] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const activePage = page === "onboarding" ? "home" : page;
+  const activePage = page === "login" || page === "onboarding" ? "home" : page;
   const stats = calculateAppStats(appState.entries, appState.monthlyBudget);
   const appCoins = import.meta.env.DEV ? DEV_UNLOCKED_COINS : appState.coins;
   const appStats = import.meta.env.DEV
@@ -173,6 +177,11 @@ function App() {
         console.info("Toss login info load skipped", error);
       });
   }, []);
+
+  useEffect(() => {
+    if (page !== "login" || !tossLoginInfo) return;
+    setPage(appState.hasCompletedOnboarding ? "home" : "onboarding");
+  }, [page, tossLoginInfo, appState.hasCompletedOnboarding]);
 
   useEffect(() => {
     let removeBack: (() => void) | undefined;
@@ -689,6 +698,16 @@ function App() {
       },
     });
   };
+
+  if (page === "login") {
+    return (
+      <LoginPage
+        isRequesting={isTossLoginRequesting}
+        loginReady={getTossLoginReady()}
+        onTossLogin={handleTossLogin}
+      />
+    );
+  }
 
   if (page === "onboarding") {
     return (
