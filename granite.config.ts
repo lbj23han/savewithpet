@@ -1,7 +1,7 @@
 import { defineConfig } from "@apps-in-toss/web-framework/config";
 
 export default defineConfig({
-  appName: "nyangbi-hajimalgae",
+  appName: "savewithpet",
   brand: {
     displayName: "냥비하지말개",
     primaryColor: "#E8728C",
