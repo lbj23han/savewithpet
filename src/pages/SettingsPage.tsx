@@ -8,6 +8,7 @@ import { petPresets } from "../mocks/appData";
 import type { AppStats, LedgerEntry, UserPet } from "../types/app";
 
 type SettingsPageProps = {
+  aiCharacterCredits: number;
   coins: number;
   entries: LedgerEntry[];
   monthlyBudget: number;
@@ -24,6 +25,7 @@ type SettingsPageProps = {
 const BUDGET_PRESETS = [500_000, 800_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000];
 
 export function SettingsPage({
+  aiCharacterCredits,
   coins,
   entries,
   monthlyBudget,
@@ -37,6 +39,7 @@ export function SettingsPage({
   onUpdateBudget,
 }: SettingsPageProps) {
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget));
+  const [resetPhrase, setResetPhrase] = useState("");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const expenseEntries = entries.filter((e) => e.type === "expense");
 
@@ -76,6 +79,10 @@ export function SettingsPage({
           <StatItem>
             <StatValue>{coins.toLocaleString()}</StatValue>
             <StatLabel>보유 코인</StatLabel>
+          </StatItem>
+          <StatItem>
+            <StatValue>{aiCharacterCredits.toLocaleString()}</StatValue>
+            <StatLabel>AI 생성권</StatLabel>
           </StatItem>
         </StatsGrid>
       </Panel>
@@ -153,15 +160,32 @@ export function SettingsPage({
         {!showResetConfirm ? (
           <ResetButton onClick={() => setShowResetConfirm(true)}>
             <RotateCcw size={16} />
-            로컬 데이터 초기화
+            데이터 초기화
             <ChevronRight size={16} />
           </ResetButton>
         ) : (
           <ConfirmRow>
-            <ConfirmMessage>모든 기록이 삭제돼요. 계속할까요?</ConfirmMessage>
+            <ConfirmMessage>
+              모든 기록, 코인, 캐릭터 상태가 이 기기에서 초기화돼요. 계속하려면 아래에 <strong>초기화</strong>를 입력해주세요.
+            </ConfirmMessage>
+            <ResetConfirmInput
+              aria-label="초기화 확인 문구"
+              placeholder="초기화"
+              value={resetPhrase}
+              onChange={(event) => setResetPhrase(event.target.value)}
+            />
             <ConfirmActions>
-              <CancelBtn onClick={() => setShowResetConfirm(false)}>취소</CancelBtn>
-              <DeleteBtn onClick={onResetData}>초기화</DeleteBtn>
+              <CancelBtn
+                onClick={() => {
+                  setResetPhrase("");
+                  setShowResetConfirm(false);
+                }}
+              >
+                취소
+              </CancelBtn>
+              <DeleteBtn disabled={resetPhrase.trim() !== "초기화"} onClick={onResetData}>
+                데이터 초기화
+              </DeleteBtn>
             </ConfirmActions>
           </ConfirmRow>
         )}
@@ -436,6 +460,29 @@ const ConfirmMessage = styled.p`
   font-size: 15px;
   font-weight: 500;
   text-align: center;
+
+  strong {
+    color: ${({ theme }) => theme.colors.red};
+    font-weight: 800;
+  }
+`;
+
+const ResetConfirmInput = styled.input`
+  width: 100%;
+  min-height: 46px;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1.5px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.red};
+    outline: none;
+  }
 `;
 
 const ConfirmActions = styled.div`
@@ -461,4 +508,8 @@ const DeleteBtn = styled.button`
   color: #fff;
   font-size: 15px;
   font-weight: 600;
+
+  &:disabled {
+    opacity: 0.42;
+  }
 `;

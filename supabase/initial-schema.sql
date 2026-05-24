@@ -221,10 +221,13 @@ create table if not exists public.purchases (
   price_krw integer not null default 0 check (price_krw >= 0),
   status text not null default 'pending' check (status in ('pending', 'paid', 'failed', 'refunded')),
   provider text,
+  provider_order_id text,
   provider_payment_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.purchases add column if not exists provider_order_id text;
 
 drop trigger if exists set_purchases_updated_at on public.purchases;
 create trigger set_purchases_updated_at

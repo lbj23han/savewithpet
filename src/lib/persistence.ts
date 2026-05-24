@@ -27,6 +27,7 @@ function createDefaultPet(): UserPet {
 }
 
 export const defaultAppState: PersistedAppState = {
+  aiCharacterCredits: 0,
   categories: ledgerCategories,
   categoryBudgets: initialCategoryBudgets,
   communityPosts: [],
@@ -59,6 +60,7 @@ export function loadAppState(): PersistedAppState {
       ...parsed,
       categories: mergeCategories(parsed.categories),
       categoryBudgets: { ...initialCategoryBudgets, ...parsed.categoryBudgets },
+      aiCharacterCredits: normalizePositiveInteger(parsed.aiCharacterCredits),
       communityPosts: normalizeCommunityPosts(parsed.communityPosts),
       equippedItemId: normalizeEquippedItemId(parsed.equippedItemId),
       intimacy: normalizeIntimacy(parsed.intimacy),
@@ -72,6 +74,11 @@ export function loadAppState(): PersistedAppState {
   } catch {
     return defaultAppState;
   }
+}
+
+function normalizePositiveInteger(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.floor(value));
 }
 
 function normalizeEquippedItemId(itemId: unknown): PersistedAppState["equippedItemId"] {

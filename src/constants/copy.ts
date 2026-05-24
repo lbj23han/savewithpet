@@ -41,4 +41,7 @@ export const SHOP_COPY = {
   premiumTitle: "프리미엄 상자",
   premiumDescription: "기간 한정 판매 상품만 랜덤으로 등장할 예정이에요.",
   premiumButton: "준비중",
+  communityTitle: "우리 애 좀 보세요",
+  communityDescription: "캐릭터 자랑, 댓글, 응원을 모아두는 게시판",
+  communityButton: "우리 애 올리기",
 };

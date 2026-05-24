@@ -153,6 +153,7 @@ export type PersistedAppState = {
   categories: Category[];
   categoryBudgets: Record<string, number>;
   communityPosts: CommunityPost[];
+  aiCharacterCredits: number;
   coins: number;
   entries: LedgerEntry[];
   equippedItemId: string | null;

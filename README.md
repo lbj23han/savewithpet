@@ -69,6 +69,7 @@ npm run build
 ```bash
 VITE_SUPABASE_URL=https://xiyrggeyckhmxpkesswj.supabase.co
 VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 VITE_AD_BANNER_UNIT_ID=
 VITE_AD_REWARD_UNIT_ID=
 VITE_TOSS_LOGIN_CLIENT_ID=
@@ -173,7 +174,10 @@ Onboarding
 - `src/lib/cloudPersistence.ts`: Supabase 자동 저장 동기화
 - `src/lib/supabase.ts`: Supabase client/anonymous auth
 - `src/lib/tossLogin.ts`: Toss Login client id/stub
+- `src/lib/tossPayments.ts`: Toss Payments SDK 로딩, 결제 요청/승인 클라이언트
 - `src/mocks/appData.ts`: 프리셋, 카테고리, 상점 아이템
+- `api/payments/create.js`: 결제 주문 생성과 pending purchase 저장
+- `api/payments/confirm.js`: Toss Payments 승인 API 호출과 AI 생성권 충전
 
 ## Character Asset Contract
 
@@ -438,7 +442,7 @@ backdrop item layer
 - 분석: 월간 소비 분석, 카테고리별 요약, 예산 상태
 - 상점: 옷장/간식/캐릭터 상점, 비접촉형 꾸미기 아이템 구매, 프리미엄 상자 비활성 상태
 - 설정: 예산/데이터 관리, 보유 캐릭터 전환
-- 커뮤니티 MVP: 로컬 베스트 코디, 좋아요, 댓글
+- 커뮤니티 MVP: `우리 애 좀 보세요` 게시판, 좋아요, 댓글
 - 품질: 타입체크, 린트, 도메인 단위 테스트, AIT build
 
 ## Environment

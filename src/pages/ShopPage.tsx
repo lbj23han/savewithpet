@@ -24,6 +24,7 @@ type CharacterShopItem = PetPreset & {
 };
 
 type ShopPageProps = {
+  aiCharacterCredits: number;
   characters: CharacterShopItem[];
   coins: number;
   items: ShopItemViewModel[];
@@ -41,6 +42,7 @@ type ShopPageProps = {
 };
 
 export function ShopPage({
+  aiCharacterCredits,
   characters,
   coins,
   items,
@@ -70,7 +72,9 @@ export function ShopPage({
     <Page>
       <Hero>
         <h1>{SHOP_COPY.title}</h1>
-        <p>Lv.{level} · 보유 코인 {coins.toLocaleString("ko-KR")}개</p>
+        <p>
+          Lv.{level} · 보유 코인 {coins.toLocaleString("ko-KR")}개 · AI 생성권 {aiCharacterCredits.toLocaleString("ko-KR")}개
+        </p>
       </Hero>
 
       <Tabs>
@@ -126,9 +130,10 @@ export function ShopPage({
             <h2>AI 캐릭터 생성</h2>
             <p>
               1회 {AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 · {AI_CHARACTER_PACK_GENERATION_COUNT}회권{" "}
-              {AI_CHARACTER_PACK_PRICE_KRW.toLocaleString("ko-KR")}원 · 최대 {AI_CHARACTER_MAX_OWNED_COUNT}개 보유
+              {AI_CHARACTER_PACK_PRICE_KRW.toLocaleString("ko-KR")}원 · 생성권 {aiCharacterCredits.toLocaleString("ko-KR")}개 보유 · 최대{" "}
+              {AI_CHARACTER_MAX_OWNED_COUNT}개 보유
             </p>
-            <strong>결제 연동 예정</strong>
+            <strong>{aiCharacterCredits > 0 ? `생성권 ${aiCharacterCredits.toLocaleString("ko-KR")}개 보유` : "생성권 구매"}</strong>
           </AiCharacterCard>
           {characters.map((character) => (
             <CharacterCard key={character.id} onClick={() => onCharacterAction(character.id)}>
@@ -164,15 +169,15 @@ export function ShopPage({
       <CommunityPanel>
         <CommunityHeader>
           <div>
-            <h2>베스트 코디</h2>
-            <span>가벼운 자랑/댓글 기능 MVP</span>
+            <h2>{SHOP_COPY.communityTitle}</h2>
+            <span>{SHOP_COPY.communityDescription}</span>
           </div>
-          <button onClick={onShareOutfit}>자랑하기</button>
+          <button onClick={onShareOutfit}>{SHOP_COPY.communityButton}</button>
         </CommunityHeader>
         <PostList>
           {posts.length === 0 ? (
             <CommunityEmpty>
-              아직 자랑글이 없어요. 첫 코디를 저장해보세요.
+              아직 올라온 친구가 없어요. 첫 번째로 우리 애를 보여주세요.
             </CommunityEmpty>
           ) : (
             posts.slice(0, 3).map((post) => (

@@ -264,7 +264,7 @@ export function HomePage({
             <Store size={18} />
             상점에서 더 보기
           </ShopLink>
-          <ShareButton onClick={onShareOutfit}>오늘 모습 자랑하기</ShareButton>
+          <ShareButton onClick={onShareOutfit}>우리 애 올리기</ShareButton>
         </WardrobeSheet>
       )}
 

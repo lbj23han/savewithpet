@@ -47,7 +47,19 @@
 ```bash
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+VITE_TOSS_PAYMENTS_CLIENT_KEY=
+TOSS_PAYMENTS_SECRET_KEY=
 OPENAI_API_KEY=
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 AI_CHARACTER_GENERATION_ENABLED=false
 ```
+
+## Payment Implementation
+
+- Client: `src/lib/tossPayments.ts`
+- Create order: `api/payments/create.js`
+- Confirm payment: `api/payments/confirm.js`
+- Purchase rows are stored as `pending` before the Toss payment window opens.
+- Only the server confirm API calls Toss Payments with `TOSS_PAYMENTS_SECRET_KEY`.
+- On successful confirm, `profiles.ai_character_credits` is incremented by the purchased credit count.

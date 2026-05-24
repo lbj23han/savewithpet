@@ -36,6 +36,7 @@ async function upsertProfile(userId: string, state: PersistedAppState): Promise<
 
   const { error } = await supabase.from("profiles").upsert(
     {
+      ai_character_credits: state.aiCharacterCredits,
       coins: state.coins,
       has_completed_onboarding: state.hasCompletedOnboarding,
       id: userId,

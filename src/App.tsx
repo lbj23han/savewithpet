@@ -1,20 +1,23 @@
+import { Minus, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import styled from "styled-components";
 
 import { AppShell } from "./components/AppShell";
 import { addCommunityComment, createOutfitPost, likeCommunityPost } from "./domain/community";
 import { createPetFromPreset } from "./domain/avatarGenerator";
-import {
-  AI_CHARACTER_GENERATION_PRICE_KRW,
-  AI_CHARACTER_MAX_OWNED_COUNT,
-  getAiCharacterDisabledMessage,
-  getAiCharacterLimitMessage,
-} from "./domain/aiCharacterPolicy";
+import { AI_CHARACTER_MAX_OWNED_COUNT, getAiCharacterLimitMessage } from "./domain/aiCharacterPolicy";
 import { calculateAppStats, createLedgerEntry } from "./domain/ledger";
 import { calculateEffectiveIntimacy, feedPet } from "./domain/petCare";
 import { createEntryReward } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
 import { saveAppStateToCloud } from "./lib/cloudPersistence";
 import { defaultAppState, loadAppState, saveAppState } from "./lib/persistence";
+import {
+  AI_CHARACTER_PAYMENT_OPTIONS,
+  type AiCharacterPaymentProduct,
+  confirmAiCharacterPayment,
+  requestAiCharacterPayment,
+} from "./lib/tossPayments";
 import { petPresets, shopItems } from "./mocks/appData";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { HomePage } from "./pages/HomePage";
@@ -28,9 +31,22 @@ const DEV_UNLOCKED_COINS = 999_999;
 const DEV_UNLOCKED_LEVEL = 99;
 const BASE_CHARACTER_PRICE = 200;
 
+type ConfirmDialog = {
+  confirmLabel?: string;
+  danger?: boolean;
+  message: string;
+  onConfirm: () => void;
+  title: string;
+};
+
 function App() {
   const [appState, setAppState] = useState<PersistedAppState>(() => loadAppState());
   const [page, setPage] = useState<AppPage>(() => (loadAppState().hasCompletedOnboarding ? "home" : "onboarding"));
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [selectedAiPaymentProduct, setSelectedAiPaymentProduct] = useState<AiCharacterPaymentProduct | null>(null);
+  const [snackPurchaseItemId, setSnackPurchaseItemId] = useState<string | null>(null);
+  const [snackPurchaseQuantity, setSnackPurchaseQuantity] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const activePage = page === "onboarding" ? "home" : page;
   const stats = calculateAppStats(appState.entries, appState.monthlyBudget);
@@ -59,6 +75,14 @@ function App() {
     equippedItemId: appState.equippedItemId,
   });
   const equippedItem = shopItemViews.find((item) => item.id === appState.equippedItemId);
+  const selectedAiPaymentOption = AI_CHARACTER_PAYMENT_OPTIONS.find((option) => option.id === selectedAiPaymentProduct);
+  const snackPurchaseItem = snackItems.find((item) => item.id === snackPurchaseItemId);
+  const snackMaxQuantity = snackPurchaseItem
+    ? import.meta.env.DEV
+      ? 20
+      : Math.max(1, Math.min(20, Math.floor(appCoins / snackPurchaseItem.price)))
+    : 1;
+  const snackPurchaseTotal = snackPurchaseItem ? snackPurchaseItem.price * snackPurchaseQuantity : 0;
   const characterShopItems = petPresets.map((preset) => {
     const owned = ownedPetIds.includes(preset.id);
 
@@ -95,6 +119,38 @@ function App() {
   }, [toastMessage]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentResult = params.get("paymentResult");
+
+    if (paymentResult === "fail") {
+      setToastMessage(params.get("message") ?? "결제가 취소되었어요");
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
+    const paymentKey = params.get("paymentKey");
+    const orderId = params.get("orderId");
+    const amount = params.get("amount");
+    if (paymentResult !== "success" || !paymentKey || !orderId || !amount) return;
+
+    window.history.replaceState({}, "", window.location.pathname);
+    setIsPaymentProcessing(true);
+    void confirmAiCharacterPayment({ amount, orderId, paymentKey })
+      .then((result) => {
+        setAppState((prev) => ({
+          ...prev,
+          aiCharacterCredits: prev.aiCharacterCredits + result.creditCount,
+        }));
+        setToastMessage(`결제가 완료됐어요 · AI 생성권 ${result.creditCount}회 충전`);
+      })
+      .catch((error) => {
+        console.error("Payment confirm failed", error);
+        setToastMessage("결제 승인에 실패했어요. 잠시 후 다시 확인해주세요");
+      })
+      .finally(() => setIsPaymentProcessing(false));
+  }, []);
+
+  useEffect(() => {
     let removeBack: (() => void) | undefined;
     let removeHome: (() => void) | undefined;
 
@@ -114,6 +170,10 @@ function App() {
       removeHome?.();
     };
   }, []);
+
+  const openConfirm = (dialog: ConfirmDialog) => {
+    setConfirmDialog(dialog);
+  };
 
   const addLedgerEntry = (draft: LedgerEntryDraft) => {
     const nextEntry = createLedgerEntry(draft);
@@ -137,13 +197,19 @@ function App() {
   };
 
   const deleteLedgerEntry = (entryId: string) => {
-    if (!confirmAction("이 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.")) return;
-
-    setAppState((prev) => ({
-      ...prev,
-      entries: prev.entries.filter((entry) => entry.id !== entryId),
-    }));
-    setToastMessage("기록을 삭제했어요");
+    openConfirm({
+      title: "기록 삭제",
+      message: "이 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.",
+      confirmLabel: "삭제",
+      danger: true,
+      onConfirm: () => {
+        setAppState((prev) => ({
+          ...prev,
+          entries: prev.entries.filter((entry) => entry.id !== entryId),
+        }));
+        setToastMessage("기록을 삭제했어요");
+      },
+    });
   };
 
   const addCategory = (category: Category) => {
@@ -162,15 +228,21 @@ function App() {
   };
 
   const deleteCategory = (categoryId: string) => {
-    if (!confirmAction("이 카테고리를 삭제할까요? 연결된 기록은 기타 카테고리로 이동해요.")) return;
-
-    setAppState((prev) => ({
-      ...prev,
-      categoryBudgets: Object.fromEntries(Object.entries(prev.categoryBudgets).filter(([id]) => id !== categoryId)),
-      categories: prev.categories.filter((category) => category.id !== categoryId),
-      entries: prev.entries.map((entry) => (entry.categoryId === categoryId ? { ...entry, categoryId: "etc" } : entry)),
-    }));
-    setToastMessage("카테고리를 삭제했어요");
+    openConfirm({
+      title: "카테고리 삭제",
+      message: "이 카테고리를 삭제할까요? 연결된 기록은 기타 카테고리로 이동해요.",
+      confirmLabel: "삭제",
+      danger: true,
+      onConfirm: () => {
+        setAppState((prev) => ({
+          ...prev,
+          categoryBudgets: Object.fromEntries(Object.entries(prev.categoryBudgets).filter(([id]) => id !== categoryId)),
+          categories: prev.categories.filter((category) => category.id !== categoryId),
+          entries: prev.entries.map((entry) => (entry.categoryId === categoryId ? { ...entry, categoryId: "etc" } : entry)),
+        }));
+        setToastMessage("카테고리를 삭제했어요");
+      },
+    });
   };
 
   const buyOrEquipItem = (itemId: string) => {
@@ -190,18 +262,23 @@ function App() {
     }
 
     if (!item.canBuy) return;
-    if (!confirmAction(`${item.name}을 ${item.price.toLocaleString("ko-KR")}코인으로 구매하고 적용할까요?`)) return;
-
-    setAppState((prev) => ({
-      ...prev,
-      coins: spendCoins(prev.coins, item.price),
-      equippedItemId: item.id,
-      ownedItemIds: [...prev.ownedItemIds, item.id],
-    }));
-    setToastMessage(`${item.name} 구매 완료`);
+    openConfirm({
+      title: "아이템 구매",
+      message: `${item.name}을 ${item.price.toLocaleString("ko-KR")}코인으로 구매하고 적용할까요?`,
+      confirmLabel: "구매하고 적용",
+      onConfirm: () => {
+        setAppState((prev) => ({
+          ...prev,
+          coins: spendCoins(prev.coins, item.price),
+          equippedItemId: item.id,
+          ownedItemIds: [...prev.ownedItemIds, item.id],
+        }));
+        setToastMessage(`${item.name} 구매 완료`);
+      },
+    });
   };
 
-  const buySnack = (itemId: string) => {
+  const openSnackPurchase = (itemId: string) => {
     const item = snackItems.find((candidate) => candidate.id === itemId);
     if (!item) return;
 
@@ -210,17 +287,29 @@ function App() {
       return;
     }
 
-    if (!confirmAction(`${item.name}을 ${item.price.toLocaleString("ko-KR")}코인으로 구매할까요?`)) return;
+    setSnackPurchaseItemId(item.id);
+    setSnackPurchaseQuantity(1);
+  };
 
+  const buySnack = () => {
+    if (!snackPurchaseItem) return;
+    if (appCoins < snackPurchaseTotal) {
+      setToastMessage("코인이 부족해요");
+      return;
+    }
+
+    const item = snackPurchaseItem;
+    const quantity = snackPurchaseQuantity;
     setAppState((prev) => ({
       ...prev,
-      coins: spendCoins(prev.coins, item.price),
+      coins: spendCoins(prev.coins, snackPurchaseTotal),
       snackInventory: {
         ...prev.snackInventory,
-        [item.id]: (prev.snackInventory[item.id] ?? 0) + 1,
+        [item.id]: (prev.snackInventory[item.id] ?? 0) + quantity,
       },
     }));
-    setToastMessage(`${item.name} 1개 구매 완료`);
+    setSnackPurchaseItemId(null);
+    setToastMessage(`${item.name} ${quantity}개 구매 완료`);
   };
 
   const giveSnack = (itemId: string) => {
@@ -291,17 +380,20 @@ function App() {
       return;
     }
 
-    if (!confirmAction(`${preset.name}을 ${BASE_CHARACTER_PRICE.toLocaleString("ko-KR")}코인으로 구매하고 바로 사용할까요?`)) {
-      return;
-    }
-
-    setAppState((prev) => ({
-      ...prev,
-      coins: spendCoins(prev.coins, BASE_CHARACTER_PRICE),
-      ownedPetIds: prev.ownedPetIds.includes(petId) ? prev.ownedPetIds : [...prev.ownedPetIds, petId],
-      pet: createPetFromPreset(preset),
-    }));
-    setToastMessage(`${preset.name} 구매 완료`);
+    openConfirm({
+      title: "캐릭터 구매",
+      message: `${preset.name}을 ${BASE_CHARACTER_PRICE.toLocaleString("ko-KR")}코인으로 구매하고 바로 사용할까요?`,
+      confirmLabel: "구매하고 사용",
+      onConfirm: () => {
+        setAppState((prev) => ({
+          ...prev,
+          coins: spendCoins(prev.coins, BASE_CHARACTER_PRICE),
+          ownedPetIds: prev.ownedPetIds.includes(petId) ? prev.ownedPetIds : [...prev.ownedPetIds, petId],
+          pet: createPetFromPreset(preset),
+        }));
+        setToastMessage(`${preset.name} 구매 완료`);
+      },
+    });
   };
 
   const openAiCharacterCreation = () => {
@@ -311,11 +403,19 @@ function App() {
       return;
     }
 
-    if (!confirmAction(`AI 캐릭터 생성은 1회 ${AI_CHARACTER_GENERATION_PRICE_KRW.toLocaleString("ko-KR")}원 결제 상품으로 제공될 예정이에요. 결제 화면으로 이동할까요?`)) {
-      return;
-    }
+    setSelectedAiPaymentProduct("ai_character");
+  };
 
-    setToastMessage(getAiCharacterDisabledMessage());
+  const startAiCharacterPayment = () => {
+    if (!selectedAiPaymentProduct || isPaymentProcessing) return;
+
+    setIsPaymentProcessing(true);
+    void requestAiCharacterPayment(selectedAiPaymentProduct)
+      .catch((error) => {
+        console.error("Payment request failed", error);
+        setToastMessage(getPaymentErrorMessage(error));
+        setIsPaymentProcessing(false);
+      });
   };
 
   const updateBudget = (budget: number) => {
@@ -339,14 +439,19 @@ function App() {
   };
 
   const shareOutfit = () => {
-    if (!confirmAction("현재 캐릭터 모습을 코디 자랑에 올릴까요?")) return;
-
-    const post = createOutfitPost({ equippedItem, pet: appState.pet });
-    setAppState((prev) => ({
-      ...prev,
-      communityPosts: [post, ...prev.communityPosts].slice(0, 30),
-    }));
-    setToastMessage("코디 자랑을 저장했어요");
+    openConfirm({
+      title: "우리 애 좀 보세요",
+      message: "현재 캐릭터 모습을 게시판에 올릴까요?",
+      confirmLabel: "올리기",
+      onConfirm: () => {
+        const post = createOutfitPost({ equippedItem, pet: appState.pet });
+        setAppState((prev) => ({
+          ...prev,
+          communityPosts: [post, ...prev.communityPosts].slice(0, 30),
+        }));
+        setToastMessage("우리 애 좀 보세요 게시판에 올렸어요");
+      },
+    });
   };
 
   const likePost = (postId: string) => {
@@ -369,20 +474,27 @@ function App() {
   const deleteCustomPet = (petId: string) => {
     const customPet = appState.ownedCustomPets.find((candidate) => candidate.id === petId);
     if (!customPet) return;
-    if (!confirmAction(`${customPet.name} 캐릭터를 삭제할까요? 삭제한 캐릭터는 되돌릴 수 없어요.`)) return;
 
-    setAppState((prev) => {
-      const nextCustomPets = prev.ownedCustomPets.filter((candidate) => candidate.id !== petId);
-      const shouldSwitchActivePet = prev.pet.id === petId;
-      const fallbackPreset = petPresets.find((preset) => prev.ownedPetIds.includes(preset.id)) ?? petPresets[0];
+    openConfirm({
+      title: "캐릭터 삭제",
+      message: `${customPet.name} 캐릭터를 삭제할까요? 삭제한 캐릭터는 되돌릴 수 없어요.`,
+      confirmLabel: "삭제",
+      danger: true,
+      onConfirm: () => {
+        setAppState((prev) => {
+          const nextCustomPets = prev.ownedCustomPets.filter((candidate) => candidate.id !== petId);
+          const shouldSwitchActivePet = prev.pet.id === petId;
+          const fallbackPreset = petPresets.find((preset) => prev.ownedPetIds.includes(preset.id)) ?? petPresets[0];
 
-      return {
-        ...prev,
-        ownedCustomPets: nextCustomPets,
-        pet: shouldSwitchActivePet && fallbackPreset ? createPetFromPreset(fallbackPreset) : prev.pet,
-      };
+          return {
+            ...prev,
+            ownedCustomPets: nextCustomPets,
+            pet: shouldSwitchActivePet && fallbackPreset ? createPetFromPreset(fallbackPreset) : prev.pet,
+          };
+        });
+        setToastMessage(`${customPet.name}을 삭제했어요`);
+      },
     });
-    setToastMessage(`${customPet.name}을 삭제했어요`);
   };
 
   if (page === "onboarding") {
@@ -464,6 +576,7 @@ function App() {
       )}
       {activePage === "shop" && (
         <ShopPage
+          aiCharacterCredits={appState.aiCharacterCredits}
           coins={appCoins}
           characters={characterShopItems}
           items={shopItemViews}
@@ -475,7 +588,7 @@ function App() {
           onPostComment={addComment}
           onPostLike={likePost}
           onShareOutfit={shareOutfit}
-          onSnackAction={buySnack}
+          onSnackAction={openSnackPurchase}
           posts={appState.communityPosts}
           snackInventory={appState.snackInventory}
         />
@@ -484,6 +597,7 @@ function App() {
         <SettingsPage
           coins={appCoins}
           entries={appState.entries}
+          aiCharacterCredits={appState.aiCharacterCredits}
           monthlyBudget={appState.monthlyBudget}
           ownedCustomPets={appState.ownedCustomPets}
           pet={appState.pet}
@@ -495,6 +609,104 @@ function App() {
           onUpdateBudget={updateBudget}
         />
       )}
+      {snackPurchaseItem && (
+        <DialogOverlay>
+          <DialogCard>
+            <DialogCloseButton aria-label="간식 구매 닫기" onClick={() => setSnackPurchaseItemId(null)}>
+              <X size={18} />
+            </DialogCloseButton>
+            <DialogTitle>{snackPurchaseItem.name}</DialogTitle>
+            <DialogText>구매할 수량을 선택해주세요.</DialogText>
+            <QuantityStepper>
+              <StepperButton
+                aria-label="수량 줄이기"
+                disabled={snackPurchaseQuantity <= 1}
+                onClick={() => setSnackPurchaseQuantity((prev) => Math.max(1, prev - 1))}
+              >
+                <Minus size={16} />
+              </StepperButton>
+              <QuantityValue>{snackPurchaseQuantity}</QuantityValue>
+              <StepperButton
+                aria-label="수량 늘리기"
+                disabled={snackPurchaseQuantity >= snackMaxQuantity}
+                onClick={() => setSnackPurchaseQuantity((prev) => Math.min(snackMaxQuantity, prev + 1))}
+              >
+                <Plus size={16} />
+              </StepperButton>
+            </QuantityStepper>
+            <PurchaseSummary>
+              <span>총 결제</span>
+              <strong>{snackPurchaseTotal.toLocaleString("ko-KR")}코인</strong>
+            </PurchaseSummary>
+            <DialogActions>
+              <DialogCancelButton onClick={() => setSnackPurchaseItemId(null)}>취소</DialogCancelButton>
+              <DialogConfirmButton onClick={buySnack}>구매</DialogConfirmButton>
+            </DialogActions>
+          </DialogCard>
+        </DialogOverlay>
+      )}
+      {selectedAiPaymentOption && (
+        <DialogOverlay>
+          <DialogCard>
+            <DialogCloseButton
+              aria-label="AI 캐릭터 결제 닫기"
+              disabled={isPaymentProcessing}
+              onClick={() => setSelectedAiPaymentProduct(null)}
+            >
+              <X size={18} />
+            </DialogCloseButton>
+            <DialogTitle>AI 캐릭터 생성권</DialogTitle>
+            <DialogText>사진 기반 캐릭터 생성권을 결제하면 캐릭터 컬렉션에서 사용할 수 있어요.</DialogText>
+            <PaymentOptionList>
+              {AI_CHARACTER_PAYMENT_OPTIONS.map((option) => (
+                <PaymentOptionButton
+                  key={option.id}
+                  $active={selectedAiPaymentProduct === option.id}
+                  disabled={isPaymentProcessing}
+                  onClick={() => setSelectedAiPaymentProduct(option.id)}
+                >
+                  <strong>{option.label}</strong>
+                  <span>{option.description}</span>
+                  <em>{option.priceKrw.toLocaleString("ko-KR")}원</em>
+                </PaymentOptionButton>
+              ))}
+            </PaymentOptionList>
+            <PurchaseSummary>
+              <span>결제 금액</span>
+              <strong>{selectedAiPaymentOption.priceKrw.toLocaleString("ko-KR")}원</strong>
+            </PurchaseSummary>
+            <DialogActions>
+              <DialogCancelButton disabled={isPaymentProcessing} onClick={() => setSelectedAiPaymentProduct(null)}>
+                취소
+              </DialogCancelButton>
+              <DialogConfirmButton disabled={isPaymentProcessing} onClick={startAiCharacterPayment}>
+                {isPaymentProcessing ? "처리중" : "결제하기"}
+              </DialogConfirmButton>
+            </DialogActions>
+          </DialogCard>
+        </DialogOverlay>
+      )}
+      {confirmDialog && (
+        <DialogOverlay>
+          <DialogCard>
+            <DialogTitle>{confirmDialog.title}</DialogTitle>
+            <DialogText>{confirmDialog.message}</DialogText>
+            <DialogActions>
+              <DialogCancelButton onClick={() => setConfirmDialog(null)}>취소</DialogCancelButton>
+              <DialogConfirmButton
+                $danger={confirmDialog.danger}
+                onClick={() => {
+                  const onConfirm = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  onConfirm();
+                }}
+              >
+                {confirmDialog.confirmLabel ?? "확인"}
+              </DialogConfirmButton>
+            </DialogActions>
+          </DialogCard>
+        </DialogOverlay>
+      )}
     </AppShell>
   );
 }
@@ -504,9 +716,193 @@ function spendCoins(currentCoins: number, amount: number): number {
   return Math.max(0, currentCoins - amount);
 }
 
-function confirmAction(message: string): boolean {
-  if (typeof window === "undefined") return true;
-  return window.confirm(message);
+const DialogOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(45, 34, 39, 0.24);
+  backdrop-filter: blur(10px);
+`;
+
+const DialogCard = styled.section`
+  position: relative;
+  display: grid;
+  width: min(360px, 100%);
+  gap: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.xl};
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: 0 18px 54px rgba(45, 34, 39, 0.18);
+`;
+
+const DialogCloseButton = styled.button`
+  position: absolute;
+  top: ${({ theme }) => theme.spacing.md};
+  right: ${({ theme }) => theme.spacing.md};
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.muted};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: 50%;
+`;
+
+const DialogTitle = styled.h2`
+  margin: 0;
+  padding-right: 34px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+`;
+
+const DialogText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+`;
+
+const QuantityStepper = styled.div`
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const StepperButton = styled.button`
+  display: grid;
+  height: 48px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: 50%;
+
+  &:disabled {
+    color: ${({ theme }) => theme.colors.muted};
+    opacity: 0.45;
+  }
+`;
+
+const QuantityValue = styled.strong`
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 22px;
+  font-weight: 800;
+`;
+
+const PurchaseSummary = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border-radius: ${({ theme }) => theme.radius.md};
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  strong {
+    color: ${({ theme }) => theme.colors.orangeDark};
+    font-size: 16px;
+    font-weight: 800;
+  }
+`;
+
+const PaymentOptionList = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.sm};
+`;
+
+const PaymentOptionButton = styled.button<{ $active: boolean }>`
+  display: grid;
+  gap: 3px;
+  padding: ${({ theme }) => theme.spacing.md};
+  text-align: left;
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ $active, theme }) => ($active ? "#FFF1B5" : theme.colors.surfaceWarm)};
+  border: 1.5px solid ${({ $active, theme }) => ($active ? theme.colors.orange : theme.colors.line)};
+  border-radius: ${({ theme }) => theme.radius.md};
+
+  strong {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  em {
+    justify-self: end;
+    color: ${({ theme }) => theme.colors.orangeDark};
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 800;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+`;
+
+const DialogActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const DialogCancelButton = styled.button`
+  min-height: 46px;
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 15px;
+  font-weight: 700;
+
+  &:disabled {
+    opacity: 0.5;
+  }
+`;
+
+const DialogConfirmButton = styled.button<{ $danger?: boolean }>`
+  min-height: 46px;
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ $danger, theme }) => ($danger ? theme.colors.red : theme.colors.orange)};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 15px;
+  font-weight: 800;
+
+  &:disabled {
+    opacity: 0.55;
+  }
+`;
+
+function getPaymentErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "missing_toss_payments_client_key") return "Toss Payments 클라이언트 키가 필요해요";
+  if (message === "missing_supabase_session") return "결제를 위해 사용자 세션을 준비하지 못했어요";
+  if (message === "payment_create_failed") return "결제 준비에 실패했어요";
+  return "결제창을 열지 못했어요";
 }
 
 export default App;

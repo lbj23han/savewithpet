@@ -26,3 +26,25 @@ export async function ensureSupabaseUserId(): Promise<string | null> {
 
   return data.user?.id ?? data.session?.user.id ?? null;
 }
+
+export async function getSupabaseAccessToken(): Promise<string | null> {
+  if (!supabase) return null;
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) throw sessionError;
+  if (session?.access_token) return session.access_token;
+
+  await ensureSupabaseUserId();
+  const {
+    data: { session: nextSession },
+    error: nextSessionError,
+  } = await supabase.auth.getSession();
+
+  if (nextSessionError) throw nextSessionError;
+
+  return nextSession?.access_token ?? null;
+}
