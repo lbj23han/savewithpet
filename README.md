@@ -342,7 +342,28 @@ backdrop item layer
 
 ## Next Actions (출시 순서)
 
-P0 잔여 항목을 우선순위 순으로 정리한 실행 리스트입니다.
+**v1.0 출시 직전 상태** — 코드/AIT 빌드는 모두 완료, 남은 작업은 실기기 QA와 배포 환경 변수 적용입니다.
+
+이번 v1.0 작업 요약:
+
+- 사진 기반 AI 캐릭터 생성 후 홈에서 default 캐릭터가 뜨던 버그 수정 (`createPetFromPhoto`의 `visualLayers.baseBodyUrl` 재바인딩 + `normalizePet` 마이그레이션)
+- AI 생성 30초 동안 ShopPage / SettingsPage 양쪽에 진행 상태 placeholder 표시, 실패 시 `생성권은 차감되지 않았어요` 안내
+- Toss Login 실연동 (`@apps-in-toss/web-framework`의 `appLogin()` + Vercel `/api/auth/toss-login` + mTLS 호출 + Supabase `profiles.toss_user_key` 업서트 + `/api/auth/toss-disconnect` webhook)
+- 앱 진입 흐름을 **Toss 가입 게이트**로 통일: 부팅 시 `LoginPage`에서 `appLogin()`이 자동 호출 → 인증 화면 즉시 표시 → 성공 시 캐릭터 선택(or 홈)로 자동 라우팅. 캔슬/실패 시 인라인 메시지와 재시도 버튼 노출
+- 버전 1.0.0, AIT `appName` 을 `savewithpet`으로 정렬, 미사용 copy 상수 제거
+
+푸시 완료된 v1.0 커밋 (`main`):
+
+```text
+(latest) Trigger Toss Login automatically on LoginPage entry
+8c361b3 Gate the app behind Toss Login before onboarding
+2d7546b Rename AIT appName to savewithpet to match console registration
+2af923e Bump version to 1.0.0 and remove unused copy constants
+70d3f22 Wire Toss Login through Apps in Toss SDK and Vercel API
+8dfbcee Fix AI character render bug and add generation progress UI
+```
+
+최신 AIT 아티팩트: `savewithpet.ait` (appName=`savewithpet`, version=`1.0.0`).
 
 ### 0. Claude 인수인계: 현재 필수 수정 사항
 
@@ -492,6 +513,41 @@ AIT 배포:
 
 - `npm run build` 후 AIT 배포 환경에서 실제 앱 진입 확인
 - 배포 환경 변수(Vercel 또는 AIT) 전체 세팅 확인
+
+---
+
+## v1.1 Backlog (다음 버전 TODO)
+
+v1.0 출시 후 정리할 후속 작업과 보류한 기능을 모아둡니다. 우선순위는 사용자 피드백 받고 재조정합니다.
+
+### Interaction polish
+
+- [ ] **메인 캐릭터 터치 시 하트/별/반짝임 랜덤 이펙트** (이번 세션에서 보류)
+  - 변경 위치: `src/components/PetStage.tsx` — Character 영역에 `onClick` 추가, `FloatingEffect` 자식 컴포넌트 분리
+  - 패턴: 클릭 시점마다 ID 발급 → `{id, emoji, offsetX, rotate}` state 배열 → 1.2초 keyframe(`translateY(-40px)` + `opacity 1→0`) 후 자동 제거
+  - 추천: 하트 ❤ / 별 ✨ / 음표 🎵 중 랜덤, 좌우 ±30px 오프셋, 회전각 ±15°
+  - 친밀도 보상 연결은 어뷰징 방지 cooldown(예: 15분당 1회) 정책 확정 후 별도 작업
+
+### Quality / UX
+
+- [ ] LoginPage 캔슬 시점 자동 재시도 정책 검토 (현재는 사용자가 "다시 시도" 직접 눌러야 함)
+- [ ] AI 생성 실패/재시도/결제 실패 토스트 → 다이얼로그 또는 인라인 메시지로 격상
+- [ ] 상태 이펙트(하트/땀/분노/반짝임) SVG 퀄리티 개선
+- [ ] 배경/방석/오라 아이템 SVG → 고퀄 PNG 에셋 교체
+- [ ] 이미지 용량 최적화 (현재 main chunk 942KB) + 캐시 정책
+
+### Community / Social
+
+- [ ] `우리 애 좀 보세요` 커뮤니티 게시글/댓글 Supabase API 연결
+- [ ] 부적절 사진/생성 결과 필터링 정책 (광고법/이용약관 대응)
+
+### Ops / 운영
+
+- [ ] 자동 상태/꾸미기 스크린샷 QA 도구
+- [ ] 에러 로깅/분석 도구 도입 (Sentry, GA 등)
+- [ ] 환불/과금 정책 문서 보완
+- [ ] `interaction-preview.html`을 QA 전용 체크리스트 화면으로 정리 또는 제거
+- [ ] `landmark-editor.html` 유지/삭제 결정
 
 ---
 

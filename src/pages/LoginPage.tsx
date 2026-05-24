@@ -1,12 +1,25 @@
+import { useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 
 type LoginPageProps = {
   isRequesting: boolean;
   loginReady: boolean;
+  statusMessage: string | null;
   onTossLogin: () => void;
 };
 
-export function LoginPage({ isRequesting, loginReady, onTossLogin }: LoginPageProps) {
+export function LoginPage({ isRequesting, loginReady, statusMessage, onTossLogin }: LoginPageProps) {
+  const autoTriggered = useRef(false);
+
+  useEffect(() => {
+    if (autoTriggered.current) return;
+    if (!loginReady) return;
+    autoTriggered.current = true;
+    onTossLogin();
+  }, [loginReady, onTossLogin]);
+
+  const showRetry = !isRequesting && statusMessage !== null;
+
   return (
     <Page>
       <Hero>
@@ -19,22 +32,22 @@ export function LoginPage({ isRequesting, loginReady, onTossLogin }: LoginPagePr
         <Subtitle>
           소비를 기록하면 반려 캐릭터가 함께 자라요.
           <br />
-          Toss 계정으로 시작해주세요.
+          잠시만 기다려주세요. 토스 로그인 화면을 띄우고 있어요.
         </Subtitle>
       </Hero>
       <Actions>
-        <LoginButton disabled={!loginReady || isRequesting} onClick={onTossLogin}>
-          {isRequesting ? (
-            <>
-              <Spinner aria-hidden="true" />
-              연동 중...
-            </>
-          ) : loginReady ? (
-            "Toss로 시작하기"
-          ) : (
-            "연동 준비 중"
-          )}
-        </LoginButton>
+        {isRequesting && (
+          <ProgressNote>
+            <Spinner aria-hidden="true" />
+            <span>토스 인증 화면을 띄우고 있어요</span>
+          </ProgressNote>
+        )}
+        {showRetry && <StatusMessage>{statusMessage}</StatusMessage>}
+        {(!loginReady || showRetry) && (
+          <LoginButton disabled={!loginReady || isRequesting} onClick={onTossLogin}>
+            {loginReady ? "다시 시도" : "연동 준비 중"}
+          </LoginButton>
+        )}
         <Helper>로그인 후 캐릭터를 골라 시작할 수 있어요.</Helper>
       </Actions>
     </Page>
@@ -115,6 +128,36 @@ const Actions = styled.div`
   gap: 12px;
 `;
 
+const ProgressNote = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px dashed ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.md};
+
+  span {
+    color: ${({ theme }) => theme.colors.orangeDark};
+    font-size: 14px;
+    font-weight: 700;
+  }
+`;
+
+const StatusMessage = styled.p`
+  margin: 0;
+  padding: 14px 18px;
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surfaceWarm};
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+`;
+
 const LoginButton = styled.button`
   display: flex;
   align-items: center;
@@ -151,10 +194,10 @@ const spinnerRotate = keyframes`
 
 const Spinner = styled.span`
   display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: ${({ theme }) => theme.colors.surface};
+  width: 18px;
+  height: 18px;
+  border: 2px solid ${({ theme }) => theme.colors.line};
+  border-top-color: ${({ theme }) => theme.colors.orange};
   border-radius: 50%;
   animation: ${spinnerRotate} 700ms linear infinite;
 `;

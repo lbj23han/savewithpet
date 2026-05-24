@@ -64,6 +64,7 @@ function App() {
   const [isAiCharacterGenerating, setIsAiCharacterGenerating] = useState(false);
   const [tossLoginInfo, setTossLoginInfo] = useState<TossLoginInfo | null>(null);
   const [isTossLoginRequesting, setIsTossLoginRequesting] = useState(false);
+  const [tossLoginStatusMessage, setTossLoginStatusMessage] = useState<string | null>(null);
   const [selectedAiPaymentProduct, setSelectedAiPaymentProduct] = useState<AiCharacterPaymentProduct | null>(null);
   const [snackPurchaseItemId, setSnackPurchaseItemId] = useState<string | null>(null);
   const [snackPurchaseQuantity, setSnackPurchaseQuantity] = useState(1);
@@ -637,35 +638,37 @@ function App() {
   const handleTossLogin = () => {
     if (isTossLoginRequesting) return;
     if (!getTossLoginReady()) {
-      setToastMessage("Toss Login은 인증 설정 완료 후 사용할 수 있어요");
+      const message = "Toss Login은 인증 설정 완료 후 사용할 수 있어요";
+      setTossLoginStatusMessage(message);
+      setToastMessage(message);
       return;
     }
 
     setIsTossLoginRequesting(true);
+    setTossLoginStatusMessage(null);
     void requestTossLogin()
       .then((result) => {
         if (result.status === "linked") {
           setTossLoginInfo(result.info);
-          setToastMessage(
-            result.info.displayName
-              ? `${result.info.displayName}님으로 Toss 연동을 완료했어요`
-              : "Toss 계정을 연동했어요",
-          );
+          setTossLoginStatusMessage(null);
+          const success = result.info.displayName
+            ? `${result.info.displayName}님으로 Toss 연동을 완료했어요`
+            : "Toss 계정을 연동했어요";
+          setToastMessage(success);
           return;
         }
-        if (result.status === "cancelled") {
-          setToastMessage("Toss Login을 취소했어요");
-          return;
-        }
-        if (result.status === "unsupported_environment") {
-          setToastMessage("Toss Login은 토스앱 또는 샌드박스앱에서만 사용할 수 있어요");
-          return;
-        }
-        if (result.status === "already_linked_to_other_account") {
-          setToastMessage("이 Toss 계정은 다른 사용자와 연동되어 있어요");
-          return;
-        }
-        setToastMessage(result.message);
+
+        const failureMessage =
+          result.status === "cancelled"
+            ? "Toss Login을 취소했어요. 다시 시도해주세요."
+            : result.status === "unsupported_environment"
+              ? "Toss Login은 토스앱 또는 샌드박스앱에서만 사용할 수 있어요"
+              : result.status === "already_linked_to_other_account"
+                ? "이 Toss 계정은 다른 사용자와 연동되어 있어요"
+                : result.message;
+
+        setTossLoginStatusMessage(failureMessage);
+        setToastMessage(failureMessage);
       })
       .finally(() => setIsTossLoginRequesting(false));
   };
@@ -704,6 +707,7 @@ function App() {
       <LoginPage
         isRequesting={isTossLoginRequesting}
         loginReady={getTossLoginReady()}
+        statusMessage={tossLoginStatusMessage}
         onTossLogin={handleTossLogin}
       />
     );
