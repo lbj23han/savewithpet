@@ -63,6 +63,7 @@ function App() {
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isAiCharacterGenerating, setIsAiCharacterGenerating] = useState(false);
   const [tossLoginInfo, setTossLoginInfo] = useState<TossLoginInfo | null>(null);
+  const [shouldShowOnboardingAfterLogin, setShouldShowOnboardingAfterLogin] = useState(false);
   const [isTossLoginRequesting, setIsTossLoginRequesting] = useState(false);
   const [tossLoginStatusMessage, setTossLoginStatusMessage] = useState<string | null>(null);
   const [selectedAiPaymentProduct, setSelectedAiPaymentProduct] = useState<AiCharacterPaymentProduct | null>(null);
@@ -170,6 +171,8 @@ function App() {
 
   useEffect(() => {
     if (!getTossLoginReady()) return;
+    if (page === "login") return;
+
     void loadTossLoginInfo()
       .then((info) => {
         if (info) setTossLoginInfo(info);
@@ -177,12 +180,17 @@ function App() {
       .catch((error) => {
         console.info("Toss login info load skipped", error);
       });
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (page !== "login" || !tossLoginInfo) return;
+    if (shouldShowOnboardingAfterLogin) {
+      setPage("onboarding");
+      return;
+    }
+
     setPage(appState.hasCompletedOnboarding ? "home" : "onboarding");
-  }, [page, tossLoginInfo, appState.hasCompletedOnboarding]);
+  }, [page, tossLoginInfo, appState.hasCompletedOnboarding, shouldShowOnboardingAfterLogin]);
 
   useEffect(() => {
     let removeBack: (() => void) | undefined;
@@ -649,6 +657,19 @@ function App() {
     void requestTossLogin()
       .then((result) => {
         if (result.status === "linked") {
+          const shouldForceOnboarding = page === "login";
+          if (shouldForceOnboarding) {
+            setShouldShowOnboardingAfterLogin(true);
+            setAppState((prev) => ({
+              ...prev,
+              hasCompletedOnboarding: false,
+              ownedCustomPets: [],
+              ownedPetIds: [],
+              pet: defaultAppState.pet,
+              petLevels: {},
+            }));
+            setPage("onboarding");
+          }
           setTossLoginInfo(result.info);
           setTossLoginStatusMessage(null);
           const success = result.info.displayName
@@ -728,6 +749,7 @@ function App() {
             petLevels: nextPet.source === "preset" ? { [nextPet.id]: 1 } : prev.petLevels,
             pet: nextPet,
           }));
+          setShouldShowOnboardingAfterLogin(false);
           setPage("home");
         }}
       />

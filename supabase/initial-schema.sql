@@ -236,6 +236,10 @@ create trigger set_purchases_updated_at
 before update on public.purchases
 for each row execute function public.set_updated_at();
 
+create unique index if not exists purchases_provider_order_id_idx
+on public.purchases(provider, provider_order_id)
+where provider_order_id is not null;
+
 create table if not exists public.ai_character_jobs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,

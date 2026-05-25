@@ -1,4 +1,5 @@
 import { IAP, isMinVersionSupported } from "@apps-in-toss/web-framework";
+import type { IapProductListItem } from "@apps-in-toss/web-framework";
 import {
   AI_CHARACTER_GENERATION_COUNT,
   AI_CHARACTER_GENERATION_PRICE_KRW,
@@ -35,6 +36,8 @@ const IAP_MIN_VERSION = {
   ios: "5.219.0",
 } as const;
 
+let iapProductsPromise: Promise<IapProductListItem[]> | null = null;
+
 export const AI_CHARACTER_PAYMENT_OPTIONS: AiCharacterPaymentOption[] = [
   {
     creditCount: AI_CHARACTER_GENERATION_COUNT,
@@ -65,6 +68,8 @@ export async function requestAiCharacterPayment(productType: AiCharacterPaymentP
   const accessToken = await getSupabaseAccessToken();
   if (!accessToken) throw new Error("missing_supabase_session");
 
+  const resolvedSku = await resolveIapSku(option);
+
   return new Promise((resolve, reject) => {
     let cleanup = () => {};
     let settled = false;
@@ -81,11 +86,11 @@ export async function requestAiCharacterPayment(productType: AiCharacterPaymentP
       cleanup = IAP.createOneTimePurchaseOrder({
         options: {
           processProductGrant: async ({ orderId }) => {
-            grantResult = await grantAiCharacterProduct({ accessToken, orderId, sku: option.sku });
+            grantResult = await grantAiCharacterProduct({ accessToken, orderId, productType, sku: resolvedSku });
             finish(() => resolve(grantResult as AiCharacterPaymentGrantResult));
             return true;
           },
-          sku: option.sku,
+          sku: resolvedSku,
         },
         onError: (error) => finish(() => reject(error instanceof Error ? error : new Error("iap_purchase_failed"))),
         onEvent: (event) => {
@@ -120,9 +125,10 @@ export async function restorePendingAiCharacterPayments(): Promise<AiCharacterPa
 
   for (const order of orders) {
     const sku = order.sku ?? "";
-    if (!Object.values(AI_CHARACTER_SKUS).includes(sku)) continue;
+    const productType = await resolveProductTypeBySku(sku);
+    if (!productType) continue;
 
-    const result = await grantAiCharacterProduct({ accessToken, orderId: order.orderId, sku });
+    const result = await grantAiCharacterProduct({ accessToken, orderId: order.orderId, productType, sku });
     results.push(result);
 
     await IAP.completeProductGrant({ params: { orderId: order.orderId } });
@@ -134,14 +140,16 @@ export async function restorePendingAiCharacterPayments(): Promise<AiCharacterPa
 async function grantAiCharacterProduct({
   accessToken,
   orderId,
+  productType,
   sku,
 }: {
   accessToken: string;
   orderId: string;
+  productType: AiCharacterPaymentProduct;
   sku: string;
 }): Promise<AiCharacterPaymentGrantResult> {
   const response = await fetch(getApiUrl("/api/iap/grant"), {
-    body: JSON.stringify({ orderId, sku }),
+    body: JSON.stringify({ orderId, productType, sku }),
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -157,4 +165,62 @@ async function grantAiCharacterProduct({
     creditCount: Number(payload.creditCount ?? 0),
     productType: payload.productType,
   };
+}
+
+async function getIapProducts(): Promise<IapProductListItem[]> {
+  iapProductsPromise ??= IAP.getProductItemList()
+    .then((response) => response?.products ?? [])
+    .catch((error) => {
+      console.info("IAP product list lookup skipped", error);
+      iapProductsPromise = null;
+      return [];
+    });
+
+  return iapProductsPromise;
+}
+
+async function resolveIapSku(option: AiCharacterPaymentOption): Promise<string> {
+  const products = await getIapProducts();
+  const exactProduct = products.find((product) => product.sku === option.sku || product.sku === `sku:${option.id}`);
+  if (exactProduct) return exactProduct.sku;
+
+  const matchingProducts = products.filter((product) => productMatchesOption(product, option));
+  if (matchingProducts.length === 1) return matchingProducts[0].sku;
+
+  const priceMatchedProducts = products.filter((product) => getDisplayAmount(product) === option.priceKrw);
+  if (priceMatchedProducts.length === 1) return priceMatchedProducts[0].sku;
+
+  return option.sku;
+}
+
+async function resolveProductTypeBySku(sku: string): Promise<AiCharacterPaymentProduct | null> {
+  const configuredProduct = AI_CHARACTER_PAYMENT_OPTIONS.find(
+    (option) => option.sku === sku || `sku:${option.id}` === sku || option.id === sku,
+  );
+  if (configuredProduct) return configuredProduct.id;
+
+  const products = await getIapProducts();
+  const product = products.find((candidate) => candidate.sku === sku);
+  if (!product) return null;
+
+  const matchedOption = AI_CHARACTER_PAYMENT_OPTIONS.find((option) => productMatchesOption(product, option));
+  return matchedOption?.id ?? null;
+}
+
+function productMatchesOption(product: IapProductListItem, option: AiCharacterPaymentOption): boolean {
+  const amount = getDisplayAmount(product);
+  const searchableText = `${product.displayName} ${product.description ?? ""}`.toLowerCase();
+  const hasMatchingCount = searchableText.includes(String(option.creditCount));
+  const hasAiCharacterText =
+    searchableText.includes("ai") || searchableText.includes("캐릭터") || searchableText.includes("character");
+
+  if (amount !== option.priceKrw) return false;
+  if (hasMatchingCount) return true;
+  return hasAiCharacterText;
+}
+
+function getDisplayAmount(product: IapProductListItem): number | null {
+  const amountText = product.displayAmount ?? "";
+  const numeric = Number(amountText.replace(/[^\d]/g, ""));
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }

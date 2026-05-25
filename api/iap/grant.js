@@ -1,4 +1,4 @@
-import { getPaymentProductBySku } from "../_payment-products.js";
+import { getPaymentProductBySkuOrType } from "../_payment-products.js";
 import { getSupabaseAdmin, getUserFromRequest } from "../_supabase-admin.js";
 
 export default async function handler(request, response) {
@@ -16,8 +16,9 @@ export default async function handler(request, response) {
   }
 
   try {
-    const { orderId, sku } = request.body ?? {};
+    const { orderId, productType, sku } = request.body ?? {};
     const normalizedOrderId = typeof orderId === "string" ? orderId.trim() : "";
+    const normalizedProductType = typeof productType === "string" ? productType.trim() : "";
     const normalizedSku = typeof sku === "string" ? sku.trim() : "";
 
     if (!normalizedOrderId || !normalizedSku) {
@@ -25,7 +26,7 @@ export default async function handler(request, response) {
       return;
     }
 
-    const product = getPaymentProductBySku(normalizedSku);
+    const product = getPaymentProductBySkuOrType(normalizedSku, normalizedProductType);
     if (!product) {
       response.status(400).json({ error: "unsupported_iap_sku" });
       return;
@@ -35,13 +36,17 @@ export default async function handler(request, response) {
     const user = await getUserFromRequest(request, supabase);
     const { data: existingPurchase, error: existingPurchaseError } = await supabase
       .from("purchases")
-      .select("id, status")
-      .eq("user_id", user.id)
+      .select("id, status, user_id")
       .eq("provider", "apps_in_toss_iap")
       .eq("provider_order_id", normalizedOrderId)
       .maybeSingle();
 
     if (existingPurchaseError) throw existingPurchaseError;
+    if (existingPurchase && existingPurchase.user_id !== user.id) {
+      response.status(409).json({ error: "iap_order_already_used" });
+      return;
+    }
+
     if (existingPurchase?.status === "paid") {
       response.status(200).json({
         alreadyGranted: true,

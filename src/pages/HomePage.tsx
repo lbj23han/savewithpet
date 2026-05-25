@@ -1,6 +1,6 @@
 import { Calendar, Check, Cookie, Gift, Pencil, PlusCircle, Shirt, Store, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import styled from "styled-components";
+import { useEffect, useRef, useState } from "react";
+import styled, { keyframes } from "styled-components";
 
 import { EmptyState } from "../components/EmptyState";
 import { Panel } from "../components/Panel";
@@ -48,6 +48,15 @@ type HomePageProps = {
   wardrobeItems: ShopItemViewModel[];
 };
 
+type TouchEffect = {
+  glyph: "♥" | "♪" | "✦";
+  id: number;
+  rotation: number;
+  x: number;
+};
+
+const TOUCH_EFFECT_GLYPHS: TouchEffect["glyph"][] = ["♥", "♪", "✦"];
+
 export function HomePage({
   attendanceRewardCoins,
   canClaimFreeSnack,
@@ -79,6 +88,9 @@ export function HomePage({
   const [nameDraft, setNameDraft] = useState(pet.name);
   const [petAnimation, setPetAnimation] = useState<PetAnimation>("idle");
   const [temporaryExpression, setTemporaryExpression] = useState<PetExpression>("neutral");
+  const [touchEffect, setTouchEffect] = useState<TouchEffect | null>(null);
+  const petReactionTimer = useRef<number | null>(null);
+  const touchEffectTimer = useRef<number | null>(null);
   const statusRows = createPetStatusViewModels(createPetStatuses(stats));
   const latestReward = rewardEvents[0];
   const latestRewardId = latestReward?.id;
@@ -109,6 +121,14 @@ export function HomePage({
     setNameDraft(pet.name);
   }, [pet.name]);
 
+  useEffect(
+    () => () => {
+      if (petReactionTimer.current) window.clearTimeout(petReactionTimer.current);
+      if (touchEffectTimer.current) window.clearTimeout(touchEffectTimer.current);
+    },
+    [],
+  );
+
   const savePetName = () => {
     const trimmed = nameDraft.trim();
     if (!trimmed) return;
@@ -136,6 +156,25 @@ export function HomePage({
       setPetAnimation("idle");
       setTemporaryExpression("neutral");
     }, 850);
+  };
+
+  const handlePetTouch = () => {
+    const glyph = TOUCH_EFFECT_GLYPHS[Math.floor(Math.random() * TOUCH_EFFECT_GLYPHS.length)];
+    const x = Math.round(Math.random() * 60 - 30);
+    const rotation = Math.round(Math.random() * 30 - 15);
+
+    setPetAnimation("pop");
+    setTemporaryExpression("happy");
+    setTouchEffect({ glyph, id: Date.now(), rotation, x });
+
+    if (petReactionTimer.current) window.clearTimeout(petReactionTimer.current);
+    if (touchEffectTimer.current) window.clearTimeout(touchEffectTimer.current);
+
+    petReactionTimer.current = window.setTimeout(() => {
+      setPetAnimation("idle");
+      setTemporaryExpression("neutral");
+    }, 700);
+    touchEffectTimer.current = window.setTimeout(() => setTouchEffect(null), 900);
   };
 
   return (
@@ -181,7 +220,14 @@ export function HomePage({
         </NameRow>
         <Speech>{petComment}</Speech>
         <PetPortrait>
-          <PetStage animation={petAnimation} equippedItem={equippedItem} expression={petExpression} pet={pet} stats={stats} />
+          <PetTouchButton aria-label={`${pet.name} 쓰다듬기`} onClick={handlePetTouch}>
+            <PetStage animation={petAnimation} equippedItem={equippedItem} expression={petExpression} pet={pet} stats={stats} />
+            {touchEffect && (
+              <TouchBurst key={touchEffect.id} $rotation={touchEffect.rotation} $x={touchEffect.x}>
+                {touchEffect.glyph}
+              </TouchBurst>
+            )}
+          </PetTouchButton>
           <WardrobeButton
             aria-label="옷장 열기"
             onClick={() => {
@@ -452,10 +498,56 @@ const PetPortrait = styled.div`
   margin-top: ${({ theme }) => theme.spacing.xl};
 `;
 
+const PetTouchButton = styled.button`
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  touch-action: manipulation;
+`;
+
+const touchBurst = keyframes`
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.55) rotate(0deg);
+  }
+
+  18% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--touch-x)), -34px) scale(1.08) rotate(var(--touch-rotation));
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--touch-x)), -92px) scale(0.86) rotate(var(--touch-rotation));
+  }
+`;
+
+const TouchBurst = styled.span<{ $rotation: number; $x: number }>`
+  --touch-x: ${({ $x }) => `${$x}px`};
+  --touch-rotation: ${({ $rotation }) => `${$rotation}deg`};
+
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  z-index: 8;
+  color: #f05f92;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 8px 18px rgba(210, 65, 112, 0.18);
+  animation: ${touchBurst} 900ms cubic-bezier(0.18, 0.9, 0.22, 1) forwards;
+`;
+
 const WardrobeButton = styled.button`
   position: absolute;
   right: 6px;
   bottom: 6px;
+  z-index: 10;
   display: grid;
   width: 48px;
   height: 48px;
