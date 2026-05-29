@@ -342,6 +342,29 @@ backdrop item layer
 
 ## Next Actions (출시 순서)
 
+### v1.1 작업 메모 — 결제/AI 생성 안정화
+
+출시 후 첫 안정화 작업으로 결제-생성권-AI 생성 흐름을 서버 기준으로 보강했습니다.
+
+- `api/ai-character.js`: Supabase access token을 확인한 뒤 AI 생성을 처리합니다.
+- `api/ai-character.js`: 생성 시작 시 `ai_character_jobs` row를 만들고, 성공/실패 상태와 결과 이미지 URL을 기록합니다.
+- `api/ai-character.js`: 생성권은 서버 RPC(`consume_ai_character_credit`)로 원자적으로 차감하고, OpenAI/Storage 실패 시 `refund_ai_character_credit`로 환불합니다.
+- `api/ai-character.js`: 생성 결과는 `data:` URL 대신 Supabase Storage `pet-characters/{userId}/{jobId}.png`에 저장한 공개 URL로 반환합니다.
+- `src/lib/aiCharacterGeneration.ts`: AI 생성 요청에 Supabase bearer token과 `clientGenerationId`를 함께 보냅니다.
+- `src/App.tsx`: 생성 성공 후 서버가 반환한 `remainingCredits`를 UI에 반영합니다.
+- `src/App.tsx`: IAP 복구/중복 지급 케이스 이후 Supabase의 `profiles.ai_character_credits`를 다시 읽어 로컬 표시를 보정합니다.
+- AI 프롬프트는 원본 사진을 붙여 넣는 결과를 줄이도록 "사진은 정체성 참고용, 결과는 앱용 3D 캐릭터" 조건을 강화했습니다.
+- 자동 소개 문구에서 `PNG` 같은 제작 용어가 나오지 않도록 더 자연스러운 문장으로 조정했습니다.
+- 광고 UI 준비: 상점에 `영상 보고 코인 받기` CTA를 추가하고 리워드 보상을 100코인으로 조정했습니다.
+- 광고 UI 준비: 배너 슬롯은 상점/분석 하단에 배치했고, `VITE_AD_BANNER_UNIT_ID`가 없으면 프로덕션에서는 숨깁니다.
+
+배포 전 필수:
+
+- Supabase SQL Editor에서 `supabase/initial-schema.sql` 재실행
+- `ai_character_jobs.client_id`, `ai_character_jobs_user_client_id_idx`, `consume_ai_character_credit`, `refund_ai_character_credit` 생성 확인
+- `pet-characters` Storage bucket이 public이고 insert policy가 살아있는지 확인
+- 실기기에서 생성권 1회 차감, OpenAI 실패 시 환불, 생성 성공 후 `profiles.ai_character_credits` 감소와 `ai_character_jobs.status = succeeded` 확인
+
 **v1.0 출시 직전 상태** — 코드/AIT 빌드는 모두 완료, 남은 작업은 실기기 QA와 배포 환경 변수 적용입니다.
 
 이번 v1.0 작업 요약:
@@ -363,7 +386,7 @@ backdrop item layer
 8dfbcee Fix AI character render bug and add generation progress UI
 ```
 
-최신 AIT 아티팩트: `savewithpet.ait` (appName=`savewithpet`, version=`1.0.0`).
+최신 AIT 아티팩트: `savewithpet.ait` (appName=`savewithpet`, version=`1.0.0`, deploymentId=`019e72ae-825b-7c7d-ad16-c03e9511b210`).
 
 ### 0. Claude 인수인계: 현재 필수 수정 사항
 

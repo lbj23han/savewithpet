@@ -12,11 +12,13 @@ import {
   ATTENDANCE_REWARD_COINS,
   createAttendanceReward,
   createEntryReward,
+  createRewardAdReward,
   hasClaimedAttendanceReward,
 } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
-import { saveAppStateToCloud } from "./lib/cloudPersistence";
+import { loadCloudAiCharacterCredits, saveAppStateToCloud } from "./lib/cloudPersistence";
 import { defaultAppState, loadAppState, saveAppState } from "./lib/persistence";
+import { getRewardAdCoinAmount, showRewardAd } from "./lib/adIntegration";
 import { generateAiCharacter } from "./lib/aiCharacterGeneration";
 import {
   AI_CHARACTER_PAYMENT_OPTIONS,
@@ -62,6 +64,7 @@ function App() {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [isAiCharacterGenerating, setIsAiCharacterGenerating] = useState(false);
+  const [isRewardAdLoading, setIsRewardAdLoading] = useState(false);
   const [tossLoginInfo, setTossLoginInfo] = useState<TossLoginInfo | null>(null);
   const [shouldShowOnboardingAfterLogin, setShouldShowOnboardingAfterLogin] = useState(false);
   const [isTossLoginRequesting, setIsTossLoginRequesting] = useState(false);
@@ -156,13 +159,21 @@ function App() {
     void restorePendingAiCharacterPayments()
       .then((results) => {
         const creditCount = results.reduce((sum, result) => sum + result.creditCount, 0);
-        if (creditCount <= 0) return;
+        if (creditCount > 0) {
+          setAppState((prev) => ({
+            ...prev,
+            aiCharacterCredits: prev.aiCharacterCredits + creditCount,
+          }));
+          setToastMessage(`미지급 생성권 ${creditCount}회를 복구했어요`);
+          return;
+        }
 
-        setAppState((prev) => ({
-          ...prev,
-          aiCharacterCredits: prev.aiCharacterCredits + creditCount,
-        }));
-        setToastMessage(`미지급 생성권 ${creditCount}회를 복구했어요`);
+        return loadCloudAiCharacterCredits().then((credits) => {
+          if (typeof credits !== "number") return;
+          setAppState((prev) =>
+            prev.aiCharacterCredits === credits ? prev : { ...prev, aiCharacterCredits: credits },
+          );
+        });
       })
       .catch((error) => {
         console.info("Pending IAP restore skipped", error);
@@ -525,7 +536,10 @@ function App() {
             const nextPet = createPetFromPhoto(file, sourcePhotoUrl, generated);
             setAppState((prev) => ({
               ...prev,
-              aiCharacterCredits: Math.max(0, prev.aiCharacterCredits - 1),
+              aiCharacterCredits:
+                typeof generated.remainingCredits === "number"
+                  ? generated.remainingCredits
+                  : Math.max(0, prev.aiCharacterCredits - 1),
               ownedCustomPets: [...prev.ownedCustomPets, nextPet],
               pet: nextPet,
               petLevels: {
@@ -558,6 +572,14 @@ function App() {
           }));
           setToastMessage(`결제가 완료됐어요 · AI 생성권 ${result.creditCount}회 충전`);
         } else {
+          void loadCloudAiCharacterCredits()
+            .then((credits) => {
+              if (typeof credits !== "number") return;
+              setAppState((prev) =>
+                prev.aiCharacterCredits === credits ? prev : { ...prev, aiCharacterCredits: credits },
+              );
+            })
+            .catch((error) => console.info("AI credit sync skipped", error));
           setToastMessage("이미 지급된 생성권이에요");
         }
         setSelectedAiPaymentProduct(null);
@@ -567,6 +589,32 @@ function App() {
         setToastMessage(getPaymentErrorMessage(error));
       })
       .finally(() => setIsPaymentProcessing(false));
+  };
+
+  const watchRewardAd = () => {
+    if (isRewardAdLoading) return;
+
+    setIsRewardAdLoading(true);
+    void showRewardAd()
+      .then((result) => {
+        if (result.status !== "completed") {
+          setToastMessage(result.message);
+          return;
+        }
+
+        const reward = createRewardAdReward();
+        setAppState((prev) => ({
+          ...prev,
+          coins: prev.coins + reward.coins,
+          rewardEvents: [reward, ...prev.rewardEvents],
+        }));
+        setToastMessage(`영상 광고 보상 ${reward.coins.toLocaleString("ko-KR")}코인을 받았어요`);
+      })
+      .catch((error) => {
+        console.info("reward_ad_failed", error);
+        setToastMessage("광고를 끝까지 본 뒤에만 코인을 받을 수 있어요");
+      })
+      .finally(() => setIsRewardAdLoading(false));
   };
 
   const updateBudget = (budget: number) => {
@@ -822,6 +870,7 @@ function App() {
           coins={appCoins}
           characters={characterShopItems}
           isAiCharacterGenerating={isAiCharacterGenerating}
+          isRewardAdLoading={isRewardAdLoading}
           items={shopItemViews}
           level={appStats.level}
           onAiCharacterBuy={openAiCharacterPayment}
@@ -831,9 +880,11 @@ function App() {
           onOpenPremiumBox={openPremiumBox}
           onPostComment={addComment}
           onPostLike={likePost}
+          onRewardAd={watchRewardAd}
           onShareOutfit={shareOutfit}
           onSnackAction={openSnackPurchase}
           posts={appState.communityPosts}
+          rewardAdCoins={getRewardAdCoinAmount()}
           snackInventory={appState.snackInventory}
         />
       )}

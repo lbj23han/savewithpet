@@ -1,8 +1,9 @@
-import { Heart, LockKeyhole, MessageCircle, Send } from "lucide-react";
+import { Coins, Heart, LockKeyhole, MessageCircle, PlayCircle, Send } from "lucide-react";
 import { useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 import { SHOP_COPY } from "../constants/copy";
+import { AdBannerSlot } from "../components/AdBannerSlot";
 import { PetItemArt } from "../components/PetItemArt";
 import {
   AI_CHARACTER_GENERATION_COUNT,
@@ -30,6 +31,7 @@ type ShopPageProps = {
   characters: CharacterShopItem[];
   coins: number;
   isAiCharacterGenerating: boolean;
+  isRewardAdLoading: boolean;
   items: ShopItemViewModel[];
   level: number;
   onAiCharacterBuy: () => void;
@@ -39,9 +41,11 @@ type ShopPageProps = {
   onOpenPremiumBox: () => void;
   onPostComment: (postId: string, message: string) => void;
   onPostLike: (postId: string) => void;
+  onRewardAd: () => void;
   onShareOutfit: () => void;
   onSnackAction: (itemId: string) => void;
   posts: CommunityPost[];
+  rewardAdCoins: number;
   snackInventory: Record<string, number>;
 };
 
@@ -50,6 +54,7 @@ export function ShopPage({
   characters,
   coins,
   isAiCharacterGenerating,
+  isRewardAdLoading,
   items,
   level,
   onAiCharacterBuy,
@@ -59,9 +64,11 @@ export function ShopPage({
   onOpenPremiumBox,
   onPostComment,
   onPostLike,
+  onRewardAd,
   onShareOutfit,
   onSnackAction,
   posts,
+  rewardAdCoins,
   snackInventory,
 }: ShopPageProps) {
   const [activeTab, setActiveTab] = useState<ShopTab>("wardrobe");
@@ -91,6 +98,20 @@ export function ShopPage({
           </Tab>
         ))}
       </Tabs>
+
+      <RewardAdPanel>
+        <RewardAdIcon>
+          <PlayCircle size={24} />
+        </RewardAdIcon>
+        <RewardAdCopy>
+          <strong>영상 보고 코인 받기</strong>
+          <span>끝까지 보면 {rewardAdCoins.toLocaleString("ko-KR")}코인을 받을 수 있어요.</span>
+        </RewardAdCopy>
+        <RewardAdButton disabled={isRewardAdLoading} onClick={onRewardAd}>
+          <Coins size={16} />
+          {isRewardAdLoading ? "확인 중" : `${rewardAdCoins.toLocaleString("ko-KR")}코인`}
+        </RewardAdButton>
+      </RewardAdPanel>
 
       {activeTab === "wardrobe" && (
         <ItemGrid>
@@ -260,6 +281,8 @@ export function ShopPage({
           )}
         </PostList>
       </CommunityPanel>
+
+      <AdBannerSlot placement="shop" />
     </Page>
   );
 }
@@ -316,6 +339,66 @@ const Tab = styled.button<{ $active: boolean }>`
   font-size: 14px;
   font-weight: ${({ $active }) => ($active ? "600" : "400")};
   box-shadow: ${({ $active }) => ($active ? "0 1px 3px rgba(0,0,0,0.08)" : "none")};
+`;
+
+const RewardAdPanel = styled.section`
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.lg};
+  background: linear-gradient(135deg, #fff7df 0%, #fff2f7 100%);
+  border: 1px solid ${({ theme }) => theme.colors.line};
+  border-radius: ${({ theme }) => theme.radius.xl};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+`;
+
+const RewardAdIcon = styled.div`
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.orangeDark};
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.radius.md};
+`;
+
+const RewardAdCopy = styled.div`
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.muted};
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+`;
+
+const RewardAdButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.colors.orange};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.55;
+  }
 `;
 
 const ItemGrid = styled.div`

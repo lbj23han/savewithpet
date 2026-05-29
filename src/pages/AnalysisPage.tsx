@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { useState } from "react";
 
+import { AdBannerSlot } from "../components/AdBannerSlot";
 import { Panel } from "../components/Panel";
 import { type AnalysisPeriod, createAnalysisViewModel } from "../domain/analysis";
 import { formatWon, getCurrentMonthPeriodLabel } from "../domain/ledger";
@@ -99,6 +100,8 @@ export function AnalysisPage({ budget, categories, entries }: AnalysisPageProps)
       </Panel>
 
       <MessageCard>{analysis.encouragement}</MessageCard>
+
+      <AdBannerSlot placement="analysis" />
     </Page>
   );
 }

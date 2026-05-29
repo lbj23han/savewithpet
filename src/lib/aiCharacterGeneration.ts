@@ -1,8 +1,11 @@
 import { getApiUrl } from "./apiBase";
+import { getSupabaseAccessToken } from "./supabase";
 
 export type AiCharacterGenerationResult = {
   imageUrl: string;
+  jobId?: string;
   name: string;
+  remainingCredits?: number;
   trait: string;
 };
 
@@ -11,15 +14,21 @@ export async function generateAiCharacter({
   imageDataUrl,
   mimeType,
 }: {
+  clientGenerationId?: string;
   fileName: string;
   imageDataUrl: string;
   mimeType: string;
 }): Promise<AiCharacterGenerationResult> {
+  const clientGenerationId = createClientGenerationId();
+  const accessToken = await getSupabaseAccessToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
   let response: Response;
   try {
     response = await fetch(getApiUrl("/api/ai-character"), {
-      body: JSON.stringify({ fileName, imageDataUrl, mimeType }),
-      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientGenerationId, fileName, imageDataUrl, mimeType }),
+      headers,
       method: "POST",
     });
   } catch {
@@ -31,7 +40,14 @@ export async function generateAiCharacter({
 
   return {
     imageUrl: payload.imageUrl,
+    jobId: payload.jobId,
     name: payload.name,
+    remainingCredits: typeof payload.remainingCredits === "number" ? payload.remainingCredits : undefined,
     trait: payload.trait,
   };
+}
+
+function createClientGenerationId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `ai-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }

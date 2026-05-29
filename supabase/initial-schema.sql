@@ -243,6 +243,7 @@ where provider_order_id is not null;
 create table if not exists public.ai_character_jobs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
+  client_id text,
   purchase_id uuid references public.purchases(id) on delete set null,
   source_photo_url text not null,
   prompt_version text not null default 'single-png-v1',
@@ -255,9 +256,57 @@ create table if not exists public.ai_character_jobs (
   updated_at timestamptz not null default now()
 );
 
+alter table public.ai_character_jobs add column if not exists client_id text;
 alter table public.ai_character_jobs add column if not exists prompt_version text not null default 'single-png-v1';
 alter table public.ai_character_jobs add column if not exists input_metadata jsonb not null default '{}'::jsonb;
 alter table public.ai_character_jobs add column if not exists result_image_url text;
+
+create unique index if not exists ai_character_jobs_user_client_id_idx
+on public.ai_character_jobs(user_id, client_id)
+where client_id is not null;
+
+create or replace function public.consume_ai_character_credit(target_user_id uuid)
+returns integer
+language plpgsql
+as $$
+declare
+  remaining_credits integer;
+begin
+  update public.profiles
+    set ai_character_credits = ai_character_credits - 1,
+        updated_at = now()
+    where id = target_user_id
+      and ai_character_credits > 0
+    returning ai_character_credits into remaining_credits;
+
+  if remaining_credits is null then
+    raise exception 'no_ai_character_credit';
+  end if;
+
+  return remaining_credits;
+end;
+$$;
+
+create or replace function public.refund_ai_character_credit(target_user_id uuid)
+returns integer
+language plpgsql
+as $$
+declare
+  remaining_credits integer;
+begin
+  update public.profiles
+    set ai_character_credits = ai_character_credits + 1,
+        updated_at = now()
+    where id = target_user_id
+    returning ai_character_credits into remaining_credits;
+
+  if remaining_credits is null then
+    raise exception 'missing_profile';
+  end if;
+
+  return remaining_credits;
+end;
+$$;
 
 drop trigger if exists set_ai_character_jobs_updated_at on public.ai_character_jobs;
 create trigger set_ai_character_jobs_updated_at

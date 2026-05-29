@@ -6,7 +6,7 @@ export type AdPlacementConfig = {
   unitId?: string;
 };
 
-export const AD_REWARD_COINS = 30;
+export const AD_REWARD_COINS = 100;
 
 export function getAdPlacementConfig(kind: AdPlacementKind): AdPlacementConfig {
   const unitId =

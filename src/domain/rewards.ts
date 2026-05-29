@@ -1,7 +1,9 @@
 import type { LedgerEntryDraft, RewardEvent } from "../types/app";
+import { AD_REWARD_COINS } from "./adPolicy";
 
 export const ATTENDANCE_REWARD_COINS = 20;
 export const ATTENDANCE_REWARD_LABEL = "출석 보상";
+export const REWARD_AD_LABEL = "영상 광고 보상";
 
 function getRewardDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -26,6 +28,15 @@ export function createAttendanceReward(date = new Date()): RewardEvent {
     id: `attendance-${dateKey}-${Date.now()}`,
     label: ATTENDANCE_REWARD_LABEL,
     coins: ATTENDANCE_REWARD_COINS,
+    createdAt: date.toISOString(),
+  };
+}
+
+export function createRewardAdReward(date = new Date()): RewardEvent {
+  return {
+    id: `reward-ad-${date.getTime()}-${Math.round(Math.random() * 1000)}`,
+    label: REWARD_AD_LABEL,
+    coins: AD_REWARD_COINS,
     createdAt: date.toISOString(),
   };
 }

@@ -31,6 +31,22 @@ export async function saveAppStateToCloud(state: PersistedAppState): Promise<Clo
   }
 }
 
+export async function loadCloudAiCharacterCredits(): Promise<number | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+
+  const userId = await ensureSupabaseUserId();
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("ai_character_credits")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return typeof data?.ai_character_credits === "number" ? data.ai_character_credits : null;
+}
+
 async function upsertProfile(userId: string, state: PersistedAppState): Promise<void> {
   if (!supabase) return;
 
