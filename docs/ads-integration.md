@@ -5,8 +5,8 @@
 ## Env
 
 ```bash
-VITE_AD_BANNER_UNIT_ID=
-VITE_AD_REWARD_UNIT_ID=
+VITE_AD_BANNER_UNIT_ID=ait.v2.live.40145900ff404573
+VITE_AD_REWARD_UNIT_ID=ait.v2.live.cf2b6c321a3f4d33
 ```
 
 ## Policy
@@ -19,8 +19,8 @@ VITE_AD_REWARD_UNIT_ID=
 ## Current Code
 
 - `src/domain/adPolicy.ts`: 광고 unit id와 보상 정책
-- `src/lib/adIntegration.ts`: 광고 SDK 연결 전 disabled stub
-- `src/components/AdBannerSlot.tsx`: 배너 unit id가 있을 때 노출되는 배너 슬롯
+- `src/lib/adIntegration.ts`: Apps in Toss GoogleAdMob 리워드 광고 load/show 연결
+- `src/components/AdBannerSlot.tsx`: TossAds 배너 슬롯 attach
 - `src/pages/ShopPage.tsx`: 영상 광고 보상 CTA
 
-광고 SDK가 확정되면 `showRewardAd()` 내부에서 SDK 호출 후 completed 상태만 코인 지급으로 연결합니다.
+리워드 광고는 `userEarnedReward` 이벤트가 발생한 경우에만 코인을 지급합니다.

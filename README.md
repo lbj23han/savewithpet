@@ -73,8 +73,8 @@ VITE_AUTH_ENABLED=true
 VITE_SUPABASE_URL=https://xiyrggeyckhmxpkesswj.supabase.co
 VITE_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-VITE_AD_BANNER_UNIT_ID=
-VITE_AD_REWARD_UNIT_ID=
+VITE_AD_BANNER_UNIT_ID=ait.v2.live.40145900ff404573
+VITE_AD_REWARD_UNIT_ID=ait.v2.live.cf2b6c321a3f4d33
 VITE_TOSS_LOGIN_CLIENT_ID=
 VITE_IAP_AI_CHARACTER_SKU=
 VITE_IAP_AI_CHARACTER_PACK_SKU=
@@ -386,7 +386,7 @@ backdrop item layer
 8dfbcee Fix AI character render bug and add generation progress UI
 ```
 
-최신 AIT 아티팩트: `savewithpet.ait` (appName=`savewithpet`, version=`1.0.0`, deploymentId=`019e72ae-825b-7c7d-ad16-c03e9511b210`).
+최신 AIT 아티팩트: `savewithpet.ait` (appName=`savewithpet`, version=`1.0.0`, deploymentId=`019e78eb-aa06-7b97-9b6c-e7ff24c0beea`).
 
 ### 0. Claude 인수인계: 현재 필수 수정 사항
 
