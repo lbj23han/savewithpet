@@ -340,7 +340,39 @@ backdrop item layer
 - `visualLayers`
 - `sourcePhotoUrl`
 
-## Next Actions (출시 순서)
+## Next Actions (출시 이후)
+
+### 다음 릴리즈 TODO (2026-05-31 기준)
+
+v1.0은 이미 출시된 상태입니다. 다음 배포는 새 기능을 크게 늘리기보다 결제, AI 생성, 광고, 서버 동기화가 실제 사용자 환경에서 흔들리지 않도록 운영 안정성을 먼저 올립니다.
+
+#### P0: 운영 안정화
+
+- [ ] Supabase SQL Editor에서 `supabase/initial-schema.sql` 재실행 후 `consume_ai_character_credit`, `refund_ai_character_credit`, `ai_character_jobs_user_client_id_idx`, `purchases_provider_order_id_idx` 생성 확인
+- [ ] Vercel/AIT 환경변수 동기화 확인: `VITE_API_BASE`, `VITE_AUTH_ENABLED`, Supabase, Toss mTLS/decrypt, OpenAI, 광고 ID
+- [ ] 실기기 Toss WebView에서 로그인 -> 온보딩 -> 홈 진입 smoke QA
+- [ ] IAP 2회권/5회권 결제 -> `purchases.status = paid` -> `profiles.ai_character_credits` 증가 확인
+- [ ] AI 생성 1회 사용 -> `ai_character_jobs.status = succeeded`, Storage URL, 홈 캐릭터 반영, 생성권 1회 감소 확인
+- [ ] OpenAI/Storage 실패 시 생성권 환불 및 실패 job 기록 확인
+- [ ] 리워드 광고는 `userEarnedReward` 이벤트에서만 100코인 지급되는지 확인
+- [ ] 배너 광고가 상점/분석 하단에서 레이아웃 깨짐 없이 노출되는지 확인
+- [ ] Vercel logs에서 `/api/ai-character`, `/api/iap/grant`, `/api/auth/toss-login` 오류율 확인
+
+#### P1: v1.1 제품 개선
+
+- [ ] 리워드 광고 일일 제한/쿨타임을 서버 기준으로 보강
+- [ ] 앱 재진입 시 진행 중인 AI 생성 job을 다시 보여주는 pending recovery UX 추가
+- [ ] 결제-생성권 reconcile용 운영 SQL 또는 간단한 admin 점검 문서 추가
+- [ ] `우리 애 좀 보세요` 커뮤니티 게시글/댓글/좋아요를 Supabase API 기준으로 완전 전환
+- [ ] 부적절 사진/생성 결과 필터링 정책과 신고/삭제 운영 플로우 정리
+- [ ] Sentry 또는 Vercel 로그 기반 에러 모니터링 루틴 도입
+
+#### P2: 콘텐츠/성장
+
+- [ ] 간식/꾸미기 아이템 추가와 가격 밸런스 조정
+- [ ] 캐릭터 레벨별 보상 또는 성장 연출 추가
+- [ ] 배너 위치별 수익/이탈 영향 체크 후 배치 조정
+- [ ] 앱 소개 이미지, 제출용 스크린샷, 운영 문서 최신화
 
 ### v1.1 작업 메모 — 결제/AI 생성 안정화
 
@@ -358,14 +390,14 @@ backdrop item layer
 - 광고 UI 준비: 상점에 `영상 보고 코인 받기` CTA를 추가하고 리워드 보상을 100코인으로 조정했습니다.
 - 광고 UI 준비: 배너 슬롯은 상점/분석 하단에 배치했고, `VITE_AD_BANNER_UNIT_ID`가 없으면 프로덕션에서는 숨깁니다.
 
-배포 전 필수:
+운영 반영 확인:
 
 - Supabase SQL Editor에서 `supabase/initial-schema.sql` 재실행
-- `ai_character_jobs.client_id`, `ai_character_jobs_user_client_id_idx`, `consume_ai_character_credit`, `refund_ai_character_credit` 생성 확인
+- `ai_character_jobs.client_id`, `ai_character_jobs_user_client_id_idx`, `consume_ai_character_credit`, `refund_ai_character_credit`, `purchases_provider_order_id_idx` 생성 확인
 - `pet-characters` Storage bucket이 public이고 insert policy가 살아있는지 확인
 - 실기기에서 생성권 1회 차감, OpenAI 실패 시 환불, 생성 성공 후 `profiles.ai_character_credits` 감소와 `ai_character_jobs.status = succeeded` 확인
 
-**v1.0 출시 직전 상태** — 코드/AIT 빌드는 모두 완료, 남은 작업은 실기기 QA와 배포 환경 변수 적용입니다.
+**v1.0 출시 전 완료 기록** — 아래 내용은 출시 직전 작업 로그입니다. 현재 다음 우선순위는 위의 `다음 릴리즈 TODO`를 기준으로 봅니다.
 
 이번 v1.0 작업 요약:
 
@@ -541,15 +573,13 @@ AIT 배포:
 
 ## v1.1 Backlog (다음 버전 TODO)
 
-v1.0 출시 후 정리할 후속 작업과 보류한 기능을 모아둡니다. 우선순위는 사용자 피드백 받고 재조정합니다.
+v1.0 출시 후 정리할 후속 작업과 보류한 기능을 모아둡니다. 최신 우선순위는 위 `다음 릴리즈 TODO`가 기준이며, 아래는 세부 후보 목록입니다.
 
 ### Interaction polish
 
-- [ ] **메인 캐릭터 터치 시 하트/별/반짝임 랜덤 이펙트** (이번 세션에서 보류)
-  - 변경 위치: `src/components/PetStage.tsx` — Character 영역에 `onClick` 추가, `FloatingEffect` 자식 컴포넌트 분리
-  - 패턴: 클릭 시점마다 ID 발급 → `{id, emoji, offsetX, rotate}` state 배열 → 1.2초 keyframe(`translateY(-40px)` + `opacity 1→0`) 후 자동 제거
-  - 추천: 하트 ❤ / 별 ✨ / 음표 🎵 중 랜덤, 좌우 ±30px 오프셋, 회전각 ±15°
-  - 친밀도 보상 연결은 어뷰징 방지 cooldown(예: 15분당 1회) 정책 확정 후 별도 작업
+- [x] **메인 캐릭터 터치 시 하트/별/반짝임 랜덤 이펙트**
+  - 현재 구현 위치: `src/pages/HomePage.tsx`
+  - 후속 후보: 친밀도 보상 연결은 어뷰징 방지 cooldown(예: 15분당 1회) 정책 확정 후 별도 작업
 
 ### Quality / UX
 
@@ -666,7 +696,7 @@ v1.0 출시 후 정리할 후속 작업과 보류한 기능을 모아둡니다. 
 - [ ] 비접촉형 아이템 퀄리티 개선: 방석, 배경, 오라, 스티커, 새싹, 코인
 - [ ] 판매용 배경 아이템 PNG 에셋 제작/교체
 - [ ] AI 생성 중 로딩, 실패, 재시도, 결제 실패 UX 정리
-- [x] 배너/리워드 광고 unit id env와 disabled stub 준비
+- [x] 배너/리워드 광고 ID 및 Apps in Toss SDK 연결
 - [x] Toss Login 실 연동: `appLogin()` SDK + `/api/auth/toss-login` + profiles 연결 ([docs/toss-login.md](docs/toss-login.md))
 - [ ] 코디 공유/커뮤니티 MVP 흐름 확인
 - [ ] 이미지 용량 최적화와 캐시 정책 검토
@@ -691,6 +721,7 @@ v1.0 출시 후 정리할 후속 작업과 보류한 기능을 모아둡니다. 
 - 장부: 지출/수입/저축 기록, 카테고리, 메모, 수정/삭제
 - 분석: 월간 소비 분석, 카테고리별 요약, 예산 상태
 - 상점: 옷장/간식/캐릭터 상점, 비접촉형 꾸미기 아이템 구매, AI 생성권 결제(2회 550원/5회 1,100원), 프리미엄 상자 비활성
+- 광고: 리워드 광고 100코인 보상, 상점/분석 배너 슬롯
 - 설정: 예산/데이터 관리, 캐릭터 컬렉션(이름 옆 `Lv.` 표시), 전환
 - 캐릭터 레벨: 캐릭터별 독립 레벨, 장부 기록 시 현재 캐릭터 +1, 최대 Lv.99
 - 커뮤니티 MVP: `우리 애 좀 보세요` 게시판, 좋아요, 댓글
