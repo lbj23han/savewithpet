@@ -13,6 +13,7 @@ import {
   createAttendanceReward,
   createEntryReward,
   createRewardAdReward,
+  getRewardAdClaimState,
   hasClaimedAttendanceReward,
 } from "./domain/rewards";
 import { createShopItemViewModels, openPremiumBox as resolvePremiumBox } from "./domain/shop";
@@ -121,6 +122,7 @@ function App() {
     };
   });
   const hasClaimedAttendance = hasClaimedAttendanceReward(appState.rewardEvents);
+  const rewardAdClaimState = getRewardAdClaimState(appState.rewardEvents);
 
   useEffect(() => {
     saveAppState(appState);
@@ -593,6 +595,11 @@ function App() {
 
   const watchRewardAd = () => {
     if (isRewardAdLoading) return;
+    const claimState = getRewardAdClaimState(appState.rewardEvents);
+    if (!claimState.canClaim) {
+      setToastMessage(claimState.message);
+      return;
+    }
 
     setIsRewardAdLoading(true);
     void showRewardAd()
@@ -884,7 +891,10 @@ function App() {
           onShareOutfit={shareOutfit}
           onSnackAction={openSnackPurchase}
           posts={appState.communityPosts}
+          rewardAdCanClaim={rewardAdClaimState.canClaim}
           rewardAdCoins={getRewardAdCoinAmount()}
+          rewardAdClaimLabel={rewardAdClaimState.message}
+          rewardAdRemainingToday={rewardAdClaimState.remainingToday}
           snackInventory={appState.snackInventory}
         />
       )}

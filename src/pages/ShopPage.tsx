@@ -45,7 +45,10 @@ type ShopPageProps = {
   onShareOutfit: () => void;
   onSnackAction: (itemId: string) => void;
   posts: CommunityPost[];
+  rewardAdCanClaim: boolean;
   rewardAdCoins: number;
+  rewardAdClaimLabel: string;
+  rewardAdRemainingToday: number;
   snackInventory: Record<string, number>;
 };
 
@@ -68,7 +71,10 @@ export function ShopPage({
   onShareOutfit,
   onSnackAction,
   posts,
+  rewardAdCanClaim,
   rewardAdCoins,
+  rewardAdClaimLabel,
+  rewardAdRemainingToday,
   snackInventory,
 }: ShopPageProps) {
   const [activeTab, setActiveTab] = useState<ShopTab>("wardrobe");
@@ -105,11 +111,15 @@ export function ShopPage({
         </RewardAdIcon>
         <RewardAdCopy>
           <strong>영상 보고 코인 받기</strong>
-          <span>끝까지 보면 {rewardAdCoins.toLocaleString("ko-KR")}코인을 받을 수 있어요.</span>
+          <span>
+            {rewardAdCanClaim
+              ? `끝까지 보면 ${rewardAdCoins.toLocaleString("ko-KR")}코인을 받을 수 있어요 · 오늘 ${rewardAdRemainingToday}회 남음`
+              : rewardAdClaimLabel}
+          </span>
         </RewardAdCopy>
-        <RewardAdButton disabled={isRewardAdLoading} onClick={onRewardAd}>
+        <RewardAdButton disabled={isRewardAdLoading || !rewardAdCanClaim} onClick={onRewardAd}>
           <Coins size={16} />
-          {isRewardAdLoading ? "확인 중" : `${rewardAdCoins.toLocaleString("ko-KR")}코인`}
+          {isRewardAdLoading ? "확인 중" : rewardAdCanClaim ? `${rewardAdCoins.toLocaleString("ko-KR")}코인` : "대기 중"}
         </RewardAdButton>
       </RewardAdPanel>
 

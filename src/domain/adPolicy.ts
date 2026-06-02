@@ -9,6 +9,8 @@ export type AdPlacementConfig = {
 export const AD_BANNER_UNIT_ID = "ait.v2.live.40145900ff404573";
 export const AD_REWARD_UNIT_ID = "ait.v2.live.cf2b6c321a3f4d33";
 export const AD_REWARD_COINS = 100;
+export const AD_REWARD_DAILY_LIMIT = 5;
+export const AD_REWARD_COOLDOWN_MINUTES = 30;
 
 export function getAdPlacementConfig(kind: AdPlacementKind): AdPlacementConfig {
   const unitId =
